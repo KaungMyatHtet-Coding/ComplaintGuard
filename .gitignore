@@ -1,0 +1,89 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+serviceAccount*.json
+firebase-adminsdk*.json
+
+# JavaScript / Next.js
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+.vercel/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local data: never commit the raw CFPB dataset
+data/raw/
+data/external/
+data/interim/
+data/downloads/
+*.csv
+*.parquet
+*.feather
+*.arrow
+*.zip
+*.gz
+*.7z
+
+# Explicitly allow future small reviewed samples/mappings when intentionally added
+!data/mapping/*.csv
+!data/mapping/*.json
+!data/processed/*.csv
+!data/processed/*.parquet
+!data/processed/*.json
+
+# Generated model artifacts (allow only by deliberate force-add/review)
+*.joblib
+*.pickle
+*.pkl
+*.onnx
+*.safetensors
+
+# Firebase local state and emulators
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log
+firebase/.runtimeconfig.json
+firebase/emulator-data/
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+*.tmp
+*.bak
