@@ -1,16 +1,15 @@
-# Day 1 Task Board
+# Project Task Board
 
-This lightweight board replaces external task-board setup while one developer is active. Future work stays in `PROJECT_PLAN.md`; this file tracks Day 1 only.
+This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` remains the schedule and source of truth.
 
 ## Backlog
 
 - Confirm which official team members, if any, will review or present later.
 - Choose the repository remote/hosting organization when collaboration begins.
-- Choose the Firebase project owner account on Day 2; keep it on Spark with billing disabled.
 
 ## In Progress
 
-- Final Day 1 owner verification of scope and local environment notes.
+- Final owner review of Day 2 documentation and generated frontend.
 
 ## Review
 
@@ -18,15 +17,29 @@ This lightweight board replaces external task-board setup while one developer is
 
 ## Done
 
-- Read `PROJECT_PLAN.md` completely and treat it as the source of truth.
-- Freeze the ComplaintGuard title, problem, users, and six departments.
-- Freeze must-have and out-of-scope features for the single-developer MVP.
-- Confirm Git repository exists.
-- Create the planned repository directory structure without implementation code.
-- Record one active developer as owner of all current work with self-review checkpoints.
-- Review all created files, required paths, ignore behavior, and placeholder configuration.
-- Scan the Day 1 repository for likely committed secrets; none were found.
+### Day 1
 
-## Day 1 completion rule
+- Read `PROJECT_PLAN.md` and freeze the title, problem, users, departments, must-haves, and exclusions.
+- Create the Git repository structure, root README, scope, task board, safe ignore rules, and placeholder environment template.
+- Record one active developer as owner with self-review checkpoints.
 
-Move the owner-verification item to Done only after the developer confirms the documented scope, environment inventory, and file contents. No dependency installation or implementation belongs to Day 1.
+### Day 2
+
+- Confirm `D:\ComplaintGuard` and branch `chore/day-2-architecture` before changes.
+- Audit the installed local software without installing dependencies first.
+- Scaffold the npm-based Next.js frontend with TypeScript, App Router, Tailwind CSS, ESLint, and `src`.
+- Keep the generated page as a simple environment-ready placeholder with no ComplaintGuard features.
+- Create and verify the root Python 3.12 `.venv`.
+- Record lightweight future Python development dependencies without installing them.
+- Document the zero-cost architecture, offline training flow, live prediction flow, data boundaries, and free-tier limitations.
+- Document local setup and Windows PowerShell troubleshooting.
+- Verify the frontend with ESLint, a production build, and an HTTP 200 development-server response.
+- Confirm `.venv`, `node_modules`, `.next`, local environment files, and raw CFPB data are ignored.
+- Review all Day 2 files and scan trackable content for likely secrets; none were found.
+- Record the unresolved moderate transitive PostCSS advisory without applying npm's breaking forced downgrade.
+- Confirm the Firebase project is on Spark with no billing account attached.
+- Confirm free Vercel and Hugging Face account logins work.
+
+## Day 2 completion rule
+
+Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

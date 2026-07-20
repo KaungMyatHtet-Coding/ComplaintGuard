@@ -2,7 +2,7 @@
 
 ## Source of Truth and Current Phase
 
-`PROJECT_PLAN.md` is the source of truth for scope, architecture, schedule, and success criteria. The project is currently in Day 1 planning and setup. Do not add application code, package manifests, generated notebooks, Firebase rules, or model artifacts until their scheduled day.
+`PROJECT_PLAN.md` is the source of truth for scope, architecture, schedule, and success criteria. The project is currently in Day 2 environment and architecture setup. Do not start dataset work, ML implementation/training, Firebase integration, authentication, complaint features, generated notebooks, Firebase rules, or model artifacts until their scheduled day.
 
 One developer is currently active even though the official team has five members. Optimize decisions for a small, demonstrable MVP and a short deadline. The active developer owns each task and performs a documented self-review before marking it done; the other official members may review or present later but are not assumed to be available for implementation.
 
@@ -32,11 +32,11 @@ Keep tests close to their component (`frontend/**/__tests__/`) or in service-lev
 
 ## Planned Commands
 
-No executable project or package configuration exists on Day 1. The following are conventions only and must not be described as working until their configuration is committed and verified:
+The frontend scaffold exists from Day 2. Describe commands as verified only after running them successfully in the current worktree:
 
 - `cd frontend && npm run dev`: planned frontend development server.
 - `cd frontend && npm run lint`: planned frontend lint checks.
-- `cd frontend && npm test`: planned frontend tests.
+- `cd frontend && npm test`: planned frontend tests; no test script exists on Day 2.
 - `cd ml-api && uvicorn app.main:app --reload`: planned FastAPI service.
 - `cd ml-api && pytest`: planned API and ML tests.
 

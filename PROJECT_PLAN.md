@@ -266,12 +266,12 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 ### Day 2 — Tuesday, 21 July: Environment and architecture
 
-- [ ] Frontend/backend/ML local environments setup လုပ်ရန်
-- [ ] Next.js starter run ရန်
-- [ ] Python virtual environment နှင့် dependencies setup ရန်
-- [ ] Firebase project ကို Spark plan ဖြင့်ဖန်တီးရန်
-- [ ] Hugging Face နှင့် Vercel free accounts စစ်ဆေးရန်
-- [ ] Architecture diagram နှင့် data flow ရေးရန်
+- [x] Frontend/backend/ML local environments setup လုပ်ရန်
+- [x] Next.js starter run ရန်
+- [x] Python virtual environment နှင့် dependencies setup ရန်
+- [x] Firebase project ကို Spark plan ဖြင့်ဖန်တီးရန်
+- [x] Hugging Face နှင့် Vercel free accounts စစ်ဆေးရန်
+- [x] Architecture diagram နှင့် data flow ရေးရန်
 
 **End-of-day deliverable:** Every member can run the starter project locally.
 
