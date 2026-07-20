@@ -1,0 +1,5 @@
+# Lightweight development dependencies for future Python work.
+# Day 2 creates the virtual environment but installs nothing because no Python
+# implementation or tests exist yet.
+pytest>=8.3,<9
+ruff>=0.12,<1
