@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function currentUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function activeRole(role) {
+      return signedIn()
+        && currentUser().data.active == true
+        && currentUser().data.role == role;
+    }
+
+    function isManager() {
+      return activeRole('manager');
+    }
+
+    function isAdmin() {
+      return activeRole('admin');
+    }
+
+    function ownsTicket(ticket) {
+      return signedIn() && ticket.data.customerId == request.auth.uid;
+    }
+
+    function staffForTicket(ticket) {
+      return activeRole('staff')
+        && currentUser().data.departmentId is string
+        && currentUser().data.departmentId == ticket.data.departmentId;
+    }
+
+    function parentTicket(ticketId) {
+      return get(/databases/$(database)/documents/tickets/$(ticketId));
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      // Profile and authorization changes require a trusted backend. This avoids
+      // client escalation through role, departmentId, or active fields.
+      allow create, update, delete: if false;
+    }
+
+    match /departments/{departmentId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if ownsTicket(resource)
+        || staffForTicket(resource)
+        || isManager();
+
+      // Creation and controlled changes pass through trusted server code for
+      // ownership binding, PII redaction, lifecycle checks, and audit writes.
+      allow create, update, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if ownsTicket(parentTicket(ticketId))
+          || staffForTicket(parentTicket(ticketId))
+          || isManager();
+        allow create, update, delete: if false;
+      }
+
+      match /events/{eventId} {
+        allow read: if staffForTicket(parentTicket(ticketId))
+          || isManager();
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /dashboardSummaries/{summaryId} {
+      allow read: if isManager() || isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

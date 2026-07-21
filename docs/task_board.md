@@ -6,6 +6,7 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 
 - Confirm which official team members, if any, will review or present later.
 - Choose the repository remote/hosting organization when collaboration begins.
+- Approve a configurable complaint-text retention and deletion period before production deployment.
 
 ## In Progress
 
@@ -50,6 +51,17 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - Document the source data dictionary and reproducible local data procedure.
 - Record the initial mapping approach without creating the mapping or starting cleaning/model work.
 - Perform the owner self-review and retain all Day 3 changes uncommitted for review.
+
+### Day 4
+
+- Define and owner-approve the Firestore operational schema, collection relationships, source-of-truth boundaries, and complaint lifecycle.
+- Define and owner-approve the customer, staff, manager, and admin access matrix.
+- Create and owner-approve deny-by-default initial Firestore development rules with explicit authenticated, ownership, department, and role checks.
+- Create and owner-approve implementation-neutral Customer, Staff, and Manager wireframes with responsive and loading, empty, and error states.
+- Define and owner-approve English/Myanmar translation-key namespaces with English fallback.
+- Verify cross-document consistency, privacy boundaries, stable department IDs, ignore rules, tracked-data boundaries, and diff formatting.
+- Retain the unresolved production retention period as a required pre-deployment decision; it does not block the Day 4 design milestone.
+- Record that Firebase CLI and emulator tooling remain unavailable, so the rules are not compiled, emulator-tested, or production-approved.
 
 ## Day 2 completion rule
 
