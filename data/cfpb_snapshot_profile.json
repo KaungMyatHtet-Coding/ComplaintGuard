@@ -1,0 +1,397 @@
+{
+  "generated_at_utc": "2026-07-21T10:03:04.896445+00:00",
+  "generator": "scripts/profile_cfpb.py",
+  "python_version": "3.12.0",
+  "pandas_version": "2.2.3",
+  "archive": {
+    "path": "data/raw/cfpb/complaints.csv.zip",
+    "size_bytes": 1420663360,
+    "sha256": "2bdb13b1e412c6b659a94f74874d03ef6f610543b0d8e6538c7e30d1dd3d8eea",
+    "zip_testzip_result": null,
+    "member": "complaints.csv",
+    "member_compressed_bytes": 1420663194,
+    "member_uncompressed_bytes": 9097134981,
+    "member_crc32": "8b13cd44"
+  },
+  "csv": {
+    "path": "data/raw/cfpb/complaints.csv",
+    "size_bytes": 9097134981,
+    "row_count": 17034951,
+    "column_count": 16,
+    "columns": [
+      "Date received",
+      "Product",
+      "Sub-product",
+      "Issue",
+      "Sub-issue",
+      "Consumer complaint narrative",
+      "Company public response",
+      "Company",
+      "State",
+      "ZIP code",
+      "Tags",
+      "Submitted via",
+      "Date sent to company",
+      "Company response to consumer",
+      "Timely response?",
+      "Complaint ID"
+    ],
+    "chunk_size": 100000,
+    "chunks_processed": 171,
+    "parser_dtype": "pandas StringDtype for lossless profiling",
+    "logical_types": {
+      "Date received": "date",
+      "Product": "string/categorical",
+      "Sub-product": "string/categorical",
+      "Issue": "string/categorical",
+      "Sub-issue": "string/categorical",
+      "Consumer complaint narrative": "text",
+      "Company public response": "text",
+      "Company": "string/categorical",
+      "State": "string/categorical",
+      "ZIP code": "string identifier",
+      "Tags": "string/categorical",
+      "Submitted via": "string/categorical",
+      "Date sent to company": "date",
+      "Company response to consumer": "string/categorical",
+      "Timely response?": "string/categorical",
+      "Complaint ID": "integer identifier"
+    },
+    "missing": {
+      "Date received": {
+        "count": 0,
+        "percent": 0.0
+      },
+      "Product": {
+        "count": 188,
+        "percent": 0.0011
+      },
+      "Sub-product": {
+        "count": 235505,
+        "percent": 1.3825
+      },
+      "Issue": {
+        "count": 248,
+        "percent": 0.0015
+      },
+      "Sub-issue": {
+        "count": 929418,
+        "percent": 5.4559
+      },
+      "Consumer complaint narrative": {
+        "count": 13211538,
+        "percent": 77.5555
+      },
+      "Company public response": {
+        "count": 8010319,
+        "percent": 47.0228
+      },
+      "Company": {
+        "count": 0,
+        "percent": 0.0
+      },
+      "State": {
+        "count": 62823,
+        "percent": 0.3688
+      },
+      "ZIP code": {
+        "count": 2289,
+        "percent": 0.0134
+      },
+      "Tags": {
+        "count": 16244349,
+        "percent": 95.3589
+      },
+      "Submitted via": {
+        "count": 0,
+        "percent": 0.0
+      },
+      "Date sent to company": {
+        "count": 102934,
+        "percent": 0.6043
+      },
+      "Company response to consumer": {
+        "count": 465209,
+        "percent": 2.7309
+      },
+      "Timely response?": {
+        "count": 0,
+        "percent": 0.0
+      },
+      "Complaint ID": {
+        "count": 2135,
+        "percent": 0.0125
+      }
+    },
+    "date_range": {
+      "Date received": {
+        "min": "2011-12-01",
+        "max": "2026-07-20"
+      },
+      "Date sent to company": {
+        "min": "2011-12-01",
+        "max": "2026-07-20"
+      }
+    },
+    "complaint_id_range": {
+      "min": 1,
+      "max": 24372463
+    },
+    "safe_distributions": {
+      "Product": {
+        "distinct_non_null": 23,
+        "top_20": [
+          {
+            "value": "Credit reporting or other personal consumer reports",
+            "count": 11506476
+          },
+          {
+            "value": "Credit reporting, credit repair services, or other personal consumer reports",
+            "count": 2163780
+          },
+          {
+            "value": "Debt collection",
+            "count": 1187982
+          },
+          {
+            "value": "Mortgage",
+            "count": 457392
+          },
+          {
+            "value": "Checking or savings account",
+            "count": 387555
+          },
+          {
+            "value": "Credit card",
+            "count": 334082
+          },
+          {
+            "value": "Credit card or prepaid card",
+            "count": 206358
+          },
+          {
+            "value": "Money transfer, virtual currency, or money service",
+            "count": 188481
+          },
+          {
+            "value": "Credit reporting",
+            "count": 140426
+          },
+          {
+            "value": "Student loan",
+            "count": 131453
+          },
+          {
+            "value": "Vehicle loan or lease",
+            "count": 101158
+          },
+          {
+            "value": "Bank account or service",
+            "count": 86198
+          },
+          {
+            "value": "Payday loan, title loan, personal loan, or advance loan",
+            "count": 35997
+          },
+          {
+            "value": "Consumer Loan",
+            "count": 31560
+          },
+          {
+            "value": "Payday loan, title loan, or personal loan",
+            "count": 30622
+          },
+          {
+            "value": "Prepaid card",
+            "count": 23002
+          },
+          {
+            "value": "Debt or credit management",
+            "count": 10168
+          },
+          {
+            "value": "Payday loan",
+            "count": 5528
+          },
+          {
+            "value": "Money transfers",
+            "count": 5354
+          },
+          {
+            "value": "Other financial service",
+            "count": 1056
+          }
+        ]
+      },
+      "Issue": {
+        "distinct_non_null": 180,
+        "top_20": [
+          {
+            "value": "Incorrect information on your report",
+            "count": 7591442
+          },
+          {
+            "value": "Improper use of your report",
+            "count": 3281585
+          },
+          {
+            "value": "Problem with a company's investigation into an existing problem",
+            "count": 2157115
+          },
+          {
+            "value": "Problem with a credit reporting company's investigation into an existing problem",
+            "count": 589321
+          },
+          {
+            "value": "Attempts to collect debt not owed",
+            "count": 475751
+          },
+          {
+            "value": "Written notification about debt",
+            "count": 228283
+          },
+          {
+            "value": "Managing an account",
+            "count": 226477
+          },
+          {
+            "value": "Took or threatened to take negative or legal action",
+            "count": 152435
+          },
+          {
+            "value": "False statements or representation",
+            "count": 119996
+          },
+          {
+            "value": "Loan modification,collection,foreclosure",
+            "count": 112297
+          },
+          {
+            "value": "Trouble during payment process",
+            "count": 111615
+          },
+          {
+            "value": "Problem with a purchase shown on your statement",
+            "count": 109353
+          },
+          {
+            "value": "Incorrect information on credit report",
+            "count": 102681
+          },
+          {
+            "value": "Communication tactics",
+            "count": 77988
+          },
+          {
+            "value": "Loan servicing, payments, escrow account",
+            "count": 77310
+          },
+          {
+            "value": "Other transaction problem",
+            "count": 71108
+          },
+          {
+            "value": "Dealing with your lender or servicer",
+            "count": 64453
+          },
+          {
+            "value": "Unable to get your credit report or credit score",
+            "count": 62611
+          },
+          {
+            "value": "Struggling to pay mortgage",
+            "count": 62233
+          },
+          {
+            "value": "Cont'd attempts collect debt not owed",
+            "count": 60520
+          }
+        ]
+      },
+      "Submitted via": {
+        "distinct_non_null": 6,
+        "top_20": [
+          {
+            "value": "Web",
+            "count": 16399692
+          },
+          {
+            "value": "Referral",
+            "count": 278174
+          },
+          {
+            "value": "Phone",
+            "count": 219857
+          },
+          {
+            "value": "Postal mail",
+            "count": 111147
+          },
+          {
+            "value": "Fax",
+            "count": 25645
+          },
+          {
+            "value": "Email",
+            "count": 436
+          }
+        ]
+      },
+      "Company response to consumer": {
+        "distinct_non_null": 8,
+        "top_20": [
+          {
+            "value": "Closed with explanation",
+            "count": 10144940
+          },
+          {
+            "value": "Closed with non-monetary relief",
+            "count": 5553049
+          },
+          {
+            "value": "In progress",
+            "count": 587504
+          },
+          {
+            "value": "Closed with monetary relief",
+            "count": 212621
+          },
+          {
+            "value": "Untimely response",
+            "count": 30846
+          },
+          {
+            "value": "Closed without relief",
+            "count": 17867
+          },
+          {
+            "value": "Closed",
+            "count": 17611
+          },
+          {
+            "value": "Closed with relief",
+            "count": 5304
+          }
+        ]
+      },
+      "Timely response?": {
+        "distinct_non_null": 2,
+        "top_20": [
+          {
+            "value": "Yes",
+            "count": 16930607
+          },
+          {
+            "value": "No",
+            "count": 104344
+          }
+        ]
+      }
+    }
+  },
+  "privacy": {
+    "complaint_level_records_written": false,
+    "narrative_values_written": false,
+    "notes": "Only aggregate counts and non-narrative categorical labels are emitted."
+  }
+}

@@ -277,12 +277,12 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 ### Day 3 — Wednesday, 22 July: Dataset acquisition and data dictionary
 
-- [ ] CFPB dataset download ရန်
-- [ ] Raw dataset ကိုမပြောင်းဘဲ backup copy ထားရန်
-- [ ] Dataset size, row count, columns, types, missing values စစ်ရန်
-- [ ] Project တွင်အသုံးပြုမည့် columns သတ်မှတ်ရန်
-- [ ] Data dictionary ရေးရန်
-- [ ] Initial class mapping discussion ပြုလုပ်ရန်
+- [x] CFPB dataset download ရန်
+- [x] Raw dataset ကိုမပြောင်းဘဲ backup copy ထားရန်
+- [x] Dataset size, row count, columns, types, missing values စစ်ရန်
+- [x] Project တွင်အသုံးပြုမည့် columns သတ်မှတ်ရန်
+- [x] Data dictionary ရေးရန်
+- [x] Initial class mapping discussion ပြုလုပ်ရန်
 
 **End-of-day deliverable:** Raw dataset, data profile and data dictionary.
 
