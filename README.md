@@ -2,7 +2,7 @@
 
 ComplaintGuard is a planned bilingual web system that accepts financial-service complaints in English or Myanmar, classifies them with TF-IDF and Multinomial Naive Bayes, and routes them to an appropriate support department. Customers track tickets, department staff process assigned complaints, and managers view a small operational dashboard.
 
-The repository is currently at **Day 2: environment and architecture**. It contains a minimal Next.js foundation but no ComplaintGuard features, Firebase integration, dataset processing, ML implementation, or FastAPI service yet. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the full schedule, [`docs/project_scope.md`](docs/project_scope.md) for the frozen MVP scope, and [`docs/architecture.md`](docs/architecture.md) for the system design.
+The repository has completed **Day 3: dataset acquisition and data dictionary**. It contains a minimal Next.js foundation and aggregate-only CFPB snapshot documentation, but no cleaning, sampling, mapping implementation, EDA notebook, ML implementation, Firebase integration, or FastAPI service. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the full schedule, [`docs/dataset_profile.md`](docs/dataset_profile.md) for the snapshot profile, and [`docs/data_dictionary.md`](docs/data_dictionary.md) for the source fields.
 
 ## Core constraints
 
@@ -84,7 +84,7 @@ No Python packages are required or installed on Day 2. `requirements-dev.txt` re
 
 ## Data and secrets
 
-Do not commit the raw CFPB dataset. Keep local raw downloads under `data/raw/`, which Git ignores, and record the official source and reproducible download procedure when dataset work begins. Only small, privacy-reviewed samples may enter `data/processed/`.
+Do not commit the raw CFPB dataset. Keep local raw downloads under `data/raw/`, which Git ignores. The official source, snapshot hash, validation, extraction, and chunked profiling procedure are recorded in [`data/README.md`](data/README.md). Only small, privacy-reviewed samples may enter `data/processed/` on a later scheduled day.
 
 Copy `.env.example` to a local `.env.local` only when configuration begins. Replace placeholders locally and never commit the resulting file. Firebase must remain on the Spark plan with billing disabled.
 

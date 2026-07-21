@@ -1,0 +1,2 @@
+# Day 3 chunked profiling dependency. The verified run used pandas 2.2.3.
+pandas>=2.2,<3
