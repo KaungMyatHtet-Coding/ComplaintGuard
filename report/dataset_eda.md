@@ -8,6 +8,6 @@ Product and Issue are strongly concentrated. The leading Product accounts for 43
 
 Narrative length is right-skewed: the median is 666 characters, the mean is 1,018, p90 is 2,113, p95 is 2,988, and the maximum is 35,990. The 500–999 character bucket is largest at 30.64%. Median and percentiles use the deterministic lower nearest-rank convention at one-based rank `floor((n - 1) * p) + 1`, without interpolation.
 
-These findings describe retained CFPB submissions, not all consumers or product users, and counts do not prove population complaint rates or service quality. CFPB coverage, taxonomies, and reporting patterns change over time. Day 5 rejected 13,210,233 rows without usable narratives, creating material selection bias in retained-text analysis. Department-label balance remains unknown until the separately scheduled Day 7 mapping is approved.
+These findings describe retained CFPB submissions, not all consumers or product users, and counts do not prove population complaint rates or service quality. CFPB coverage, taxonomies, and reporting patterns change over time. Day 5 rejected 13,210,233 rows without usable narratives, creating material selection bias in retained-text analysis. Day 7 subsequently quantified a strongly imbalanced deterministic proxy-label distribution; it is documented separately and is not a model result.
 
 The six aggregate charts are stored under `report/figures/day6/`, with source tables and exact findings in `data/eda/day6/`.

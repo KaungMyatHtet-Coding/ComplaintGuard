@@ -19,7 +19,7 @@ Valid roles are `customer`, `staff`, `manager`, and `admin`. Valid department ID
 - `loan_credit`
 - `general_support`
 
-The Day 7 data workflow will finalize deterministic CFPB Product/Issue mapping. No label may be derived from a complaint narrative.
+Day 7 finalized deterministic CFPB Product/Issue mapping version `v1`. No label is derived from a complaint narrative. The historical labeled dataset remains local and must never enter Firestore.
 
 ## Collections
 

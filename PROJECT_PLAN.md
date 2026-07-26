@@ -318,17 +318,19 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 **End-of-day deliverable:** EDA notebook, charts and first findings.
 
-**Completed evidence:** Day 6 production EDA for corrected cleaning run `e1996a2c34d0457fa08b83864b4f1a9d` processed 3,822,576 of 3,822,576 rows and published ten reconciled aggregate files plus six readable charts. Targeted Day 6 tests passed 27 tests, the complete relevant suite passed 144 tests, correction verification completed, and the second strict read-only re-review passed with no Critical or Major findings. Day 7 remains unstarted and requires separate owner authorization.
+**Completed evidence:** Day 6 production EDA for corrected cleaning run `e1996a2c34d0457fa08b83864b4f1a9d` processed 3,822,576 of 3,822,576 rows and published ten reconciled aggregate files plus six readable charts. Targeted Day 6 tests passed 27 tests, the complete relevant suite passed 144 tests, correction verification completed, and the second strict read-only re-review passed with no Critical or Major findings.
 
 ### Day 7 — Sunday, 26 July: Department-label mapping and data freeze
 
-- [ ] Product/Issue → Department mapping အတည်ပြုရန်
-- [ ] Mapping coverage စစ်ရန်
-- [ ] Unmapped rows အတွက် General Support rule ထည့်ရန်
-- [ ] Final ML dataset ဖန်တီးရန်
-- [ ] Training dataset version `v1` freeze လုပ်ရန်
+- [x] Product/Issue → Department mapping အတည်ပြုရန်
+- [x] Mapping coverage စစ်ရန်
+- [x] Unmapped rows အတွက် General Support rule ထည့်ရန်
+- [x] Final ML dataset ဖန်တီးရန်
+- [x] Training dataset version `v1` freeze လုပ်ရန်
 
 **End-of-day deliverable:** Final label mapping and versioned training dataset.
+
+**Completed evidence:** Mapping version `v1` labeled 3,822,576 of 3,822,576 corrected rows in 39 bounded chunks using Product/Issue only. Dataset version `v1` contains one valid label per row, publishes aggregate-only completion metadata, and keeps the 3,958,969,065-byte full output ignored and untracked. Exact rules labeled 275,838 rows, Product fallbacks labeled 3,340,191, and `general_support` labeled 206,547. Focused synthetic verification passed 22 tests and Ruff checks passed. Day 8 model work remains unstarted and requires separate authorization.
 
 ## Phase 2 — Model and Core Application
 

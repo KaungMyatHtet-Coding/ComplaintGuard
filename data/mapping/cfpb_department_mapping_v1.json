@@ -1,0 +1,239 @@
+{
+  "mapping_schema_version": 1,
+  "mapping_version": "v1",
+  "normalization": "Unicode NFKC, trim, collapse internal whitespace, casefold",
+  "precedence": [
+    "exact_product_issue",
+    "product_fallback",
+    "general_support"
+  ],
+  "departments": {
+    "transfer_payment": "Transfers, remittances, payment services, and virtual-currency movement.",
+    "account_support": "Deposit-account access, maintenance, opening, closing, and service support.",
+    "card_atm": "Credit, prepaid, debit-card, card-payment, and ATM support.",
+    "fraud_security": "Credit-reporting integrity, identity protection, scams, fraud, and unauthorized activity.",
+    "loan_credit": "Mortgage, student, vehicle, payday, personal, and consumer-loan servicing or repayment.",
+    "general_support": "Ambiguous, unresolved, missing, or newly observed Product/Issue combinations."
+  },
+  "exact_product_issue_rules": [
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Fraud or scam",
+      "department_id": "fraud_security",
+      "reason": "Explicit scam or fraud issue overrides the transfer product family."
+    },
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "issue": "Unauthorized transactions or other transaction problem",
+      "department_id": "fraud_security",
+      "reason": "Explicit unauthorized activity overrides the transfer product family."
+    },
+    {
+      "product": "Money transfers",
+      "issue": "Fraud or scam",
+      "department_id": "fraud_security",
+      "reason": "Legacy transfer taxonomy with an explicit fraud issue."
+    },
+    {
+      "product": "Virtual currency",
+      "issue": "Fraud or scam",
+      "department_id": "fraud_security",
+      "reason": "Virtual-currency scam concern."
+    },
+    {
+      "product": "Credit card",
+      "issue": "Identity theft / Fraud / Embezzlement",
+      "department_id": "fraud_security",
+      "reason": "Explicit identity-theft or fraud concern overrides card support."
+    },
+    {
+      "product": "Credit card",
+      "issue": "Problem with fraud alerts or security freezes",
+      "department_id": "fraud_security",
+      "reason": "Explicit security-control concern overrides card support."
+    },
+    {
+      "product": "Credit card",
+      "issue": "Credit monitoring or identity theft protection services",
+      "department_id": "fraud_security",
+      "reason": "Identity-protection concern overrides card support."
+    },
+    {
+      "product": "Credit card",
+      "issue": "Privacy",
+      "department_id": "fraud_security",
+      "reason": "Explicit privacy concern overrides card support."
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Problem with fraud alerts or security freezes",
+      "department_id": "fraud_security",
+      "reason": "Explicit security-control concern overrides card support."
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "issue": "Credit monitoring or identity theft protection services",
+      "department_id": "fraud_security",
+      "reason": "Identity-protection concern overrides card support."
+    },
+    {
+      "product": "Prepaid card",
+      "issue": "Unauthorized transactions/trans. issues",
+      "department_id": "fraud_security",
+      "reason": "Explicit unauthorized activity overrides card support."
+    },
+    {
+      "product": "Prepaid card",
+      "issue": "Fraud or scam",
+      "department_id": "fraud_security",
+      "reason": "Explicit scam or fraud concern overrides card support."
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Problem with fraud alerts or security freezes",
+      "department_id": "fraud_security",
+      "reason": "Explicit security-control concern overrides account support."
+    },
+    {
+      "product": "Checking or savings account",
+      "issue": "Credit monitoring or identity theft protection services",
+      "department_id": "fraud_security",
+      "reason": "Identity-protection concern overrides account support."
+    },
+    {
+      "product": "Debt collection",
+      "issue": "Attempts to collect debt not owed",
+      "department_id": "fraud_security",
+      "reason": "Collection of an allegedly unowned debt is treated as an identity or integrity concern."
+    },
+    {
+      "product": "Debt collection",
+      "issue": "False statements or representation",
+      "department_id": "fraud_security",
+      "reason": "Explicit false-representation concern."
+    },
+    {
+      "product": "Student loan",
+      "issue": "Credit monitoring or identity theft protection services",
+      "department_id": "fraud_security",
+      "reason": "Identity-protection concern overrides loan support."
+    },
+    {
+      "product": "Student loan",
+      "issue": "Problem with fraud alerts or security freezes",
+      "department_id": "fraud_security",
+      "reason": "Explicit security-control concern overrides loan support."
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "issue": "Credit monitoring or identity theft protection services",
+      "department_id": "fraud_security",
+      "reason": "Identity-protection concern overrides loan support."
+    },
+    {
+      "product": "Mortgage",
+      "issue": "Credit monitoring or identity theft protection services",
+      "department_id": "fraud_security",
+      "reason": "Identity-protection concern overrides loan support."
+    }
+  ],
+  "product_fallbacks": [
+    {
+      "product": "Money transfer, virtual currency, or money service",
+      "department_id": "transfer_payment"
+    },
+    {
+      "product": "Money transfers",
+      "department_id": "transfer_payment"
+    },
+    {
+      "product": "Virtual currency",
+      "department_id": "transfer_payment"
+    },
+    {
+      "product": "Checking or savings account",
+      "department_id": "account_support"
+    },
+    {
+      "product": "Bank account or service",
+      "department_id": "account_support"
+    },
+    {
+      "product": "Credit card",
+      "department_id": "card_atm"
+    },
+    {
+      "product": "Credit card or prepaid card",
+      "department_id": "card_atm"
+    },
+    {
+      "product": "Prepaid card",
+      "department_id": "card_atm"
+    },
+    {
+      "product": "Credit reporting",
+      "department_id": "fraud_security"
+    },
+    {
+      "product": "Credit reporting or other personal consumer reports",
+      "department_id": "fraud_security"
+    },
+    {
+      "product": "Credit reporting, credit repair services, or other personal consumer reports",
+      "department_id": "fraud_security"
+    },
+    {
+      "product": "Mortgage",
+      "department_id": "loan_credit"
+    },
+    {
+      "product": "Student loan",
+      "department_id": "loan_credit"
+    },
+    {
+      "product": "Vehicle loan or lease",
+      "department_id": "loan_credit"
+    },
+    {
+      "product": "Consumer Loan",
+      "department_id": "loan_credit"
+    },
+    {
+      "product": "Payday loan",
+      "department_id": "loan_credit"
+    },
+    {
+      "product": "Payday loan, title loan, or personal loan",
+      "department_id": "loan_credit"
+    },
+    {
+      "product": "Payday loan, title loan, personal loan, or advance loan",
+      "department_id": "loan_credit"
+    }
+  ],
+  "intentionally_unresolved_products": [
+    "Debt collection",
+    "Debt or credit management",
+    "Other financial service"
+  ],
+  "general_support_policy": {
+    "department_id": "general_support",
+    "applies_to": [
+      "missing Product",
+      "missing Issue without an exact pair match",
+      "unknown Product",
+      "known but intentionally unresolved Product such as Debt collection, Debt or credit management, or Other financial service",
+      "any Product/Issue combination not resolved by an earlier rule"
+    ]
+  },
+  "label_source": {
+    "allowed_fields": [
+      "Product",
+      "Issue"
+    ],
+    "forbidden_fields": [
+      "Consumer complaint narrative",
+      "Complaint ID"
+    ]
+  }
+}

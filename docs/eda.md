@@ -25,7 +25,7 @@ Narrative percentiles use the lower nearest-rank convention: for `n` observation
 
 The outputs describe retained CFPB submissions, not all consumers, product users, or underlying service-quality rates. Product and Issue taxonomies and complaint-reporting behavior can change over time. Day 5 rejected 13,210,233 rows without usable narratives, so retained-text EDA is subject to strong selection bias. Counts do not establish whether allegations are true or how common problems are in the customer population.
 
-Department-label distribution is intentionally not analyzed: the label does not exist yet, and its deterministic Product/Issue mapping is separately scheduled for Day 7.
+Department-label distribution is intentionally outside this Day 6 analysis. Day 7 subsequently created the deterministic Product/Issue mapping and quantified the resulting proxy-label imbalance in `docs/label_mapping.md`.
 
 ## Initial evidence
 
@@ -44,4 +44,4 @@ Department-label distribution is intentionally not analyzed: the label does not 
 - `notebooks/02_cleaning_eda.ipynb`: GitHub-readable narrative that loads only those small artifacts.
 - `report/dataset_eda.md`: initial Dataset and EDA report-section draft.
 
-Day 6 implementation, initial verification, correction verification, and the second strict read-only re-review are complete. Day 6 status is Done. Day 7 mapping remains unstarted and unauthorized.
+Day 6 implementation and review are complete. Day 7 subsequently froze deterministic mapping and dataset version `v1`; its label distribution and limitations are documented in `docs/label_mapping.md`. Day 8 model training remains unstarted.
