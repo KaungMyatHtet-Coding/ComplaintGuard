@@ -1,0 +1,1300 @@
+{
+  "metrics_schema_version": 1,
+  "status": "completed",
+  "model_version": "v1",
+  "dataset_version": "v1",
+  "mapping_version": "v1",
+  "created_at_utc": "2026-07-26T12:02:40.068813+00:00",
+  "source": {
+    "file_name": "cfpb_training_v1.csv",
+    "manifest_file_name": "cfpb_training_v1_manifest.json",
+    "rows": 3822576,
+    "label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    },
+    "chunks_processed": 39
+  },
+  "locked_day8_baseline": {
+    "metrics_file_name": "cfpb_baseline_v1_metrics.json",
+    "test_accuracy": 0.8389887115089173,
+    "test_balanced_accuracy": 0.7050940091850705,
+    "test_macro_f1": 0.6884842446567275
+  },
+  "selection_policy": {
+    "selection_metric": "validation macro-F1",
+    "candidate_order_tiebreak": true,
+    "threshold_candidates": [
+      0.0,
+      0.35,
+      0.45,
+      0.55,
+      0.65
+    ],
+    "test_used_for_selection": false,
+    "test_evaluations": 1
+  },
+  "data_partitions": {
+    "selected_rows": 200000,
+    "selected_label_counts": {
+      "transfer_payment": 4364,
+      "account_support": 10434,
+      "card_atm": 12774,
+      "fraud_security": 145716,
+      "loan_credit": 15918,
+      "general_support": 10794
+    },
+    "natural_train": {
+      "rows": 140781,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 102747,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "final_training": {
+      "rows": 68034,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 30000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "validation": {
+      "rows": 29277,
+      "label_counts": {
+        "transfer_payment": 692,
+        "account_support": 1533,
+        "card_atm": 1872,
+        "fraud_security": 21233,
+        "loan_credit": 2405,
+        "general_support": 1542
+      }
+    },
+    "test": {
+      "rows": 29942,
+      "label_counts": {
+        "transfer_payment": 563,
+        "account_support": 1622,
+        "card_atm": 1959,
+        "fraud_security": 21736,
+        "loan_credit": 2375,
+        "general_support": 1687
+      }
+    }
+  },
+  "candidate_validation_results": [
+    {
+      "candidate": {
+        "candidate_id": "baseline_reference",
+        "ngram_range": [
+          1,
+          2
+        ],
+        "min_df": 3,
+        "max_features": 100000,
+        "alpha": 1.0,
+        "train_per_class_cap": 30000
+      },
+      "training_rows": 68034,
+      "training_label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 30000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      },
+      "vocabulary_size": 100000,
+      "train_matrix": {
+        "shape": [
+          68034,
+          100000
+        ],
+        "non_zero": 14038180,
+        "density": 0.0020634065320281037
+      },
+      "validation_matrix": {
+        "shape": [
+          29277,
+          100000
+        ],
+        "non_zero": 5662247,
+        "density": 0.00193402568569184
+      },
+      "selected_threshold": 0.0,
+      "threshold_search": [
+        {
+          "threshold": 0.0,
+          "accuracy": 0.8434948936024866,
+          "balanced_accuracy": 0.725578368071721,
+          "macro_f1": 0.7065430817607222,
+          "manual_review_routed": 0
+        },
+        {
+          "threshold": 0.35,
+          "accuracy": 0.8423677289339755,
+          "balanced_accuracy": 0.7270841851489047,
+          "macro_f1": 0.705975675439789,
+          "manual_review_routed": 256
+        },
+        {
+          "threshold": 0.45,
+          "accuracy": 0.835194862861632,
+          "balanced_accuracy": 0.7214131155800688,
+          "macro_f1": 0.699349556067629,
+          "manual_review_routed": 1209
+        },
+        {
+          "threshold": 0.55,
+          "accuracy": 0.8196878095433275,
+          "balanced_accuracy": 0.7027915044618354,
+          "macro_f1": 0.6879455053109399,
+          "manual_review_routed": 2681
+        },
+        {
+          "threshold": 0.65,
+          "accuracy": 0.8009700447450216,
+          "balanced_accuracy": 0.6775271949054279,
+          "macro_f1": 0.6714219543786374,
+          "manual_review_routed": 4144
+        }
+      ],
+      "validation_metrics": {
+        "accuracy": 0.8434948936024866,
+        "balanced_accuracy": 0.725578368071721,
+        "macro": {
+          "precision": 0.7258834579023118,
+          "recall": 0.725578368071721,
+          "f1": 0.7065430817607222
+        },
+        "weighted": {
+          "precision": 0.8663836033589563,
+          "recall": 0.8434948936024866,
+          "f1": 0.8486596636415537
+        },
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.9870466321243523,
+            "recall": 0.5505780346820809,
+            "f1": 0.7068645640074211,
+            "support": 692
+          },
+          "account_support": {
+            "precision": 0.665943600867679,
+            "recall": 0.8010437051532941,
+            "f1": 0.7272727272727273,
+            "support": 1533
+          },
+          "card_atm": {
+            "precision": 0.6021267168808152,
+            "recall": 0.7259615384615384,
+            "f1": 0.658270767740373,
+            "support": 1872
+          },
+          "fraud_security": {
+            "precision": 0.9547093170855547,
+            "recall": 0.8855555032261103,
+            "f1": 0.918833072713057,
+            "support": 21233
+          },
+          "loan_credit": {
+            "precision": 0.5751322751322752,
+            "recall": 0.903950103950104,
+            "f1": 0.7029911075181892,
+            "support": 2405
+          },
+          "general_support": {
+            "precision": 0.5703422053231939,
+            "recall": 0.48638132295719844,
+            "f1": 0.5250262513125656,
+            "support": 1542
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              381,
+              233,
+              40,
+              7,
+              30,
+              1
+            ],
+            [
+              0,
+              1228,
+              159,
+              57,
+              88,
+              1
+            ],
+            [
+              0,
+              112,
+              1359,
+              238,
+              150,
+              13
+            ],
+            [
+              5,
+              249,
+              614,
+              18803,
+              1031,
+              531
+            ],
+            [
+              0,
+              13,
+              45,
+              154,
+              2174,
+              19
+            ],
+            [
+              0,
+              9,
+              40,
+              436,
+              307,
+              750
+            ]
+          ]
+        },
+        "true_label_counts": {
+          "transfer_payment": 692,
+          "account_support": 1533,
+          "card_atm": 1872,
+          "fraud_security": 21233,
+          "loan_credit": 2405,
+          "general_support": 1542
+        },
+        "predicted_label_counts": {
+          "transfer_payment": 386,
+          "account_support": 1844,
+          "card_atm": 2257,
+          "fraud_security": 19695,
+          "loan_credit": 3780,
+          "general_support": 1315
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "lower_alpha",
+        "ngram_range": [
+          1,
+          2
+        ],
+        "min_df": 3,
+        "max_features": 100000,
+        "alpha": 0.5,
+        "train_per_class_cap": 30000
+      },
+      "training_rows": 68034,
+      "training_label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 30000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      },
+      "vocabulary_size": 100000,
+      "train_matrix": {
+        "shape": [
+          68034,
+          100000
+        ],
+        "non_zero": 14038180,
+        "density": 0.0020634065320281037
+      },
+      "validation_matrix": {
+        "shape": [
+          29277,
+          100000
+        ],
+        "non_zero": 5662247,
+        "density": 0.00193402568569184
+      },
+      "selected_threshold": 0.0,
+      "threshold_search": [
+        {
+          "threshold": 0.0,
+          "accuracy": 0.8326672814837586,
+          "balanced_accuracy": 0.7569971373030735,
+          "macro_f1": 0.7101594216446832,
+          "manual_review_routed": 0
+        },
+        {
+          "threshold": 0.35,
+          "accuracy": 0.8309594562284387,
+          "balanced_accuracy": 0.7576317072115829,
+          "macro_f1": 0.7092935244149356,
+          "manual_review_routed": 252
+        },
+        {
+          "threshold": 0.45,
+          "accuracy": 0.824367250742904,
+          "balanced_accuracy": 0.7530737718111373,
+          "macro_f1": 0.705232594276752,
+          "manual_review_routed": 1084
+        },
+        {
+          "threshold": 0.55,
+          "accuracy": 0.8102947706390682,
+          "balanced_accuracy": 0.739472934194878,
+          "macro_f1": 0.6983563938886607,
+          "manual_review_routed": 2451
+        },
+        {
+          "threshold": 0.65,
+          "accuracy": 0.7893909895139529,
+          "balanced_accuracy": 0.7167434814411324,
+          "macro_f1": 0.6847910038611699,
+          "manual_review_routed": 3952
+        }
+      ],
+      "validation_metrics": {
+        "accuracy": 0.8326672814837586,
+        "balanced_accuracy": 0.7569971373030735,
+        "macro": {
+          "precision": 0.7071334528278053,
+          "recall": 0.7569971373030735,
+          "f1": 0.7101594216446832
+        },
+        "weighted": {
+          "precision": 0.869002228003433,
+          "recall": 0.8326672814837586,
+          "f1": 0.8424643419929091
+        },
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.9844961240310077,
+            "recall": 0.5505780346820809,
+            "f1": 0.706209453197405,
+            "support": 692
+          },
+          "account_support": {
+            "precision": 0.6395518753044326,
+            "recall": 0.8564905414220483,
+            "f1": 0.7322922476296709,
+            "support": 1533
+          },
+          "card_atm": {
+            "precision": 0.5569121701457267,
+            "recall": 0.7553418803418803,
+            "f1": 0.6411244615733394,
+            "support": 1872
+          },
+          "fraud_security": {
+            "precision": 0.9661856328878002,
+            "recall": 0.8545189092450431,
+            "f1": 0.906927921623513,
+            "support": 21233
+          },
+          "loan_credit": {
+            "precision": 0.6176302232398397,
+            "recall": 0.8972972972972973,
+            "f1": 0.7316494321071368,
+            "support": 2405
+          },
+          "general_support": {
+            "precision": 0.47802469135802467,
+            "recall": 0.6277561608300908,
+            "f1": 0.5427530137370339,
+            "support": 1542
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              381,
+              254,
+              38,
+              2,
+              16,
+              1
+            ],
+            [
+              0,
+              1313,
+              127,
+              42,
+              50,
+              1
+            ],
+            [
+              0,
+              141,
+              1414,
+              189,
+              103,
+              25
+            ],
+            [
+              6,
+              307,
+              846,
+              18144,
+              941,
+              989
+            ],
+            [
+              0,
+              26,
+              63,
+              117,
+              2158,
+              41
+            ],
+            [
+              0,
+              12,
+              51,
+              285,
+              226,
+              968
+            ]
+          ]
+        },
+        "true_label_counts": {
+          "transfer_payment": 692,
+          "account_support": 1533,
+          "card_atm": 1872,
+          "fraud_security": 21233,
+          "loan_credit": 2405,
+          "general_support": 1542
+        },
+        "predicted_label_counts": {
+          "transfer_payment": 387,
+          "account_support": 2053,
+          "card_atm": 2539,
+          "fraud_security": 18779,
+          "loan_credit": 3494,
+          "general_support": 2025
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "unigram_lower_alpha",
+        "ngram_range": [
+          1,
+          1
+        ],
+        "min_df": 3,
+        "max_features": 100000,
+        "alpha": 0.5,
+        "train_per_class_cap": 30000
+      },
+      "training_rows": 68034,
+      "training_label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 30000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      },
+      "vocabulary_size": 17563,
+      "train_matrix": {
+        "shape": [
+          68034,
+          17563
+        ],
+        "non_zero": 5943679,
+        "density": 0.004974284714253194
+      },
+      "validation_matrix": {
+        "shape": [
+          29277,
+          17563
+        ],
+        "non_zero": 2400418,
+        "density": 0.004668330562801828
+      },
+      "selected_threshold": 0.0,
+      "threshold_search": [
+        {
+          "threshold": 0.0,
+          "accuracy": 0.837688287734399,
+          "balanced_accuracy": 0.7332946132528472,
+          "macro_f1": 0.7045781154733127,
+          "manual_review_routed": 0
+        },
+        {
+          "threshold": 0.35,
+          "accuracy": 0.8331796290603546,
+          "balanced_accuracy": 0.7308600011219312,
+          "macro_f1": 0.7014166354157613,
+          "manual_review_routed": 624
+        },
+        {
+          "threshold": 0.45,
+          "accuracy": 0.8163404720429006,
+          "balanced_accuracy": 0.715052942034028,
+          "macro_f1": 0.6919873497600961,
+          "manual_review_routed": 2192
+        },
+        {
+          "threshold": 0.55,
+          "accuracy": 0.7885029203811866,
+          "balanced_accuracy": 0.6797574451427058,
+          "macro_f1": 0.6719178176155088,
+          "manual_review_routed": 4194
+        },
+        {
+          "threshold": 0.65,
+          "accuracy": 0.7536291286675547,
+          "balanced_accuracy": 0.6391087052665924,
+          "macro_f1": 0.6375976879976498,
+          "manual_review_routed": 6432
+        }
+      ],
+      "validation_metrics": {
+        "accuracy": 0.837688287734399,
+        "balanced_accuracy": 0.7332946132528472,
+        "macro": {
+          "precision": 0.709673731439314,
+          "recall": 0.7332946132528472,
+          "f1": 0.7045781154733127
+        },
+        "weighted": {
+          "precision": 0.8610831136763097,
+          "recall": 0.837688287734399,
+          "f1": 0.8440834615162083
+        },
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.9796437659033079,
+            "recall": 0.5563583815028902,
+            "f1": 0.7096774193548387,
+            "support": 692
+          },
+          "account_support": {
+            "precision": 0.62841796875,
+            "recall": 0.8395303326810176,
+            "f1": 0.7187936330633902,
+            "support": 1533
+          },
+          "card_atm": {
+            "precision": 0.573700042973786,
+            "recall": 0.7131410256410257,
+            "f1": 0.6358656823053108,
+            "support": 1872
+          },
+          "fraud_security": {
+            "precision": 0.950681143091263,
+            "recall": 0.8742523430509113,
+            "f1": 0.9108663117348316,
+            "support": 21233
+          },
+          "loan_credit": {
+            "precision": 0.6641929499072357,
+            "recall": 0.8931392931392932,
+            "f1": 0.7618372051782231,
+            "support": 2405
+          },
+          "general_support": {
+            "precision": 0.4614065180102916,
+            "recall": 0.5233463035019456,
+            "f1": 0.49042844120328166,
+            "support": 1542
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              385,
+              242,
+              44,
+              6,
+              12,
+              3
+            ],
+            [
+              0,
+              1287,
+              140,
+              58,
+              45,
+              3
+            ],
+            [
+              0,
+              164,
+              1335,
+              273,
+              87,
+              13
+            ],
+            [
+              8,
+              307,
+              697,
+              18563,
+              764,
+              894
+            ],
+            [
+              0,
+              29,
+              58,
+              141,
+              2148,
+              29
+            ],
+            [
+              0,
+              19,
+              53,
+              485,
+              178,
+              807
+            ]
+          ]
+        },
+        "true_label_counts": {
+          "transfer_payment": 692,
+          "account_support": 1533,
+          "card_atm": 1872,
+          "fraud_security": 21233,
+          "loan_credit": 2405,
+          "general_support": 1542
+        },
+        "predicted_label_counts": {
+          "transfer_payment": 393,
+          "account_support": 2048,
+          "card_atm": 2327,
+          "fraud_security": 19526,
+          "loan_credit": 3234,
+          "general_support": 1749
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "stronger_balance",
+        "ngram_range": [
+          1,
+          2
+        ],
+        "min_df": 3,
+        "max_features": 100000,
+        "alpha": 0.5,
+        "train_per_class_cap": 20000
+      },
+      "training_rows": 58034,
+      "training_label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 20000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      },
+      "vocabulary_size": 100000,
+      "train_matrix": {
+        "shape": [
+          58034,
+          100000
+        ],
+        "non_zero": 12243922,
+        "density": 0.0021097842643967328
+      },
+      "validation_matrix": {
+        "shape": [
+          29277,
+          100000
+        ],
+        "non_zero": 5647388,
+        "density": 0.0019289503705980805
+      },
+      "selected_threshold": 0.0,
+      "threshold_search": [
+        {
+          "threshold": 0.0,
+          "accuracy": 0.821873825870137,
+          "balanced_accuracy": 0.7628546529495038,
+          "macro_f1": 0.7042223009403311,
+          "manual_review_routed": 0
+        },
+        {
+          "threshold": 0.35,
+          "accuracy": 0.8198585920688595,
+          "balanced_accuracy": 0.763157334681441,
+          "macro_f1": 0.7033326237457868,
+          "manual_review_routed": 284
+        },
+        {
+          "threshold": 0.45,
+          "accuracy": 0.8129589780373672,
+          "balanced_accuracy": 0.7592899054668777,
+          "macro_f1": 0.7004892168824431,
+          "manual_review_routed": 1181
+        },
+        {
+          "threshold": 0.55,
+          "accuracy": 0.7981350548211907,
+          "balanced_accuracy": 0.7447647863365847,
+          "macro_f1": 0.6944314911687911,
+          "manual_review_routed": 2662
+        },
+        {
+          "threshold": 0.65,
+          "accuracy": 0.7778119342828842,
+          "balanced_accuracy": 0.7194217344025006,
+          "macro_f1": 0.6817208454690101,
+          "manual_review_routed": 4152
+        }
+      ],
+      "validation_metrics": {
+        "accuracy": 0.821873825870137,
+        "balanced_accuracy": 0.7628546529495038,
+        "macro": {
+          "precision": 0.6967879942509155,
+          "recall": 0.7628546529495037,
+          "f1": 0.7042223009403311
+        },
+        "weighted": {
+          "precision": 0.8681706481151688,
+          "recall": 0.821873825870137,
+          "f1": 0.8342652991894289
+        },
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.9844961240310077,
+            "recall": 0.5505780346820809,
+            "f1": 0.706209453197405,
+            "support": 692
+          },
+          "account_support": {
+            "precision": 0.6375060415659739,
+            "recall": 0.8604044357469015,
+            "f1": 0.7323709050527485,
+            "support": 1533
+          },
+          "card_atm": {
+            "precision": 0.5408355287918706,
+            "recall": 0.7676282051282052,
+            "f1": 0.6345771693530581,
+            "support": 1872
+          },
+          "fraud_security": {
+            "precision": 0.9704546698035783,
+            "recall": 0.8353506334479348,
+            "f1": 0.8978486459124272,
+            "support": 21233
+          },
+          "loan_credit": {
+            "precision": 0.6090500281056773,
+            "recall": 0.901039501039501,
+            "f1": 0.7268153613952708,
+            "support": 2405
+          },
+          "general_support": {
+            "precision": 0.43838557320738514,
+            "recall": 0.6621271076523995,
+            "f1": 0.5275122707310772,
+            "support": 1542
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              381,
+              254,
+              38,
+              2,
+              16,
+              1
+            ],
+            [
+              0,
+              1319,
+              124,
+              39,
+              50,
+              1
+            ],
+            [
+              0,
+              139,
+              1437,
+              166,
+              104,
+              26
+            ],
+            [
+              6,
+              319,
+              932,
+              17737,
+              1002,
+              1237
+            ],
+            [
+              0,
+              25,
+              69,
+              101,
+              2167,
+              43
+            ],
+            [
+              0,
+              13,
+              57,
+              232,
+              219,
+              1021
+            ]
+          ]
+        },
+        "true_label_counts": {
+          "transfer_payment": 692,
+          "account_support": 1533,
+          "card_atm": 1872,
+          "fraud_security": 21233,
+          "loan_credit": 2405,
+          "general_support": 1542
+        },
+        "predicted_label_counts": {
+          "transfer_payment": 387,
+          "account_support": 2069,
+          "card_atm": 2657,
+          "fraud_security": 18277,
+          "loan_credit": 3558,
+          "general_support": 2329
+        }
+      }
+    }
+  ],
+  "selected_candidate": {
+    "candidate": {
+      "candidate_id": "lower_alpha",
+      "ngram_range": [
+        1,
+        2
+      ],
+      "min_df": 3,
+      "max_features": 100000,
+      "alpha": 0.5,
+      "train_per_class_cap": 30000
+    },
+    "training_rows": 68034,
+    "training_label_counts": {
+      "transfer_payment": 3109,
+      "account_support": 7279,
+      "card_atm": 8943,
+      "fraud_security": 30000,
+      "loan_credit": 11138,
+      "general_support": 7565
+    },
+    "vocabulary_size": 100000,
+    "train_matrix": {
+      "shape": [
+        68034,
+        100000
+      ],
+      "non_zero": 14038180,
+      "density": 0.0020634065320281037
+    },
+    "validation_matrix": {
+      "shape": [
+        29277,
+        100000
+      ],
+      "non_zero": 5662247,
+      "density": 0.00193402568569184
+    },
+    "selected_threshold": 0.0,
+    "threshold_search": [
+      {
+        "threshold": 0.0,
+        "accuracy": 0.8326672814837586,
+        "balanced_accuracy": 0.7569971373030735,
+        "macro_f1": 0.7101594216446832,
+        "manual_review_routed": 0
+      },
+      {
+        "threshold": 0.35,
+        "accuracy": 0.8309594562284387,
+        "balanced_accuracy": 0.7576317072115829,
+        "macro_f1": 0.7092935244149356,
+        "manual_review_routed": 252
+      },
+      {
+        "threshold": 0.45,
+        "accuracy": 0.824367250742904,
+        "balanced_accuracy": 0.7530737718111373,
+        "macro_f1": 0.705232594276752,
+        "manual_review_routed": 1084
+      },
+      {
+        "threshold": 0.55,
+        "accuracy": 0.8102947706390682,
+        "balanced_accuracy": 0.739472934194878,
+        "macro_f1": 0.6983563938886607,
+        "manual_review_routed": 2451
+      },
+      {
+        "threshold": 0.65,
+        "accuracy": 0.7893909895139529,
+        "balanced_accuracy": 0.7167434814411324,
+        "macro_f1": 0.6847910038611699,
+        "manual_review_routed": 3952
+      }
+    ],
+    "validation_metrics": {
+      "accuracy": 0.8326672814837586,
+      "balanced_accuracy": 0.7569971373030735,
+      "macro": {
+        "precision": 0.7071334528278053,
+        "recall": 0.7569971373030735,
+        "f1": 0.7101594216446832
+      },
+      "weighted": {
+        "precision": 0.869002228003433,
+        "recall": 0.8326672814837586,
+        "f1": 0.8424643419929091
+      },
+      "per_class": {
+        "transfer_payment": {
+          "precision": 0.9844961240310077,
+          "recall": 0.5505780346820809,
+          "f1": 0.706209453197405,
+          "support": 692
+        },
+        "account_support": {
+          "precision": 0.6395518753044326,
+          "recall": 0.8564905414220483,
+          "f1": 0.7322922476296709,
+          "support": 1533
+        },
+        "card_atm": {
+          "precision": 0.5569121701457267,
+          "recall": 0.7553418803418803,
+          "f1": 0.6411244615733394,
+          "support": 1872
+        },
+        "fraud_security": {
+          "precision": 0.9661856328878002,
+          "recall": 0.8545189092450431,
+          "f1": 0.906927921623513,
+          "support": 21233
+        },
+        "loan_credit": {
+          "precision": 0.6176302232398397,
+          "recall": 0.8972972972972973,
+          "f1": 0.7316494321071368,
+          "support": 2405
+        },
+        "general_support": {
+          "precision": 0.47802469135802467,
+          "recall": 0.6277561608300908,
+          "f1": 0.5427530137370339,
+          "support": 1542
+        }
+      },
+      "confusion_matrix": {
+        "label_order": [
+          "transfer_payment",
+          "account_support",
+          "card_atm",
+          "fraud_security",
+          "loan_credit",
+          "general_support"
+        ],
+        "values": [
+          [
+            381,
+            254,
+            38,
+            2,
+            16,
+            1
+          ],
+          [
+            0,
+            1313,
+            127,
+            42,
+            50,
+            1
+          ],
+          [
+            0,
+            141,
+            1414,
+            189,
+            103,
+            25
+          ],
+          [
+            6,
+            307,
+            846,
+            18144,
+            941,
+            989
+          ],
+          [
+            0,
+            26,
+            63,
+            117,
+            2158,
+            41
+          ],
+          [
+            0,
+            12,
+            51,
+            285,
+            226,
+            968
+          ]
+        ]
+      },
+      "true_label_counts": {
+        "transfer_payment": 692,
+        "account_support": 1533,
+        "card_atm": 1872,
+        "fraud_security": 21233,
+        "loan_credit": 2405,
+        "general_support": 1542
+      },
+      "predicted_label_counts": {
+        "transfer_payment": 387,
+        "account_support": 2053,
+        "card_atm": 2539,
+        "fraud_security": 18779,
+        "loan_credit": 3494,
+        "general_support": 2025
+      }
+    },
+    "confidence_threshold": 0.0
+  },
+  "final_test_features": {
+    "shape": [
+      29942,
+      100000
+    ],
+    "non_zero": 5689550,
+    "density": 0.0019001903680448868
+  },
+  "final_test_metrics": {
+    "accuracy": 0.8279340057444392,
+    "balanced_accuracy": 0.7362042813472147,
+    "macro": {
+      "precision": 0.7075147719152342,
+      "recall": 0.7362042813472148,
+      "f1": 0.6923453806041904
+    },
+    "weighted": {
+      "precision": 0.866300153735708,
+      "recall": 0.8279340057444392,
+      "f1": 0.8377641720784692
+    },
+    "per_class": {
+      "transfer_payment": {
+        "precision": 0.984,
+        "recall": 0.4369449378330373,
+        "f1": 0.6051660516605166,
+        "support": 563
+      },
+      "account_support": {
+        "precision": 0.6583333333333333,
+        "recall": 0.8279901356350184,
+        "f1": 0.7334789732386674,
+        "support": 1622
+      },
+      "card_atm": {
+        "precision": 0.5472527472527473,
+        "recall": 0.7626339969372129,
+        "f1": 0.6372360844529751,
+        "support": 1959
+      },
+      "fraud_security": {
+        "precision": 0.9662486938349008,
+        "recall": 0.8508465218991534,
+        "f1": 0.9048830609648694,
+        "support": 21736
+      },
+      "loan_credit": {
+        "precision": 0.5885603757944183,
+        "recall": 0.8968421052631579,
+        "f1": 0.7107107107107107,
+        "support": 2375
+      },
+      "general_support": {
+        "precision": 0.5006934812760055,
+        "recall": 0.6419679905157084,
+        "f1": 0.5625974025974027,
+        "support": 1687
+      }
+    },
+    "confusion_matrix": {
+      "label_order": [
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support"
+      ],
+      "values": [
+        [
+          246,
+          252,
+          35,
+          12,
+          17,
+          1
+        ],
+        [
+          1,
+          1343,
+          179,
+          39,
+          56,
+          4
+        ],
+        [
+          0,
+          140,
+          1494,
+          198,
+          102,
+          25
+        ],
+        [
+          2,
+          255,
+          890,
+          18494,
+          1080,
+          1015
+        ],
+        [
+          0,
+          30,
+          67,
+          113,
+          2130,
+          35
+        ],
+        [
+          1,
+          20,
+          65,
+          284,
+          234,
+          1083
+        ]
+      ]
+    },
+    "true_label_counts": {
+      "transfer_payment": 563,
+      "account_support": 1622,
+      "card_atm": 1959,
+      "fraud_security": 21736,
+      "loan_credit": 2375,
+      "general_support": 1687
+    },
+    "predicted_label_counts": {
+      "transfer_payment": 250,
+      "account_support": 2040,
+      "card_atm": 2730,
+      "fraud_security": 19140,
+      "loan_credit": 3619,
+      "general_support": 2163
+    }
+  },
+  "comparison": {
+    "day8_test_macro_f1": 0.6884842446567275,
+    "day9_test_macro_f1": 0.6923453806041904,
+    "absolute_macro_f1_change": 0.003861135947462846,
+    "target_macro_f1": 0.7,
+    "target_achieved": false
+  },
+  "timings_seconds": {
+    "candidate_selection": 126.14435039999807,
+    "final_test_transform": 9.062836199998856,
+    "final_test_prediction": 0.07255420000001322,
+    "total": 187.1068555999991
+  },
+  "environment": {
+    "python": "3.12.0",
+    "pandas": "2.3.3",
+    "numpy": "2.5.1",
+    "scikit_learn": "1.9.0",
+    "joblib": "1.5.3"
+  },
+  "privacy": {
+    "aggregate_only_metrics": true,
+    "contains_narratives": false,
+    "contains_vocabulary": false,
+    "contains_row_predictions": false,
+    "contains_complaint_ids": false,
+    "contains_private_absolute_paths": false
+  },
+  "limitations": [
+    "Labels are deterministic Product/Issue policy proxies, not institutional ground truth.",
+    "Candidate selection uses one fixed, predeclared search rather than exhaustive tuning.",
+    "Training-only undersampling changes learned class priors.",
+    "Exact normalized duplicates are grouped; near-duplicates are not detected.",
+    "Low-confidence routing uses general_support as the manual-review-compatible fallback."
+  ],
+  "generated_model": {
+    "file_name": "cfpb_department_model_v1.joblib",
+    "size_bytes": 13311363,
+    "sha256": "bafc086fe5b11bdcc5cbc4f04f3f3f222de8cbad27fe66d62a6685cc30f953d5"
+  }
+}

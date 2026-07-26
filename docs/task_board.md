@@ -105,7 +105,19 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Verify 19 synthetic tests, Ruff check/format, smoke behavior, overwrite protection, and privacy boundaries.
 - [x] Document the honest macro-F1 result of 0.688484; the 0.70 target was not achieved.
 - Day 8 status: Done.
-- Day 9 model improvement remains unstarted and requires separate owner authorization.
+
+### Day 9
+
+- [x] Preserve Day 8 as the locked baseline and recreate its deterministic sample and duplicate-group partitions.
+- [x] Compare four predeclared TF-IDF/MultinomialNB and training-cap candidates using validation macro-F1 only.
+- [x] Select confidence threshold from five fixed values using validation only; selected threshold was 0.0.
+- [x] Evaluate the selected `lower_alpha` candidate on 29,942 test rows exactly once.
+- [x] Export ignored frozen model `v1` with vectorizer, classifier, ordered labels, threshold, fallback, versions and metadata.
+- [x] Publish aggregate-only metrics and privacy-safe confusion/error analysis with exact reconciliation.
+- [x] Verify 12 focused synthetic tests and Ruff checks.
+- [x] Record macro-F1 0.692345 and the +0.003861 Day 8 improvement; the 0.70 target remains unmet.
+- Day 9 status: Done.
+- Day 10 Myanmar pipeline remains unstarted and requires separate owner authorization.
 
 ## Day 2 completion rule
 
