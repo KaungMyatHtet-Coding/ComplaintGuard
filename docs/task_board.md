@@ -94,7 +94,18 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Validate the exact narrative/label schema, label and method reconciliation, aggregate-only manifest, size, and SHA-256.
 - [x] Keep the 3,958,969,065-byte output ignored and untracked and document mapping limitations and class imbalance.
 - Day 7 status: Done.
-- Day 8 model training remains unstarted and requires separate owner authorization.
+
+### Day 8
+
+- [x] Validate dataset/mapping `v1` and all 3,822,576 source rows in bounded chunks.
+- [x] Implement deterministic sampling, conservative normalization, duplicate-group splitting, and training-only balancing.
+- [x] Fit word-level TF-IDF only on training data and train `MultinomialNB(alpha=1.0)`.
+- [x] Evaluate 29,942 untouched test rows with fixed-order aggregate metrics and a reconciled confusion matrix.
+- [x] Publish an ignored model plus aggregate-only completed metrics without narrative, vocabulary, Complaint ID, or row-level predictions.
+- [x] Verify 19 synthetic tests, Ruff check/format, smoke behavior, overwrite protection, and privacy boundaries.
+- [x] Document the honest macro-F1 result of 0.688484; the 0.70 target was not achieved.
+- Day 8 status: Done.
+- Day 9 model improvement remains unstarted and requires separate owner authorization.
 
 ## Day 2 completion rule
 

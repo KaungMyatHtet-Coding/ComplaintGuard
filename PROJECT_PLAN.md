@@ -336,13 +336,15 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 ### Day 8 — Monday, 27 July: Baseline model
 
-- [ ] Train/validation/test split ပြုလုပ်ရန်
-- [ ] TF-IDF + Multinomial Naive Bayes baseline train ရန်
-- [ ] Baseline metrics နှင့် confusion matrix ထုတ်ရန်
-- [ ] Misclassified examples အနည်းဆုံး 20 ခုစစ်ရန်
-- [ ] Baseline result ကို documentation ရေးရန်
+- [x] Train/validation/test split ပြုလုပ်ရန်
+- [x] TF-IDF + Multinomial Naive Bayes baseline train ရန်
+- [x] Baseline metrics နှင့် confusion matrix ထုတ်ရန်
+- [x] Misclassification patterns ကို aggregate confusion counts ဖြင့် privacy-safe စစ်ရန်
+- [x] Baseline result ကို documentation ရေးရန်
 
 **End-of-day deliverable:** Reproducible baseline model and evaluation results.
+
+**Completed evidence:** Dataset/mapping `v1` was validated across 3,822,576 rows in 39 chunks. One fixed, seeded experiment selected 200,000 rows, grouped exact normalized duplicates before a 70/15/15 split, capped only training classes, fit 100,000 word/ngram TF-IDF features, and evaluated `MultinomialNB(alpha=1.0)` on 29,942 untouched test rows. Accuracy was 0.838989 and macro-F1 was 0.688484; the 0.70 target was not achieved. Nineteen focused synthetic tests, Ruff checks, privacy inspection, and metric reconciliation passed. Day 9 remains unstarted and requires separate authorization.
 
 ### Day 9 — Tuesday, 28 July: Model improvement and finalization
 

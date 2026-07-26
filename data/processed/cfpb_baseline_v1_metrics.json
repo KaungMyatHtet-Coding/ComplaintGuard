@@ -1,0 +1,432 @@
+{
+  "metrics_schema_version": 1,
+  "status": "completed",
+  "created_at_utc": "2026-07-26T10:41:30.577494+00:00",
+  "dataset_version": "v1",
+  "mapping_version": "v1",
+  "source": {
+    "file_name": "cfpb_training_v1.csv",
+    "manifest_file_name": "cfpb_training_v1_manifest.json",
+    "rows": 3822576,
+    "label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    }
+  },
+  "configuration": {
+    "input_path": "cfpb_training_v1.csv",
+    "input_manifest_path": "cfpb_training_v1_manifest.json",
+    "metrics_path": "cfpb_baseline_v1_metrics.json",
+    "model_path": "cfpb_tfidf_mnb_baseline_v1.joblib",
+    "chunk_size": 100000,
+    "max_rows": 200000,
+    "train_ratio": 0.7,
+    "validation_ratio": 0.15,
+    "test_ratio": 0.15,
+    "train_per_class_cap": 30000,
+    "seed": 20260727,
+    "max_features": 100000,
+    "min_df": 3,
+    "max_df": 0.98,
+    "alpha": 1.0,
+    "normalization": "Unicode NFKC, case-folding, whitespace collapse",
+    "sampling": "single-pass seeded uniform reservoir over source rows",
+    "split": "SHA-256 group assignment by normalized narrative",
+    "balancing": "deterministic per-class cap on training partition only",
+    "tfidf": {
+      "analyzer": "word",
+      "ngram_range": [
+        1,
+        2
+      ],
+      "lowercase": false,
+      "min_df": 3,
+      "max_df": 0.98,
+      "max_features": 100000,
+      "sublinear_tf": true,
+      "dtype": "float32"
+    },
+    "model": {
+      "type": "MultinomialNB",
+      "alpha": 1.0
+    }
+  },
+  "selection": {
+    "selected_rows": 200000,
+    "chunks_processed": 39,
+    "selected_label_counts": {
+      "transfer_payment": 4364,
+      "account_support": 10434,
+      "card_atm": 12774,
+      "fraud_security": 145716,
+      "loan_credit": 15918,
+      "general_support": 10794
+    }
+  },
+  "partitions": {
+    "natural_train": {
+      "rows": 140781,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 102747,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "balanced_train": {
+      "rows": 68034,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 30000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "validation": {
+      "rows": 29277,
+      "label_counts": {
+        "transfer_payment": 692,
+        "account_support": 1533,
+        "card_atm": 1872,
+        "fraud_security": 21233,
+        "loan_credit": 2405,
+        "general_support": 1542
+      }
+    },
+    "test": {
+      "rows": 29942,
+      "label_counts": {
+        "transfer_payment": 563,
+        "account_support": 1622,
+        "card_atm": 1959,
+        "fraud_security": 21736,
+        "loan_credit": 2375,
+        "general_support": 1687
+      }
+    }
+  },
+  "features": {
+    "vocabulary_size": 100000,
+    "train": {
+      "shape": [
+        68034,
+        100000
+      ],
+      "non_zero": 14038180,
+      "density": 0.0020634065320281037
+    },
+    "validation": {
+      "shape": [
+        29277,
+        100000
+      ],
+      "non_zero": 5662247,
+      "density": 0.00193402568569184
+    },
+    "test": {
+      "shape": [
+        29942,
+        100000
+      ],
+      "non_zero": 5689550,
+      "density": 0.0019001903680448868
+    }
+  },
+  "validation_metrics": {
+    "accuracy": 0.8434948936024866,
+    "balanced_accuracy": 0.725578368071721,
+    "macro": {
+      "precision": 0.7258834579023118,
+      "recall": 0.725578368071721,
+      "f1": 0.7065430817607222
+    },
+    "weighted": {
+      "precision": 0.8663836033589563,
+      "recall": 0.8434948936024866,
+      "f1": 0.8486596636415537
+    },
+    "per_class": {
+      "transfer_payment": {
+        "precision": 0.9870466321243523,
+        "recall": 0.5505780346820809,
+        "f1": 0.7068645640074211,
+        "support": 692
+      },
+      "account_support": {
+        "precision": 0.665943600867679,
+        "recall": 0.8010437051532941,
+        "f1": 0.7272727272727273,
+        "support": 1533
+      },
+      "card_atm": {
+        "precision": 0.6021267168808152,
+        "recall": 0.7259615384615384,
+        "f1": 0.658270767740373,
+        "support": 1872
+      },
+      "fraud_security": {
+        "precision": 0.9547093170855547,
+        "recall": 0.8855555032261103,
+        "f1": 0.918833072713057,
+        "support": 21233
+      },
+      "loan_credit": {
+        "precision": 0.5751322751322752,
+        "recall": 0.903950103950104,
+        "f1": 0.7029911075181892,
+        "support": 2405
+      },
+      "general_support": {
+        "precision": 0.5703422053231939,
+        "recall": 0.48638132295719844,
+        "f1": 0.5250262513125656,
+        "support": 1542
+      }
+    },
+    "confusion_matrix": {
+      "label_order": [
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support"
+      ],
+      "values": [
+        [
+          381,
+          233,
+          40,
+          7,
+          30,
+          1
+        ],
+        [
+          0,
+          1228,
+          159,
+          57,
+          88,
+          1
+        ],
+        [
+          0,
+          112,
+          1359,
+          238,
+          150,
+          13
+        ],
+        [
+          5,
+          249,
+          614,
+          18803,
+          1031,
+          531
+        ],
+        [
+          0,
+          13,
+          45,
+          154,
+          2174,
+          19
+        ],
+        [
+          0,
+          9,
+          40,
+          436,
+          307,
+          750
+        ]
+      ]
+    },
+    "true_label_counts": {
+      "transfer_payment": 692,
+      "account_support": 1533,
+      "card_atm": 1872,
+      "fraud_security": 21233,
+      "loan_credit": 2405,
+      "general_support": 1542
+    },
+    "predicted_label_counts": {
+      "transfer_payment": 386,
+      "account_support": 1844,
+      "card_atm": 2257,
+      "fraud_security": 19695,
+      "loan_credit": 3780,
+      "general_support": 1315
+    }
+  },
+  "test_metrics": {
+    "accuracy": 0.8389887115089173,
+    "balanced_accuracy": 0.7050940091850705,
+    "macro": {
+      "precision": 0.7275077826129679,
+      "recall": 0.7050940091850705,
+      "f1": 0.6884842446567275
+    },
+    "weighted": {
+      "precision": 0.8644677809098016,
+      "recall": 0.8389887115089173,
+      "f1": 0.8444961726403283
+    },
+    "per_class": {
+      "transfer_payment": {
+        "precision": 0.9877049180327869,
+        "recall": 0.4280639431616341,
+        "f1": 0.59727385377943,
+        "support": 563
+      },
+      "account_support": {
+        "precision": 0.6840373011519474,
+        "recall": 0.7688039457459926,
+        "f1": 0.7239477503628448,
+        "support": 1622
+      },
+      "card_atm": {
+        "precision": 0.592607973421927,
+        "recall": 0.7284328739152629,
+        "f1": 0.6535378978703916,
+        "support": 1959
+      },
+      "fraud_security": {
+        "precision": 0.9543803790856177,
+        "recall": 0.8825910931174089,
+        "f1": 0.9170829648397352,
+        "support": 21736
+      },
+      "loan_credit": {
+        "precision": 0.5510780287474333,
+        "recall": 0.904,
+        "f1": 0.6847392760325307,
+        "support": 2375
+      },
+      "general_support": {
+        "precision": 0.5952380952380952,
+        "recall": 0.5186721991701245,
+        "f1": 0.5543237250554324,
+        "support": 1687
+      }
+    },
+    "confusion_matrix": {
+      "label_order": [
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support"
+      ],
+      "values": [
+        [
+          241,
+          223,
+          46,
+          18,
+          34,
+          1
+        ],
+        [
+          1,
+          1247,
+          212,
+          59,
+          102,
+          1
+        ],
+        [
+          0,
+          113,
+          1427,
+          271,
+          136,
+          12
+        ],
+        [
+          1,
+          210,
+          630,
+          19184,
+          1153,
+          558
+        ],
+        [
+          0,
+          19,
+          44,
+          142,
+          2147,
+          23
+        ],
+        [
+          1,
+          11,
+          49,
+          427,
+          324,
+          875
+        ]
+      ]
+    },
+    "true_label_counts": {
+      "transfer_payment": 563,
+      "account_support": 1622,
+      "card_atm": 1959,
+      "fraud_security": 21736,
+      "loan_credit": 2375,
+      "general_support": 1687
+    },
+    "predicted_label_counts": {
+      "transfer_payment": 244,
+      "account_support": 1823,
+      "card_atm": 2408,
+      "fraud_security": 20101,
+      "loan_credit": 3896,
+      "general_support": 1470
+    }
+  },
+  "timings_seconds": {
+    "source_selection": 57.36647339999763,
+    "feature_fit": 40.576865399998496,
+    "held_out_transform": 25.482785300002433,
+    "model_training": 0.47517879999941215,
+    "prediction": 0.2358615999983158,
+    "total": 133.50729579999825
+  },
+  "environment": {
+    "python": "3.12.0",
+    "pandas": "2.3.3",
+    "numpy": "2.5.1",
+    "scikit_learn": "1.9.0",
+    "joblib": "1.5.3"
+  },
+  "privacy": {
+    "aggregate_only_metrics": true,
+    "contains_narratives": false,
+    "contains_vocabulary": false,
+    "contains_row_predictions": false,
+    "contains_complaint_ids": false
+  },
+  "limitations": [
+    "Labels are deterministic Product/Issue policy proxies, not institutional ground truth.",
+    "The source distribution is strongly imbalanced.",
+    "The experiment uses a bounded sample rather than the complete corpus.",
+    "Training-only undersampling changes model priors; validation and test are unchanged."
+  ],
+  "generated_model": {
+    "file_name": "cfpb_tfidf_mnb_baseline_v1.joblib",
+    "size_bytes": 13311188,
+    "sha256": "19fe13b3131aca751d3773069f79ef8b7679bfffbf050597650e44b63adb8125"
+  }
+}
