@@ -84,7 +84,17 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Complete correction verification and the second strict read-only re-review with no Critical or Major findings.
 - [x] Process 3,822,576 of 3,822,576 rows from corrected cleaning run `e1996a2c34d0457fa08b83864b4f1a9d`; targeted Day 6 tests passed 27 tests and the complete relevant suite passed 144 tests.
 - Day 6 status: Done.
-- Day 7 remains unstarted and requires separate owner authorization.
+
+### Day 7
+
+- [x] Finalize reviewable mapping policy `v1` using CFPB Product/Issue only.
+- [x] Implement exact-pair, Product-fallback, and explicit `general_support` precedence.
+- [x] Prove all six labels, narrative independence, normalization, invariants, chunking, metadata, and publication behavior with 22 synthetic tests.
+- [x] Build dataset `v1` from 3,822,576 corrected rows in 39 bounded chunks with zero dropped rows.
+- [x] Validate the exact narrative/label schema, label and method reconciliation, aggregate-only manifest, size, and SHA-256.
+- [x] Keep the 3,958,969,065-byte output ignored and untracked and document mapping limitations and class imbalance.
+- Day 7 status: Done.
+- Day 8 model training remains unstarted and requires separate owner authorization.
 
 ## Day 2 completion rule
 

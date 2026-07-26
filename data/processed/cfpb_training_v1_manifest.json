@@ -1,0 +1,84 @@
+{
+  "manifest_schema_version": 1,
+  "status": "completed",
+  "dataset_version": "v1",
+  "mapping_version": "v1",
+  "created_at_utc": "2026-07-26T09:11:30.158123+00:00",
+  "source": {
+    "cleaning_run_id": "e1996a2c34d0457fa08b83864b4f1a9d",
+    "cleaned_file_name": "complaints_cleaned_corrected.csv",
+    "mapping_file_name": "cfpb_department_mapping_v1.json"
+  },
+  "output": {
+    "file_name": "cfpb_training_v1.csv",
+    "schema": [
+      "Consumer complaint narrative",
+      "department_label"
+    ],
+    "rows": 3822576,
+    "size_bytes": 3958969065,
+    "sha256": "71a5ffda7914664a2b6803d92a6327bbe8e2438036e4420d3b30b95928241848"
+  },
+  "processing": {
+    "input_rows": 3822576,
+    "output_rows": 3822576,
+    "dropped_rows": 0,
+    "chunks_processed": 39,
+    "chunk_size": 100000,
+    "row_reconciliation_valid": true
+  },
+  "label_counts": {
+    "transfer_payment": 85180,
+    "account_support": 198831,
+    "card_atm": 241219,
+    "fraud_security": 2785444,
+    "loan_credit": 305355,
+    "general_support": 206547
+  },
+  "label_percentages": {
+    "transfer_payment": 2.22834,
+    "account_support": 5.201492,
+    "card_atm": 6.310378,
+    "fraud_security": 72.868244,
+    "loan_credit": 7.9882,
+    "general_support": 5.403346
+  },
+  "mapping_method_counts": {
+    "exact_product_issue": 275838,
+    "product_fallback": 3340191,
+    "general_support": 206547
+  },
+  "mapping_method_percentages": {
+    "exact_product_issue": 7.216024,
+    "product_fallback": 87.38063,
+    "general_support": 5.403346
+  },
+  "missing_values": {
+    "Product": 0,
+    "Issue": 0,
+    "Consumer complaint narrative": 0
+  },
+  "fallback_audit": {
+    "unknown_products": {},
+    "intentionally_unresolved_products": {
+      "Debt collection": 200915,
+      "Debt or credit management": 5340,
+      "Other financial service": 292
+    }
+  },
+  "labeling_integrity": {
+    "label_source_fields": [
+      "Product",
+      "Issue"
+    ],
+    "narrative_used_for_labeling": false,
+    "one_label_per_row": true,
+    "allowed_label_set_valid": true
+  },
+  "reproducibility_command": "python scripts/cfpb_label_mapping.py --input data/interim/cfpb/complaints_cleaned_corrected.csv --cleaning-report data/cfpb_cleaning_corrected_report.json --mapping data/mapping/cfpb_department_mapping_v1.json --output data/interim/cfpb/cfpb_training_v1.csv --manifest data/processed/cfpb_training_v1_manifest.json --chunk-size 100000",
+  "privacy": {
+    "aggregate_only_manifest": true,
+    "contains_narratives": false,
+    "contains_complaint_ids": false
+  }
+}

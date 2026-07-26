@@ -94,3 +94,25 @@ python scripts/cfpb_eda.py `
 ```
 
 The committed notebook loads those small aggregates and images; it does not load or embed the corrected CSV. The pipeline strictly validates canonical `YYYY-MM-DD` calendar dates before aggregation. It publishes the chart directory first and the aggregate directory last; consumers must treat `data/eda/day6/eda_metadata.json` with `status: completed` as the authoritative completion marker because it becomes visible only after both packages have been validated and published.
+
+## Day 7 labeled training dataset v1
+
+Day 7 deterministically maps only CFPB `Product` and `Issue` to the six stable department IDs. Narrative text is never used to create a label. Exact Product/Issue rules take precedence over Product fallbacks, and every unresolved, missing, or future category falls back to `general_support`.
+
+The reviewable policy is `data/mapping/cfpb_department_mapping_v1.json`; mapping decisions, ambiguity, class imbalance, and reproduction are documented in `docs/label_mapping.md`.
+
+The completed ignored output is `data/interim/cfpb/cfpb_training_v1.csv`. It contains exactly `Consumer complaint narrative` and `department_label`, has 3,822,576 rows, and remains untracked because its narratives are PII-reduced rather than anonymous. Its aggregate-only completion manifest is `data/processed/cfpb_training_v1_manifest.json`.
+
+Reproduce from the repository root:
+
+```powershell
+python scripts/cfpb_label_mapping.py `
+  --input data/interim/cfpb/complaints_cleaned_corrected.csv `
+  --cleaning-report data/cfpb_cleaning_corrected_report.json `
+  --mapping data/mapping/cfpb_department_mapping_v1.json `
+  --output data/interim/cfpb/cfpb_training_v1.csv `
+  --manifest data/processed/cfpb_training_v1_manifest.json `
+  --chunk-size 100000
+```
+
+The manifest is the authoritative v1 completion marker. It records versions, provenance, row reconciliation, label and mapping-method distributions, fallback coverage, output schema, size, SHA-256, and privacy assertions without including a narrative or Complaint ID.
