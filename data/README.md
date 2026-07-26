@@ -79,3 +79,18 @@ The corrected run must not reuse or replace either the diagnostic full pair or t
 The final corrected pair has run ID `e1996a2c34d0457fa08b83864b4f1a9d` and `report_schema_version` 2. It processed 17,034,951 input rows in 171 chunks, retained 3,822,576 rows, rejected 13,212,375 rows, and passed production completed-pair validation. The corrected CSV SHA-256 is `41d2337fa2f2f4840eeb3475229a8347b67c3e4a14949846363e14ea13eee023`; the corrected report SHA-256 is `e923cc07cc72674990a2d40d456ad8814efb985a3fa22c7478e39d35fd88c88e`.
 
 Raw and interim CSV files remain ignored and untracked. In particular, the approximately 4.5 GB corrected CSV must not be committed; only the aggregate-only corrected JSON report is eligible for tracking.
+
+## Day 6 aggregate EDA
+
+Day 6 reads the corrected CSV sequentially and publishes only small aggregate tables and charts. It never writes narratives, Complaint IDs, or complaint-level rows:
+
+```powershell
+python scripts/cfpb_eda.py `
+  --input data/interim/cfpb/complaints_cleaned_corrected.csv `
+  --cleaning-report data/cfpb_cleaning_corrected_report.json `
+  --output-dir data/eda/day6 `
+  --chart-dir report/figures/day6 `
+  --chunk-size 100000
+```
+
+The committed notebook loads those small aggregates and images; it does not load or embed the corrected CSV. The pipeline strictly validates canonical `YYYY-MM-DD` calendar dates before aggregation. It publishes the chart directory first and the aggregate directory last; consumers must treat `data/eda/day6/eda_metadata.json` with `status: completed` as the authoritative completion marker because it becomes visible only after both packages have been validated and published.

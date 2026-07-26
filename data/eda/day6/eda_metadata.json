@@ -1,0 +1,69 @@
+{
+  "eda_schema_version": 1,
+  "status": "completed",
+  "generated_at_utc": "2026-07-26T07:05:04.210171+00:00",
+  "source": {
+    "cleaning_run_id": "e1996a2c34d0457fa08b83864b4f1a9d",
+    "cleaned_file_name": "complaints_cleaned_corrected.csv",
+    "expected_rows": 3822576
+  },
+  "processing": {
+    "rows_processed": 3822576,
+    "chunks_processed": 39,
+    "chunk_size": 100000,
+    "minimum_date": "2015-03-19",
+    "maximum_date": "2026-06-30",
+    "row_reconciliation_valid": true
+  },
+  "tables": [
+    "complaints_by_month.csv",
+    "complaints_by_year.csv",
+    "concentration.csv",
+    "issues.csv",
+    "narrative_length_buckets.csv",
+    "narrative_length_statistics.csv",
+    "overview.csv",
+    "product_issue_pairs.csv",
+    "products.csv"
+  ],
+  "charts": [
+    "01_complaints_by_year.png",
+    "02_monthly_complaint_trend.png",
+    "03_top_products.png",
+    "04_top_issues.png",
+    "05_narrative_length_distribution.png",
+    "06_top_product_issue_pairs.png"
+  ],
+  "findings": [
+    {
+      "chart": "01_complaints_by_year.png",
+      "finding": "2025 has the highest retained annual volume (1,221,752)."
+    },
+    {
+      "chart": "02_monthly_complaint_trend.png",
+      "finding": "2025-01 is the highest retained month (172,901); changes describe submissions, not population complaint rates."
+    },
+    {
+      "chart": "03_top_products.png",
+      "finding": "The leading product is Credit reporting or other personal consumer reports (43.70%), showing strong product imbalance."
+    },
+    {
+      "chart": "04_top_issues.png",
+      "finding": "The leading issue is Incorrect information on your report (31.51%), while many issue categories form a long tail."
+    },
+    {
+      "chart": "05_narrative_length_distribution.png",
+      "finding": "The largest narrative-length bucket is 500-999 characters (30.64%)."
+    },
+    {
+      "chart": "06_top_product_issue_pairs.png",
+      "finding": "The leading Product\u2013Issue pair is Credit reporting or other personal consumer reports \u2014 Incorrect information on your report (21.73%), showing strong concentration in the leading joint category."
+    }
+  ],
+  "privacy": {
+    "aggregate_only": true,
+    "contains_narratives": false,
+    "contains_complaint_ids": false
+  },
+  "elapsed_seconds": 66.317
+}
