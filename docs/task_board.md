@@ -73,7 +73,18 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Add synthetic automated tests for validation, redaction, rejection precedence, duplicate handling, and publication behavior; the complete suite passed 117 tests in 25.42 seconds.
 - [x] Complete the authorized syntax, synthetic-test, full-run, production-validation, ignore, integrity, privacy, and tracked-content checks. Ruff was not run during the corrected full-run or final review.
 - [x] Complete the owner-authorized full run and strict reviews. Run `e1996a2c34d0457fa08b83864b4f1a9d` processed 17,034,951 rows in 171 chunks, retained 3,822,576, rejected 13,212,375, and passed production completed-pair validation.
-- Day 6 remains unstarted and requires separate owner authorization after the controlled Day 5 commit.
+
+### Day 6
+
+- [x] Build a deterministic chunked EDA pipeline over the corrected Day 5 CSV.
+- [x] Produce ten reconciled aggregate files without complaint-level output.
+- [x] Produce six readable aggregate-only charts and one evidence-based finding per chart.
+- [x] Document imbalance, possible bias, limitations, reproducibility, strict calendar validation, and safe completion publication.
+- [x] Add synthetic tests and complete the authorized full EDA verification.
+- [x] Complete correction verification and the second strict read-only re-review with no Critical or Major findings.
+- [x] Process 3,822,576 of 3,822,576 rows from corrected cleaning run `e1996a2c34d0457fa08b83864b4f1a9d`; targeted Day 6 tests passed 27 tests and the complete relevant suite passed 144 tests.
+- Day 6 status: Done.
+- Day 7 remains unstarted and requires separate owner authorization.
 
 ## Day 2 completion rule
 

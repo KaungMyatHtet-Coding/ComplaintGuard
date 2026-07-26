@@ -1,0 +1,174 @@
+rank,category,count,percentage
+1,Incorrect information on your report,1204443,31.508674
+2,Improper use of your report,663165,17.348641
+3,Problem with a company's investigation into an existing problem,348977,9.129367
+4,Problem with a credit reporting company's investigation into an existing problem,250444,6.551708
+5,Attempts to collect debt not owed,187418,4.902924
+6,Managing an account,100270,2.6231
+7,Written notification about debt,87820,2.297404
+8,Trouble during payment process,55834,1.460638
+9,Other transaction problem,54620,1.428879
+10,Problem with a purchase shown on your statement,53687,1.404472
+11,False statements or representation,48478,1.268202
+12,Took or threatened to take negative or legal action,36940,0.966364
+13,Dealing with your lender or servicer,34605,0.90528
+14,Communication tactics,33891,0.886601
+15,Fraud or scam,27955,0.731313
+16,Struggling to pay mortgage,26859,0.702641
+17,Closing an account,25474,0.666409
+18,"Other features, terms, or problems",24916,0.651812
+19,Fees or interest,22947,0.600302
+20,Problem with a lender or other company charging your account,22838,0.597451
+21,Getting a credit card,22443,0.587117
+22,Managing the loan or lease,21615,0.565456
+23,Incorrect information on credit report,21216,0.555018
+24,Problem when making payments,19736,0.516301
+25,Unable to get your credit report or credit score,19219,0.502776
+26,Problem caused by your funds being low,18464,0.483025
+27,Cont'd attempts collect debt not owed,17406,0.455347
+28,Opening an account,16132,0.422019
+29,Problem with fraud alerts or security freezes,16011,0.418854
+30,Closing your account,15479,0.404936
+31,Applying for a mortgage or refinancing an existing mortgage,14881,0.389292
+32,"Loan servicing, payments, escrow account",14720,0.385081
+33,Credit monitoring or identity theft protection services,14013,0.366585
+34,"Advertising and marketing, including promotional offers",11233,0.293859
+35,"Loan modification,collection,foreclosure",10788,0.282218
+36,Closing on a mortgage,10783,0.282087
+37,Struggling to pay your loan,10248,0.268091
+38,Struggling to repay your loan,10016,0.262022
+39,Unauthorized transactions or other transaction problem,9396,0.245803
+40,Problems at the end of the loan or lease,9038,0.236437
+41,Trouble using your card,9014,0.23581
+42,Charged fees or interest you didn't expect,8913,0.233167
+43,Dealing with my lender or servicer,7904,0.206772
+44,Disclosure verification of debt,7587,0.198479
+45,Money was not available when promised,7434,0.194476
+46,Getting a loan or lease,7151,0.187073
+47,Threatened to contact someone or share information improperly,7137,0.186707
+48,Trouble using the card,7069,0.184928
+49,Repossession,6805,0.178021
+50,"Account opening, closing, or management",6345,0.165988
+51,Problem with a purchase or transfer,5803,0.151809
+52,"Managing, opening, or closing your mobile wallet account",5718,0.149585
+53,Credit reporting company's investigation,5663,0.148146
+54,Unexpected or other fees,5133,0.134281
+55,Electronic communications,4311,0.112777
+56,Confusing or missing disclosures,4107,0.107441
+57,Trouble accessing funds in your mobile or digital wallet,4078,0.106682
+58,"Application, originator, mortgage broker",3744,0.097944
+59,Problem with a company's investigation into an existing issue,3483,0.091117
+60,Other service problem,3463,0.090593
+61,Deposits and withdrawals,3425,0.089599
+62,Problem with the payoff process at the end of the loan,3186,0.083347
+63,Problem getting a card or closing an account,3113,0.081437
+64,Billing disputes,3102,0.081149
+65,Can't repay my loan,3057,0.079972
+66,Struggling to pay your bill,2981,0.077984
+67,Taking/threatening an illegal action,2915,0.076257
+68,Improper contact or sharing of info,2908,0.076074
+69,Problem with customer service,2778,0.072674
+70,Getting the loan,2691,0.070398
+71,Problems when you are unable to pay,2451,0.064119
+72,Unable to get credit report/credit score,2252,0.058913
+73,Settlement process and costs,2248,0.058809
+74,Problem with additional add-on products or services,2110,0.055198
+75,Problems caused by my funds being low,2084,0.054518
+76,Other,1940,0.050751
+77,Confusing or misleading advertising or marketing,1932,0.050542
+78,Identity theft / Fraud / Embezzlement,1722,0.045048
+79,Using a debit or ATM card,1597,0.041778
+80,Taking out the loan or lease,1559,0.040784
+81,Improper use of my credit report,1520,0.039764
+82,Didn't provide services promised,1464,0.038299
+83,Closing/Cancelling account,1440,0.037671
+84,"Making/receiving payments, sending money",1432,0.037462
+85,Getting a line of credit,1415,0.037017
+86,Getting a loan,1319,0.034506
+87,Identity theft protection or other monitoring services,1296,0.033904
+88,Credit decision / Underwriting,1288,0.033695
+89,Wrong amount charged or received,1101,0.028803
+90,Customer service / Customer relations,973,0.025454
+91,Credit monitoring or identity protection,936,0.024486
+92,Rewards,900,0.023544
+93,Charged upfront or unexpected fees,873,0.022838
+94,Charged fees or interest I didn't expect,852,0.022289
+95,Received a loan you didn't apply for,842,0.022027
+96,Delinquent account,834,0.021818
+97,Advertising and marketing,830,0.021713
+98,APR or interest rate,785,0.020536
+99,Late fee,771,0.02017
+100,Can't contact lender or servicer,724,0.01894
+101,Credit card protection / Debt protection,712,0.018626
+102,Transaction issue,681,0.017815
+103,Shopping for a loan or lease,661,0.017292
+104,Problem adding money,641,0.016769
+105,Can't stop withdrawals from your bank account,635,0.016612
+106,Billing statement,620,0.016219
+107,Unauthorized withdrawals or charges,607,0.015879
+108,Unauthorized transactions/trans. issues,543,0.014205
+109,Payoff process,513,0.01342
+110,Loan payment wasn't credited to your account,507,0.013263
+111,Credit determination,506,0.013237
+112,Other fee,502,0.013133
+113,Unsolicited issuance of credit card,491,0.012845
+114,Other transaction issues,471,0.012322
+115,Lost or stolen money order,460,0.012034
+116,Credit line increase/decrease,451,0.011798
+117,Vehicle was repossessed or sold the vehicle,451,0.011798
+118,Money was taken from your bank account on the wrong day or for the wrong amount,446,0.011668
+119,"Managing, opening, or closing account",386,0.010098
+120,Can't contact lender,372,0.009732
+121,Advertising,359,0.009392
+122,"Was approved for a loan, but didn't receive the money",341,0.008921
+123,Balance transfer,298,0.007796
+124,Lost or stolen check,260,0.006802
+125,Received a loan I didn't apply for,209,0.005468
+126,Excessive fees,183,0.004787
+127,Problem with cash advance,177,0.00463
+128,Issues with repayment,169,0.004421
+129,Can't stop charges to bank account,166,0.004343
+130,Payment to acct not credited,151,0.00395
+131,Credit limit changed,150,0.003924
+132,Other service issues,138,0.00361
+133,"Overdraft, savings, or rewards features",132,0.003453
+134,Vehicle was damaged or destroyed the vehicle,123,0.003218
+135,Issue where my lender is my school,114,0.002982
+136,Application processing delay,107,0.002799
+137,Charged bank acct wrong day or amt,106,0.002773
+138,Problem with overdraft,106,0.002773
+139,Issue with income share agreement,105,0.002747
+140,Privacy,105,0.002747
+141,Problems receiving the advance,103,0.002695
+142,Incorrect exchange rate,102,0.002668
+143,Sale of account,98,0.002564
+144,Bankruptcy,96,0.002511
+145,Adding money,92,0.002407
+146,Unexpected fees,92,0.002407
+147,Applied for loan/did not receive money,85,0.002224
+148,Forbearance / Workout plans,85,0.002224
+149,Arbitration,83,0.002171
+150,Fees,77,0.002014
+151,"Was approved for a loan, but didn't receive money",71,0.001857
+152,Incorrect/missing disclosures or info,58,0.001517
+153,Customer service/Customer relations,55,0.001439
+154,Balance transfer fee,51,0.001334
+155,Cash advance,44,0.001151
+156,Cash advance fee,41,0.001073
+157,Convenience checks,37,0.000968
+158,Lender repossessed or sold the vehicle,31,0.000811
+159,Overlimit fee,31,0.000811
+160,"Advertising, marketing or disclosures",25,0.000654
+161,Unexpected/Other fees,22,0.000576
+162,Account terms and changes,17,0.000445
+163,"Overdraft, savings or rewards features",17,0.000445
+164,Property was sold,17,0.000445
+165,Managing the line of credit,16,0.000419
+166,Disclosures,13,0.00034
+167,Shopping for a line of credit,10,0.000262
+168,Property was damaged or destroyed property,9,0.000235
+169,Lost or stolen refund,7,0.000183
+170,Problem with an overdraft,4,0.000105
+171,Lender sold the property,3,7.8e-05
+172,Lender damaged or destroyed vehicle,2,5.2e-05
+173,Lender damaged or destroyed property,1,2.6e-05

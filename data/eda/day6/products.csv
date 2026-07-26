@@ -1,0 +1,22 @@
+rank,category,count,percentage
+1,Credit reporting or other personal consumer reports,1670638,43.704507
+2,"Credit reporting, credit repair services, or other personal consumer reports",807381,21.121385
+3,Debt collection,436811,11.427137
+4,Checking or savings account,184162,4.817746
+5,Mortgage,145321,3.801651
+6,Credit card,124393,3.254167
+7,"Money transfer, virtual currency, or money service",119584,3.128362
+8,Credit card or prepaid card,108683,2.843187
+9,Student loan,62113,1.624899
+10,Vehicle loan or lease,52370,1.370019
+11,Credit reporting,31587,0.826328
+12,"Payday loan, title loan, personal loan, or advance loan",17662,0.462044
+13,"Payday loan, title loan, or personal loan",17226,0.450639
+14,Bank account or service,14883,0.389345
+15,Prepaid card,11414,0.298594
+16,Consumer Loan,9458,0.247425
+17,Debt or credit management,5340,0.139696
+18,Payday loan,1745,0.04565
+19,Money transfers,1497,0.039162
+20,Other financial service,292,0.007639
+21,Virtual currency,16,0.000419

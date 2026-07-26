@@ -57,6 +57,8 @@ data/downloads/
 !data/processed/*.csv
 !data/processed/*.parquet
 !data/processed/*.json
+!data/eda/**/*.csv
+!data/eda/**/*.json
 
 # Generated model artifacts (allow only by deliberate force-add/review)
 *.joblib

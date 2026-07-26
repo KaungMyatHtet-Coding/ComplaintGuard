@@ -306,17 +306,19 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 **End-of-day deliverable:** Reproducible cleaning notebook/script and cleaned data.
 
-**Completed evidence:** The corrected full-dataset pair is `data/interim/cfpb/complaints_cleaned_corrected.csv` with `data/cfpb_cleaning_corrected_report.json`. Run `e1996a2c34d0457fa08b83864b4f1a9d` processed 17,034,951 rows in 171 chunks, retained 3,822,576 rows, rejected 13,212,375 rows, and passed production completed-pair validation. Day 6 remains unstarted pending separate owner authorization after the controlled Day 5 commit.
+**Completed evidence:** The corrected full-dataset pair is `data/interim/cfpb/complaints_cleaned_corrected.csv` with `data/cfpb_cleaning_corrected_report.json`. Run `e1996a2c34d0457fa08b83864b4f1a9d` processed 17,034,951 rows in 171 chunks, retained 3,822,576 rows, rejected 13,212,375 rows, and passed production completed-pair validation.
 
 ### Day 6 — Saturday, 25 July: Exploratory data analysis
 
-- [ ] Required summary tables ပြုလုပ်ရန်
-- [ ] အနည်းဆုံး meaningful charts 6 ခုဖန်တီးရန်
-- [ ] Key findings ကို chart တစ်ခုစီအောက်တွင်ရေးရန်
-- [ ] Class imbalance နှင့် possible bias ရှာရန်
-- [ ] Report ၏ Dataset and EDA sections စတင်ရန်
+- [x] Required summary tables ပြုလုပ်ရန်
+- [x] အနည်းဆုံး meaningful charts 6 ခုဖန်တီးရန်
+- [x] Key findings ကို chart တစ်ခုစီအောက်တွင်ရေးရန်
+- [x] Class imbalance နှင့် possible bias ရှာရန်
+- [x] Report ၏ Dataset and EDA sections စတင်ရန်
 
 **End-of-day deliverable:** EDA notebook, charts and first findings.
+
+**Completed evidence:** Day 6 production EDA for corrected cleaning run `e1996a2c34d0457fa08b83864b4f1a9d` processed 3,822,576 of 3,822,576 rows and published ten reconciled aggregate files plus six readable charts. Targeted Day 6 tests passed 27 tests, the complete relevant suite passed 144 tests, correction verification completed, and the second strict read-only re-review passed with no Critical or Major findings. Day 7 remains unstarted and requires separate owner authorization.
 
 ### Day 7 — Sunday, 26 July: Department-label mapping and data freeze
 
