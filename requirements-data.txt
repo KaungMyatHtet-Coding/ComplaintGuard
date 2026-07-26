@@ -2,3 +2,6 @@
 pandas>=2.2,<3
 # Day 6 aggregate-only chart rendering. The verified local run used 3.10.0.
 matplotlib>=3.10,<4
+# Day 8 transparent TF-IDF + Multinomial Naive Bayes baseline.
+scikit-learn>=1.6,<2
+joblib>=1.4,<2
