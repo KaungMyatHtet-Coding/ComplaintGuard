@@ -45,6 +45,8 @@ data/downloads/
 *.parquet
 *.feather
 *.arrow
+*.sqlite
+*.sqlite-*
 *.zip
 *.gz
 *.7z
@@ -87,3 +89,5 @@ tmp/
 temp/
 *.tmp
 *.bak
+*.backup
+*.publish.lock
