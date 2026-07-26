@@ -85,7 +85,7 @@ The live path performs inference only. Translation and prediction failures must 
 
 - Synthetic/demo user profiles and role/department references; authentication credentials remain managed by Firebase Authentication.
 - Departments and stable department IDs.
-- Operational complaint tickets, original/normalized/translated text as allowed by the final privacy design, detected language, predicted label, confidence, assignment, priority, status, and timestamps.
+- Operational complaint tickets containing only the minimum PII-reduced original text submitted directly to ComplaintGuard, preserved in its submitted language as allowed by the approved Day 4 privacy design, plus detected language, predicted label, confidence, assignment, priority, status, and timestamps.
 - Ticket messages and lifecycle/audit events.
 - Demo feedback and small operational dashboard aggregates if needed.
 
@@ -93,13 +93,14 @@ Firestore security rules must restrict customers to their own tickets and depart
 
 ### Not stored in Firestore
 
-- The full historical CFPB dataset or bulk training/validation/test data.
+- The historical CFPB corpus, including raw or cleaned complaint text, normalized narratives, translations, complaint-level records, and bulk training/validation/test data.
 - Raw local downloads, intermediate analysis files, notebooks, or EDA outputs.
 - Model-fitting matrices, TF-IDF vocabulary working data, evaluation splits, or training logs.
+- Normalized or translated historical or operational complaint text; normalization and translation are transient inference steps and are never persisted.
 - Passwords, access tokens, service-account JSON, private keys, or local `.env` files.
 - Real customer identities, account/card numbers, PINs, passwords, or real banking transactions.
 
-Historical data stays in ignored local CSV/Parquet files. Only a small, reproducible, privacy-reviewed sample may be committed or placed in a demonstration collection later if the core MVP is already stable.
+Historical data stays in ignored local CSV files. It is never imported into Firestore. The later Day 4 privacy decision supersedes the earlier draft wording: historical normalized narratives, translations, training data, and cleaned historical complaint text must not be persisted in Firestore.
 
 ## Zero-cost limitations and mitigations
 

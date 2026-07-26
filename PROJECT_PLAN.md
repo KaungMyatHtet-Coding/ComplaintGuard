@@ -298,13 +298,15 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 ### Day 5 — Friday, 24 July: Data-cleaning pipeline
 
-- [ ] Missing narratives, duplicates နှင့် invalid rows ကိုစစ်ရန်
-- [ ] Reusable cleaning functions ရေးရန်
-- [ ] Text normalization စတင်ရန်
-- [ ] Cleaned dataset output ထုတ်ရန်
-- [ ] Cleaning decisions နှင့် before/after counts မှတ်တမ်းတင်ရန်
+- [x] Missing narratives, duplicates နှင့် invalid rows ကိုစစ်ရန်
+- [x] Reusable cleaning functions ရေးရန်
+- [x] Text normalization စတင်ရန်
+- [x] Cleaned dataset output ထုတ်ရန်
+- [x] Cleaning decisions နှင့် before/after counts မှတ်တမ်းတင်ရန်
 
 **End-of-day deliverable:** Reproducible cleaning notebook/script and cleaned data.
+
+**Completed evidence:** The corrected full-dataset pair is `data/interim/cfpb/complaints_cleaned_corrected.csv` with `data/cfpb_cleaning_corrected_report.json`. Run `e1996a2c34d0457fa08b83864b4f1a9d` processed 17,034,951 rows in 171 chunks, retained 3,822,576 rows, rejected 13,212,375 rows, and passed production completed-pair validation. Day 6 remains unstarted pending separate owner authorization after the controlled Day 5 commit.
 
 ### Day 6 — Saturday, 25 July: Exploratory data analysis
 

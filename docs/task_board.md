@@ -63,6 +63,18 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - Retain the unresolved production retention period as a required pre-deployment decision; it does not block the Day 4 design milestone.
 - Record that Firebase CLI and emulator tooling remain unavailable, so the rules are not compiled, emulator-tested, or production-approved.
 
+### Day 5
+
+- [x] Confirm the approved privacy-minimized schema and immutable raw-data boundary.
+- [x] Implement reusable Unicode normalization, whitespace cleanup, URL removal, and conservative PII-reduction functions.
+- [x] Implement deterministic chunked CSV cleaning with strict required fields and disk-backed cross-chunk deduplication.
+- [x] Produce the final full cleaned corpus at the ignored, untracked path `data/interim/cfpb/complaints_cleaned_corrected.csv`.
+- [x] Produce the aggregate-only version-2 report at `data/cfpb_cleaning_corrected_report.json` with reconciled before/after counts and no complaint-level values.
+- [x] Add synthetic automated tests for validation, redaction, rejection precedence, duplicate handling, and publication behavior; the complete suite passed 117 tests in 25.42 seconds.
+- [x] Complete the authorized syntax, synthetic-test, full-run, production-validation, ignore, integrity, privacy, and tracked-content checks. Ruff was not run during the corrected full-run or final review.
+- [x] Complete the owner-authorized full run and strict reviews. Run `e1996a2c34d0457fa08b83864b4f1a9d` processed 17,034,951 rows in 171 chunks, retained 3,822,576, rejected 13,212,375, and passed production completed-pair validation.
+- Day 6 remains unstarted and requires separate owner authorization after the controlled Day 5 commit.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.
@@ -70,3 +82,7 @@ Move verification to Done only after `npm run lint` and `npm run build` pass and
 ## Day 3 completion rule
 
 Move Day 3 work to Done only after archive validation, extracted-size verification, a complete chunked profile, documentation review, ignore checks, and a scan confirming that tracked outputs contain no narratives or complaint-level records. Cleaning, sampling, translation, feature engineering, mapping implementation, and model work remain deferred.
+
+## Day 5 completion rule
+
+Day 5 started early with owner approval on 23 July 2026. Move Day 5 work to Done only after the reusable cleaner and synthetic tests pass, the complete raw CSV is processed successfully in bounded chunks, all input rows reconcile to retained plus mutually exclusive rejection counts, the aggregate report is reviewed, the full cleaned CSV and processing artifacts are confirmed ignored, raw-file integrity is unchanged, and tracked outputs are scanned to confirm that they contain no complaint IDs, narratives, row-level records, or personal identifiers. A bounded smoke test alone does not complete Day 5. Mapping, EDA, translation, feature engineering, sampling, model training, frontend work, and Firebase implementation remain deferred.
