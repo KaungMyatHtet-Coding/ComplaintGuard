@@ -348,13 +348,15 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 ### Day 9 — Tuesday, 28 July: Model improvement and finalization
 
-- [ ] TF-IDF and Naive Bayes hyperparameters စမ်းရန်
-- [ ] Class imbalance handling စမ်းရန်
-- [ ] Confidence threshold ကို validation data ဖြင့်ရွေးရန်
-- [ ] Final model ကို test set ပေါ်တွင်တစ်ကြိမ် evaluate လုပ်ရန်
-- [ ] Model, vectorizer, labels and version metadata export လုပ်ရန်
+- [x] TF-IDF and Naive Bayes hyperparameters စမ်းရန်
+- [x] Class imbalance handling စမ်းရန်
+- [x] Confidence threshold ကို validation data ဖြင့်ရွေးရန်
+- [x] Final model ကို test set ပေါ်တွင်တစ်ကြိမ် evaluate လုပ်ရန်
+- [x] Model, vectorizer, labels and version metadata export လုပ်ရန်
 
 **End-of-day deliverable:** Frozen model `v1`, metrics table and error analysis.
+
+**Completed evidence:** Four predeclared TF-IDF/MultinomialNB candidates and five confidence thresholds were compared using validation macro-F1 only on the unchanged Day 8 sample and duplicate-group partitions. `lower_alpha` (`alpha=0.5`, training cap 30,000, threshold 0.0) won validation and was evaluated on 29,942 test rows exactly once. Frozen model `v1` achieved accuracy 0.827934, balanced accuracy 0.736204 and macro-F1 0.692345, improving Day 8 macro-F1 by 0.003861 but not meeting the 0.70 target. Aggregate metrics, fixed-order confusion analysis, version/integrity metadata, 12 focused tests and Ruff checks passed. Day 10 remains unstarted and requires separate authorization.
 
 ### Day 10 — Wednesday, 29 July: Myanmar pipeline
 

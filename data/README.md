@@ -122,3 +122,9 @@ The manifest is the authoritative v1 completion marker. It records versions, pro
 Day 8 uses the ignored `cfpb_training_v1.csv` as read-only input for one bounded TF-IDF + Multinomial Naive Bayes experiment. The generated 13,311,188-byte model is stored at `models/generated/cfpb_tfidf_mnb_baseline_v1.joblib` and remains ignored and untracked. Aggregate-only results are tracked at `data/processed/cfpb_baseline_v1_metrics.json`; the architecture, exact command, metrics, target status, privacy boundary, and limitations are documented in `docs/model_baseline.md`.
 
 The production experiment selected 200,000 of 3,822,576 rows, kept validation and test natural, and applied a 30,000-row cap only to training classes. Test macro-F1 was 0.688484, so the project target of 0.70 was not achieved by this first baseline.
+
+## Day 9 frozen model v1
+
+Day 9 preserves the Day 8 baseline and uses validation only to select among four declared TF-IDF/MultinomialNB candidates and five confidence thresholds. The selected `lower_alpha` candidate uses `MultinomialNB(alpha=0.5)` and threshold `0.0`; it was evaluated on the unchanged 29,942-row test partition exactly once.
+
+The ignored final artifact is `models/generated/cfpb_department_model_v1.joblib`. Aggregate-only final evidence is tracked at `data/processed/cfpb_model_v1_metrics.json` and documented in `docs/model_finalization.md`. Final test macro-F1 is 0.692345, a 0.003861 improvement over Day 8 but still below the 0.70 target.
