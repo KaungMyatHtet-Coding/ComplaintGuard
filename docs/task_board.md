@@ -145,7 +145,20 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Verify 15 focused API tests, 208 API/affected regression tests, Ruff check and Ruff format check.
 - [x] Confirm frozen-model integrity and a real synthetic prediction response.
 - Day 11 status: Done.
-- Day 12 remains unstarted and unauthorized.
+
+### Day 12
+
+- [x] Build responsive home, login and protected dashboard shells.
+- [x] Add English/Myanmar UI catalogs, per-key English fallback and a persistent language switch.
+- [x] Add configuration-gated Firebase email/password authentication without committing configuration or credentials.
+- [x] Validate active Firestore profiles and the four approved roles: customer, staff, manager and admin.
+- [x] Add role-aware dashboard navigation and signed-out route protection.
+- [x] Add loading, missing-configuration, authentication and permission error states.
+- [x] Verify prepared customer, staff and manager accounts reach the correct dashboard shells.
+- [x] Verify signed-out dashboard redirection, English/Myanmar switching and clean-restart hydration.
+- [x] Verify nine synthetic frontend tests, ESLint, TypeScript and the production build.
+- Day 12 status: Done on 29 July 2026.
+- Day 13 remains unstarted.
 
 ## Day 2 completion rule
 
