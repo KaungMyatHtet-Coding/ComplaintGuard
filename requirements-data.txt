@@ -5,3 +5,7 @@ matplotlib>=3.10,<4
 # Day 8 transparent TF-IDF + Multinomial Naive Bayes baseline.
 scikit-learn>=1.6,<2
 joblib>=1.4,<2
+# Day 10 fully local Myanmar-to-English translation at the frozen checkpoint.
+torch==2.9.1
+transformers==4.57.6
+sentencepiece==0.2.1

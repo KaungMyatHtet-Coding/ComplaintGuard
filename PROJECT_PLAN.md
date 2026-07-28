@@ -356,29 +356,64 @@ Myanmar test sentences ကို department တစ်ခုလျှင် အ�
 
 **End-of-day deliverable:** Frozen model `v1`, metrics table and error analysis.
 
-**Completed evidence:** Four predeclared TF-IDF/MultinomialNB candidates and five confidence thresholds were compared using validation macro-F1 only on the unchanged Day 8 sample and duplicate-group partitions. `lower_alpha` (`alpha=0.5`, training cap 30,000, threshold 0.0) won validation and was evaluated on 29,942 test rows exactly once. Frozen model `v1` achieved accuracy 0.827934, balanced accuracy 0.736204 and macro-F1 0.692345, improving Day 8 macro-F1 by 0.003861 but not meeting the 0.70 target. Aggregate metrics, fixed-order confusion analysis, version/integrity metadata, 12 focused tests and Ruff checks passed. Day 10 remains unstarted and requires separate authorization.
+**Completed evidence:** Four predeclared TF-IDF/MultinomialNB candidates and five confidence thresholds were compared using validation macro-F1 only on the unchanged Day 8 sample and duplicate-group partitions. `lower_alpha` (`alpha=0.5`, training cap 30,000, threshold 0.0) won validation and was evaluated on 29,942 test rows exactly once. Frozen model `v1` achieved accuracy 0.827934, balanced accuracy 0.736204 and macro-F1 0.692345, improving Day 8 macro-F1 by 0.003861 but not meeting the 0.70 target. Aggregate metrics, fixed-order confusion analysis, version/integrity metadata, 12 focused tests and Ruff checks passed. Day 10 was separately authorized after Day 9 completion and is tracked below.
 
 ### Day 10 — Wednesday, 29 July: Myanmar pipeline
 
-- [ ] Myanmar Unicode normalization ထည့်ရန်
-- [ ] Myanmar-to-English translation model စမ်းရန်
-- [ ] English/Myanmar language detection ပြုလုပ်ရန်
-- [ ] Department တစ်ခုလျှင် Myanmar examples အနည်းဆုံး 5 ခုစမ်းရန်
-- [ ] Translation quality နှင့် response time မှတ်တမ်းတင်ရန်
-- [ ] Slow/failure state အတွက် user-friendly message ပြင်ဆင်ရန်
+- [x] Myanmar Unicode normalization ထည့်ရန်
+- [x] Myanmar-to-English translation model စမ်းရန်
+- [x] English/Myanmar language detection ပြုလုပ်ရန်
+- [x] Department တစ်ခုလျှင် Myanmar examples အနည်းဆုံး 5 ခုစမ်းရန်
+- [x] Translation quality နှင့် response time မှတ်တမ်းတင်ရန်
+- [x] Slow/failure state အတွက် user-friendly message ပြင်ဆင်ရန်
 
 **End-of-day deliverable:** Working bilingual inference pipeline and test sheet.
 
+**In-progress evidence:** The local PyTorch-only
+`Helsinki-NLP/opus-mt-mul-en` pipeline is pinned to revision
+`848eae0c1676cfce9bb791c200e8228e5a6396ff`, loads offline, and produced a
+30-case synthetic review sheet. Runtime measurement and structured
+slow/failure behavior passed. Owner review found only 14/30 usable translations
+and only 11/30 predicted departments matched the approved synthetic
+expectations; both required 24/30 thresholds failed. Diagnosis reproduced
+unrelated output on a separate synthetic development case and found a
+checkpoint-quality limitation rather than a missing language prefix, corrupt
+cache, or loader defect. Candidate research found no credible stronger
+Myanmar-to-English replacement within the original 400 MB physical-cache
+boundary. The owner approved a candidate-specific 2.6 GB ceiling for later
+evaluation of the pinned NLLB-200 600M base plus Myanmar-to-English LoRA
+adapter. Local acquisition was blocked by the approved 12 GB RAM gate, so the
+separate 30-case synthetic development set was evaluated in free Colab. The
+intended LoRA adapter was unavailable and was not used; only pinned base NLLB
+was evaluated. Translation executed for 30/30 cases with zero empty/error
+outputs, deterministic repeats passed 3/3, and routing correctness was 9/30
+(30%). Owner semantic review recorded 13 pass, 10 partial, and 7 fail; the
+23/30 pass-plus-partial result was below the prior 24/30 usable threshold.
+This is development evidence, not frozen-validation evidence. Myanmar
+production readiness was not approved, and no final Myanmar translation route
+was accepted. Day 10 therefore remains In Progress. Day 11 was separately
+authorized and completed without changing the recorded Day 10 evidence.
+
 ### Day 11 — Thursday, 30 July: ML API
 
-- [ ] FastAPI service ဖန်တီးရန်
-- [ ] `/health` endpoint ပြုလုပ်ရန်
-- [ ] `/predict` endpoint ပြုလုပ်ရန်
-- [ ] Input validation, maximum length နှင့် error handling ထည့်ရန်
-- [ ] Prediction response schema အတည်ပြုရန်
-- [ ] Local API tests ရေးရန်
+- [x] FastAPI service ဖန်တီးရန်
+- [x] `/health` endpoint ပြုလုပ်ရန်
+- [x] `/predict` endpoint ပြုလုပ်ရန်
+- [x] Input validation, maximum length နှင့် error handling ထည့်ရန်
+- [x] Prediction response schema အတည်ပြုရန်
+- [x] Local API tests ရေးရန်
 
 **End-of-day deliverable:** Tested local ML API returning department and confidence.
+
+**Completed evidence:** The local API validates and integrity-checks frozen
+model `v1`, exposes typed `/health` and `/predict` responses, enforces the six
+stable department IDs, rejects missing, empty, whitespace-only, wrong-type,
+over-limit, unsupported-script, Myanmar and mixed input with structured errors,
+and never persists request text. Myanmar remains explicitly marked as a
+development baseline that is not production-ready. Fifteen focused API tests
+and 208 API/affected regression tests passed; Ruff check and format verification
+passed. A synthetic request verified real frozen-model loading and the response
+contract. Day 12 has not started.
 
 ### Day 12 — Friday, 31 July: Frontend foundation and authentication
 

@@ -10,7 +10,23 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 
 ## In Progress
 
-- None.
+### Day 10
+
+- [x] Implement NFC/whitespace normalization and explicit English, Myanmar, mixed, invalid, and unsupported-script detection.
+- [x] Pin and verify local PyTorch-only Myanmar-to-English translation at immutable revision `848eae0c1676cfce9bb791c200e8228e5a6396ff`.
+- [x] Preserve the frozen Day 9 classifier contract and keep translation failure distinct from low-confidence fallback.
+- [x] Add structured missing, timeout, failed, empty, and non-fatal slow-translation behavior.
+- [x] Run 30 privacy-safe synthetic cases, five for each fixed department.
+- [x] Complete owner translation-quality review for every synthetic case: 5 score-2, 9 score-1, and 16 score-0; usable translation acceptance failed at 14/30.
+- [x] Diagnose translation and classifier failures without tuning on the frozen validation cases.
+- [x] Research stronger Myanmar-to-English checkpoints and approve a candidate-specific 2.6 GB cache ceiling for a pinned NLLB-200 600M base plus LoRA adapter.
+- [x] Freeze a separate 30-case privacy-safe checkpoint development set without executing it.
+- [x] Prepare and statically validate a free-Colab development-only evaluation notebook after local acquisition was blocked by the 12 GB RAM gate.
+- [x] Execute the 30-case development set in free Colab using pinned base NLLB; the intended LoRA adapter was unavailable and not used.
+- [x] Record 30/30 successful translation executions, zero empty/error outputs, and 9/30 (30%) routing correctness.
+- [x] Complete owner semantic review: 13 pass, 10 partial and 7 fail; pass plus partial was 23/30, below the prior 24/30 usable threshold.
+- [ ] Accept a final Myanmar translation route; neither Marian nor base NLLB has met the approved quality and routing thresholds.
+- Day 10 status: In Progress; the Colab result is development evidence, Myanmar production readiness is not approved, and no final route is accepted.
 
 ## Review
 
@@ -117,7 +133,19 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Verify 12 focused synthetic tests and Ruff checks.
 - [x] Record macro-F1 0.692345 and the +0.003861 Day 8 improvement; the 0.70 target remains unmet.
 - Day 9 status: Done.
-- Day 10 Myanmar pipeline remains unstarted and requires separate owner authorization.
+
+### Day 11
+
+- [x] Create the local FastAPI ML service around frozen model `v1`.
+- [x] Add typed `GET /health` and `POST /predict` endpoints.
+- [x] Enforce the six stable department IDs and return genuine classifier confidence.
+- [x] Validate missing, empty, whitespace-only, wrong-type, extra-field, over-limit and unsupported input.
+- [x] Return structured errors without echoing complaint text or exposing local paths.
+- [x] Keep Myanmar and mixed input explicitly blocked as a development baseline that is not production-ready.
+- [x] Verify 15 focused API tests, 208 API/affected regression tests, Ruff check and Ruff format check.
+- [x] Confirm frozen-model integrity and a real synthetic prediction response.
+- Day 11 status: Done.
+- Day 12 remains unstarted and unauthorized.
 
 ## Day 2 completion rule
 

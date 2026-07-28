@@ -1,0 +1,242 @@
+[
+  {
+    "id": "day10_dev_transfer_01",
+    "myanmar_input": "ကြိုတင်သတ်မှတ်ထားတဲ့ ငွေလွှဲရက်က မနက်ဖြန်ဖြစ်ပေမယ့် ဒီနေ့ပဲ ထွက်သွားပါတယ်။ ရက်စွဲကို စစ်ပေးပါ။",
+    "expected_english_intent": "Investigate a scheduled transfer that executed one day early.",
+    "expected_department": "transfer_payment",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": []
+  },
+  {
+    "id": "day10_dev_transfer_02",
+    "myanmar_input": "တစ်ရက်လျှင် ငွေလွှဲနိုင်သည့် limit ကို ၂ သိန်းမှ တိုးမြှင့်လိုပါသည်။ လုပ်ဆောင်ရမည့်အဆင့်များကို ပြောပြပါ။",
+    "expected_english_intent": "Ask how to increase the daily transfer limit from 200,000.",
+    "expected_department": "transfer_payment",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": ["english_term", "numeric_amount"]
+  },
+  {
+    "id": "day10_dev_transfer_03",
+    "myanmar_input": "လက်ခံသူမှန်ပေမယ့် transfer reference က မှားနေတယ်။ မှတ်တမ်းကို ပြင်လို့ရမလား။",
+    "expected_english_intent": "Request correction of an incorrect recipient transfer reference.",
+    "expected_department": "transfer_payment",
+    "style_tags": ["informal", "short"],
+    "mixed_language_numeric_tags": ["english_term"]
+  },
+  {
+    "id": "day10_dev_transfer_04",
+    "myanmar_input": "ဆိုင်မှာ QR နဲ့ ၃၅၀၀၀ ကျပ်ပေးပြီး အောင်မြင်တယ်လို့ပြပေမယ့် ဆိုင်ဘက်စာရင်းမှာ မပေါ်သေးပါ။ စာရင်းညှိပေးစေလိုပါတယ်။",
+    "expected_english_intent": "Reconcile a 35,000 kyat QR payment missing from the merchant ledger.",
+    "expected_department": "transfer_payment",
+    "style_tags": ["formal", "long"],
+    "mixed_language_numeric_tags": ["english_product_term", "numeric_amount"]
+  },
+  {
+    "id": "day10_dev_transfer_05",
+    "myanmar_input": "လစဉ် recurring remittance ကို ၁၅ ရက်နေ့တိုင်းပို့ဖို့ထားတာ ၁၆ ရက်နေ့မှ စတင်နေပါတယ်။ အချိန်ဇယားကို ပြင်ပေးပါ။",
+    "expected_english_intent": "Correct a recurring remittance scheduled for the 15th that runs on the 16th.",
+    "expected_department": "transfer_payment",
+    "style_tags": ["mixed_language", "medium"],
+    "mixed_language_numeric_tags": ["english_term", "numeric_dates"]
+  },
+  {
+    "id": "day10_dev_account_01",
+    "myanmar_input": "ပူးတွဲအကောင့်တွင် အခြားကိုင်ဆောင်သူ၏ လက်မှတ်ပုံစံကို အသစ်ပြောင်းရန် လိုအပ်ချက်များကို ရှင်းပြပေးပါ။",
+    "expected_english_intent": "Explain requirements to update a joint account holder's signature record.",
+    "expected_department": "account_support",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": []
+  },
+  {
+    "id": "day10_dev_account_02",
+    "myanmar_input": "အချိန်ကြာလို့ dormant ဖြစ်နေတဲ့ savings account ကို ပြန်သုံးချင်တယ်။ ဘာတွေယူလာရမလဲ။",
+    "expected_english_intent": "Ask how to reactivate a dormant savings account.",
+    "expected_department": "account_support",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": ["english_terms"]
+  },
+  {
+    "id": "day10_dev_account_03",
+    "myanmar_input": "ဤလ စုငွေအတိုးကို statement တွင် မတွေ့ရပါ။ အတိုးတွက်ချက်မှုနှင့် ထည့်သွင်းမည့်ရက်ကို စစ်ဆေးပေးပါ။",
+    "expected_english_intent": "Investigate missing savings interest and its posting date.",
+    "expected_department": "account_support",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": ["english_term"]
+  },
+  {
+    "id": "day10_dev_account_04",
+    "myanmar_input": "အကောင့် beneficiary စာရင်းထဲက အဟောင်းကိုဖယ်ပြီး အသစ်တစ်ခုထည့်ချင်ပါတယ်။ online မှာ လုပ်နိုင်ပါသလား။",
+    "expected_english_intent": "Ask whether account beneficiary maintenance can be completed online.",
+    "expected_department": "account_support",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": ["english_terms"]
+  },
+  {
+    "id": "day10_dev_account_05",
+    "myanmar_input": "စာရွက်စာတမ်းတွင် အကောင့်ခေါင်းစဉ် စာလုံးပေါင်းမှားနေသဖြင့် မှန်ကန်သည့်ခေါင်းစဉ်သို့ ပြင်ဆင်ပေးရန် တောင်းဆိုပါသည်။",
+    "expected_english_intent": "Request correction of a spelling error in the account title.",
+    "expected_department": "account_support",
+    "style_tags": ["formal", "long"],
+    "mixed_language_numeric_tags": []
+  },
+  {
+    "id": "day10_dev_card_01",
+    "myanmar_input": "ကတ်ရဲ့ contactless setting ကို ပိတ်ချင်တယ်။ app ထဲမှာ ခလုတ်မတွေ့ဘူး။",
+    "expected_english_intent": "Ask for help disabling the card's contactless setting.",
+    "expected_department": "card_atm",
+    "style_tags": ["informal", "short"],
+    "mixed_language_numeric_tags": ["english_terms"]
+  },
+  {
+    "id": "day10_dev_card_02",
+    "myanmar_input": "ATM စက်က ကတ်ကို ပြန်မထုတ်ပေးဘဲ သိမ်းထားသည်။ စက်တည်နေရာအချက်အလက်မဖော်ပြဘဲ ကတ်ကို ဘယ်လိုပိတ်ရမလဲ သိလိုပါတယ်။",
+    "expected_english_intent": "Request guidance after an ATM retained the card, including how to block it.",
+    "expected_department": "card_atm",
+    "style_tags": ["formal", "long"],
+    "mixed_language_numeric_tags": ["english_product_term"]
+  },
+  {
+    "id": "day10_dev_card_03",
+    "myanmar_input": "replacement card ပို့မယ့်အခြေအနေကို tracking ကြည့်လို့မရပါ။ ရောက်မည့်ရက်ကို စစ်ပေးပါ။",
+    "expected_english_intent": "Check the delivery status and expected date of a replacement card.",
+    "expected_department": "card_atm",
+    "style_tags": ["mixed_language", "medium"],
+    "mixed_language_numeric_tags": ["english_terms"]
+  },
+  {
+    "id": "day10_dev_card_04",
+    "myanmar_input": "ATM မှ တစ်နေ့ ၅ သိန်းထုတ်လိုသော်လည်း ၃ သိန်းတွင် ငြင်းပယ်နေပါသည်။ ကတ်ထုတ်ယူမှု limit ကို စစ်ဆေးပေးပါ။",
+    "expected_english_intent": "Investigate an ATM withdrawal limit blocking amounts above 300,000.",
+    "expected_department": "card_atm",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": ["english_product_term", "english_term", "numeric_amounts"]
+  },
+  {
+    "id": "day10_dev_card_05",
+    "myanmar_input": "cash deposit ATM ထဲကို ၈၀၀၀၀ ကျပ်ထည့်တာ receipt မှာ ၆၀၀၀၀ ပဲပြတယ်။ ကွာခြားချက်ကို စစ်ပေးပါ။",
+    "expected_english_intent": "Investigate an ATM cash deposit receipt showing 60,000 instead of 80,000.",
+    "expected_department": "card_atm",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": ["english_terms", "numeric_amounts"]
+  },
+  {
+    "id": "day10_dev_fraud_01",
+    "myanmar_input": "မသိသော device တစ်ခုမှ login ဝင်ထားကြောင်း security alert ရပါသည်။ session များပိတ်ပြီး စစ်ဆေးပေးပါ။",
+    "expected_english_intent": "Respond to a security alert for a login from an unknown device.",
+    "expected_department": "fraud_security",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": ["english_security_terms"]
+  },
+  {
+    "id": "day10_dev_fraud_02",
+    "myanmar_input": "ဘဏ်ပုံစံတူ link တစ်ခုရောက်လာလို့ မနှိပ်သေးဘူး။ phishing ဟုတ်မဟုတ် စစ်ပေးနိုင်မလား။",
+    "expected_english_intent": "Ask whether a suspicious bank-like link is a phishing attempt.",
+    "expected_department": "fraud_security",
+    "style_tags": ["informal", "short"],
+    "mixed_language_numeric_tags": ["english_security_terms"]
+  },
+  {
+    "id": "day10_dev_fraud_03",
+    "myanmar_input": "SIM ပြောင်းရန် မတောင်းဆိုထားသော်လည်း OTP အသစ်ရရှိခဲ့သည်။ လုံခြုံရေးအတွက် အကောင့်ကို ခေတ္တကာကွယ်ပေးပါ။",
+    "expected_english_intent": "Protect the account after an unexpected SIM-change OTP.",
+    "expected_department": "fraud_security",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": ["english_security_terms"]
+  },
+  {
+    "id": "day10_dev_fraud_04",
+    "myanmar_input": "သံသယဖြစ်ဖွယ် လှုပ်ရှားမှုကြောင့် security freeze တင်ထားချင်ပါတယ်။ ပြန်ဖွင့်ရန် လိုအပ်ချက်ကိုလည်း ပြောပြပါ။",
+    "expected_english_intent": "Request a security freeze and instructions for later removal.",
+    "expected_department": "fraud_security",
+    "style_tags": ["mixed_language", "medium"],
+    "mixed_language_numeric_tags": ["english_security_term"]
+  },
+  {
+    "id": "day10_dev_fraud_05",
+    "myanmar_input": "မိမိမလျှောက်ထားသော credit inquiry တစ်ခု ပေါ်နေပါသည်။ အတုပြုလုပ်ထားခြင်းရှိမရှိ စုံစမ်းပြီး ကာကွယ်ပေးရန် တောင်းဆိုပါသည်။",
+    "expected_english_intent": "Investigate and protect against an unrecognized credit inquiry.",
+    "expected_department": "fraud_security",
+    "style_tags": ["formal", "long"],
+    "mixed_language_numeric_tags": ["english_credit_term"]
+  },
+  {
+    "id": "day10_dev_loan_01",
+    "myanmar_input": "ချေးငွေကို သတ်မှတ်ရက်မတိုင်မီ အပြီးပေးချင်ပါတယ်။ early settlement quote နဲ့ အပိုကြေးရှိမရှိ ပေးပို့ပါ။",
+    "expected_english_intent": "Request an early loan settlement quote including any extra fee.",
+    "expected_department": "loan_credit",
+    "style_tags": ["mixed_language", "medium"],
+    "mixed_language_numeric_tags": ["english_finance_term"]
+  },
+  {
+    "id": "day10_dev_loan_02",
+    "myanmar_input": "နောက်ဆုံးပေးသွင်းငွေ ၁၂၀၀၀၀ ကျပ်ထဲက principal ကို ၂၀၀၀၀ ပဲလျှော့ထားတာ ဘာကြောင့်လဲ ရှင်းပြပါ။",
+    "expected_english_intent": "Explain why only 20,000 of a 120,000 loan payment reduced principal.",
+    "expected_department": "loan_credit",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": ["english_finance_term", "numeric_amounts"]
+  },
+  {
+    "id": "day10_dev_loan_03",
+    "myanmar_input": "ချေးငွေအားလုံးပေးချေပြီးဖြစ်သော်လည်း အာမခံပစ္စည်း release စာရွက် မရသေးပါ။ ထုတ်ပေးမည့်အချိန်ကို အတည်ပြုပေးပါ။",
+    "expected_english_intent": "Request the collateral release document after full loan repayment.",
+    "expected_department": "loan_credit",
+    "style_tags": ["formal", "long"],
+    "mixed_language_numeric_tags": ["english_finance_term"]
+  },
+  {
+    "id": "day10_dev_loan_04",
+    "myanmar_input": "loan documents အားလုံးပို့ပြီးပြီဆိုတဲ့ receipt မရဘူး။ စာရွက်တွေ လက်ခံရရှိကြောင်း အတည်ပြုပေးပါ။",
+    "expected_english_intent": "Confirm receipt of all submitted loan documents.",
+    "expected_department": "loan_credit",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": ["english_terms"]
+  },
+  {
+    "id": "day10_dev_loan_05",
+    "myanmar_input": "လက်ရှိ credit line ကို ၁၅ သိန်းမှ ၂၀ သိန်းသို့ ပြောင်းလဲရန် အရည်အချင်းနှင့် စည်းကမ်းချက်များကို သိလိုပါသည်။",
+    "expected_english_intent": "Ask about eligibility to increase a credit line from 1.5 million to 2 million.",
+    "expected_department": "loan_credit",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": ["english_finance_term", "numeric_amounts"]
+  },
+  {
+    "id": "day10_dev_general_01",
+    "myanmar_input": "အမြင်အာရုံအခက်အခဲရှိသူများအတွက် စာလုံးကြီးနှင့် အသံဖတ် accessibility option ရှိပါသလား။",
+    "expected_english_intent": "Ask about large-text and screen-reader accessibility options.",
+    "expected_department": "general_support",
+    "style_tags": ["formal", "short"],
+    "mixed_language_numeric_tags": ["english_accessibility_term"]
+  },
+  {
+    "id": "day10_dev_general_02",
+    "myanmar_input": "စနေ၊ တနင်္ဂနွေ customer service ဖွင့်ချိန် ဘယ်နှနာရီလဲ။",
+    "expected_english_intent": "Ask for weekend customer service opening hours.",
+    "expected_department": "general_support",
+    "style_tags": ["informal", "short"],
+    "mixed_language_numeric_tags": ["english_service_term"]
+  },
+  {
+    "id": "day10_dev_general_03",
+    "myanmar_input": "ဝန်ဆောင်မှုဆိုင်ရာ စာရွက်များကို မြန်မာဘာသာဖြင့် ဖတ်ရှုနိုင်မည့် နေရာနှင့် ရယူနည်းကို ညွှန်ပြပေးပါ။",
+    "expected_english_intent": "Ask where to obtain service documents in Myanmar language.",
+    "expected_department": "general_support",
+    "style_tags": ["formal", "medium"],
+    "mixed_language_numeric_tags": []
+  },
+  {
+    "id": "day10_dev_general_04",
+    "myanmar_input": "စာဖြင့်ပို့ထားတဲ့ မေးခွန်းကို လက်ခံပြီးကြောင်း reference မပါဘဲ အတည်ပြုချက်တစ်စောင်လိုပါတယ်။",
+    "expected_english_intent": "Request acknowledgment that a written inquiry was received, without a case reference.",
+    "expected_department": "general_support",
+    "style_tags": ["informal", "medium"],
+    "mixed_language_numeric_tags": ["english_term"]
+  },
+  {
+    "id": "day10_dev_general_05",
+    "myanmar_input": "အထွေထွေ အသိပေးချက်တွေကို email မဟုတ်ဘဲ app notification ဖြင့်သာ လက်ခံနိုင်ရန် preference ပြောင်းလိုပါသည်။",
+    "expected_english_intent": "Change general notification preference from email to app notifications.",
+    "expected_department": "general_support",
+    "style_tags": ["mixed_language", "medium"],
+    "mixed_language_numeric_tags": ["english_terms"]
+  }
+]

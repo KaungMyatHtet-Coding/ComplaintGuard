@@ -1,0 +1,113 @@
+{
+  "status": "completed",
+  "candidate": {
+    "type": "base_nllb_only",
+    "base": {
+      "id": "facebook/nllb-200-distilled-600M",
+      "revision": "f8d333a098d19b4fd9a8b18f94170487ad3f821d"
+    },
+    "adapter": {
+      "used": false,
+      "status": "rejected_unavailable",
+      "reason": "The originally selected pinned LoRA repository returned RepositoryNotFoundError and was not used."
+    }
+  },
+  "evidence_type": "synthetic_development_only",
+  "created_at_utc": "2026-07-28T15:16:57.954072+00:00",
+  "dependencies": {
+    "torch": "2.11.0+cpu",
+    "transformers": "4.51.3",
+    "peft": "0.15.2",
+    "accelerate": "1.6.0",
+    "sentencepiece": "0.2.2",
+    "scikit-learn": "1.9.0",
+    "joblib": "1.5.3"
+  },
+  "runtime_preflight": {
+    "status": "passed",
+    "record_type": "reconstructed_from_active_runtime",
+    "python_version": "3.12.13",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.35",
+    "torch_version": "2.11.0+cpu",
+    "transformers_version": "4.51.3",
+    "joblib_version": "1.5.3",
+    "numpy_version": "2.5.1",
+    "device": "cpu",
+    "cuda_available": false,
+    "hf_hub_offline": "1",
+    "transformers_offline": "1",
+    "base_model_offline_reload_passed": true
+  },
+  "generation": {
+    "max_new_tokens": 256,
+    "do_sample": false,
+    "num_beams": 1
+  },
+  "input_artifact_hashes": {
+    "myanmar_checkpoint_dev_v1.json": "d21f05ce31c64ca4e3d9c14f0267b5b542e35bf6c120c9e49ef6dab5339cf2ec",
+    "cfpb_department_model_v1.joblib": "bafc086fe5b11bdcc5cbc4f04f3f3f222de8cbad27fe66d62a6685cc30f953d5",
+    "cfpb_model_v1_metrics.json": "99fc40b8e791fe65ff7ed22e8e5a731ed650351ad577d27322e95f2bdd1550d8"
+  },
+  "acquired_files": [
+    {
+      "relative_path": "config.json",
+      "size_bytes": 846,
+      "sha256": "f9b4081d3d108e9d06532ea8d92b932c04ed3a15ff2f87e6982f8e14db51fbc5"
+    },
+    {
+      "relative_path": "generation_config.json",
+      "size_bytes": 189,
+      "sha256": "0bb604cdb8392649176935a447ce994128f170a6908c135a17d0e3dfb8113cb2"
+    },
+    {
+      "relative_path": "pytorch_model.bin",
+      "size_bytes": 2460457927,
+      "sha256": "c266c2cfd19758b6d09c1fc31ecdf1e485509035f6b51dfe84f1ada83eefcc42"
+    },
+    {
+      "relative_path": "sentencepiece.bpe.model",
+      "size_bytes": 4852054,
+      "sha256": "14bb8dfb35c0ffdea7bc01e56cea38b9e3d5efcdcb9c251d6b40538e1aab555a"
+    },
+    {
+      "relative_path": "special_tokens_map.json",
+      "size_bytes": 3548,
+      "sha256": "992bd4ed610d644d6823081937bcc91bb8878dd556cea4ae5327f2480361330e"
+    },
+    {
+      "relative_path": "tokenizer.json",
+      "size_bytes": 17331176,
+      "sha256": "e316b82de11d0f951f370943b3c438311629547285129b0b81dadabd01bca665"
+    },
+    {
+      "relative_path": "tokenizer_config.json",
+      "size_bytes": 564,
+      "sha256": "d1aa8c3697d3e35674f97b5b7e9c99d22b010f528e80140257d97316be90d044"
+    }
+  ],
+  "acquisition": {
+    "status": "completed",
+    "record_type": "reconstructed_from_local_snapshot",
+    "candidate": "base_nllb_only",
+    "source": {
+      "id": "facebook/nllb-200-distilled-600M",
+      "revision": "f8d333a098d19b4fd9a8b18f94170487ad3f821d"
+    },
+    "snapshot_path": "/content/day10_nllb_cache/models--facebook--nllb-200-distilled-600M/snapshots/f8d333a098d19b4fd9a8b18f94170487ad3f821d",
+    "strict_offline_validation": true,
+    "adapter_used": false,
+    "acquired_file_count": 7
+  },
+  "offline_reload": {
+    "passed": true,
+    "cold_load_seconds": 17.411870490000183,
+    "device": "cpu",
+    "forced_bos_token_id": 256047,
+    "candidate": "base_nllb_only"
+  },
+  "output_artifact_hashes": {
+    "myanmar_nllb_base_dev_results.json": "0aa53d4f5b95dff4f8fb5920c1af3d88db8d4d2179b32e39b5487d5712c39f7d",
+    "myanmar_nllb_base_dev_summary.json": "7ac87cf42338eeec72542e6ef88e91ad949f45a5ce4d972433dc27c242a6bdce"
+  },
+  "semantic_review_status": "pending_owner_review"
+}
