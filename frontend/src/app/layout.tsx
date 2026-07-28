@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+
+import { AppProvider } from "@/components/app-provider";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,8 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+    <html lang="en">
+      <body>
+        <AppProvider>{children}</AppProvider>
+      </body>
     </html>
   );
 }

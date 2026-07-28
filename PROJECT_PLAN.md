@@ -413,18 +413,30 @@ and never persists request text. Myanmar remains explicitly marked as a
 development baseline that is not production-ready. Fifteen focused API tests
 and 208 API/affected regression tests passed; Ruff check and format verification
 passed. A synthetic request verified real frozen-model loading and the response
-contract. Day 12 has not started.
+contract. Day 12 is tracked below.
 
 ### Day 12 — Friday, 31 July: Frontend foundation and authentication
 
-- [ ] Responsive application layout ပြုလုပ်ရန်
-- [ ] English/Myanmar language switch ပြုလုပ်ရန်
+- [x] Responsive application layout ပြုလုပ်ရန်
+- [x] English/Myanmar language switch ပြုလုပ်ရန်
 - [ ] Firebase Authentication ချိတ်ရန်
-- [ ] Role-based navigation ပြုလုပ်ရန်
+- [x] Role-based navigation ပြုလုပ်ရန်
 - [ ] Demo customer, staff and manager accounts ပြင်ဆင်ရန်
-- [ ] Unauthorized-route protection စတင်ရန်
+- [x] Unauthorized-route protection စတင်ရန်
 
 **End-of-day deliverable:** Users can log in and see the correct role dashboard shell.
+
+**In-progress evidence:** The Next.js frontend now provides responsive home,
+login and protected dashboard shells; reviewed English/Myanmar UI catalogs; a
+configuration-gated modular Firebase email/password flow; active Firestore user
+profile validation for `customer`, `staff`, `manager` and `admin`; role-aware
+navigation; structured loading/configuration/authentication/permission states;
+and explicit reminders that UI routing does not replace Firestore rules or
+trusted-backend authorization. Nine focused synthetic tests, ESLint,
+TypeScript checking and the production build passed. No Firebase project
+configuration or prepared demo credentials are available in the repository, so
+live authentication and the end-of-day login deliverable are not verified.
+Day 12 therefore remains In Progress. Day 13 has not started.
 
 ### Day 13 — Saturday, 1 August: Complaint submission integration
 

@@ -28,6 +28,19 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [ ] Accept a final Myanmar translation route; neither Marian nor base NLLB has met the approved quality and routing thresholds.
 - Day 10 status: In Progress; the Colab result is development evidence, Myanmar production readiness is not approved, and no final route is accepted.
 
+### Day 12
+
+- [x] Build responsive home, login and protected dashboard shells.
+- [x] Add English/Myanmar UI catalogs, per-key English fallback and a persistent language switch.
+- [x] Add configuration-gated Firebase email/password authentication code without committing configuration or credentials.
+- [x] Validate active Firestore profiles and the four approved roles: customer, staff, manager and admin.
+- [x] Add role-aware dashboard navigation and initial unauthorized-route redirection.
+- [x] Add loading, missing-configuration, authentication and permission error states.
+- [x] Verify nine synthetic frontend tests, ESLint, TypeScript and the production build.
+- [ ] Verify live Firebase email/password authentication with prepared customer, staff and manager demo accounts.
+- Day 12 status: In Progress; live Firebase configuration and prepared demo identities remain owner setup blockers.
+- Day 13 remains unstarted.
+
 ## Review
 
 - None.
@@ -145,7 +158,6 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Verify 15 focused API tests, 208 API/affected regression tests, Ruff check and Ruff format check.
 - [x] Confirm frozen-model integrity and a real synthetic prediction response.
 - Day 11 status: Done.
-- Day 12 remains unstarted and unauthorized.
 
 ## Day 2 completion rule
 
