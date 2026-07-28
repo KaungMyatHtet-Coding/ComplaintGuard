@@ -1,0 +1,213 @@
+{
+  "review_type": "preliminary_human_review",
+  "owner_confirmation_required": true,
+  "source_results_file": "myanmar_pipeline_v1_results.json",
+  "source_test_cases_file": "myanmar_test_cases_v1.json",
+  "rubric": {
+    "2": "Core complaint meaning and requested action are clear.",
+    "1": "Core intent is understandable, but important wording is imperfect or omitted.",
+    "0": "Translation is unusable, materially reversed, fabricated, or expresses the wrong intent."
+  },
+  "summary": {
+    "total": 30,
+    "score_2": 5,
+    "score_1": 9,
+    "score_0": 16,
+    "score_1_or_2": 14,
+    "score_1_or_2_rate": 0.4667,
+    "required_score_1_or_2": 24,
+    "provisional_translation_acceptance": false,
+    "classification_correct": 11,
+    "classification_total": 30,
+    "classification_rate": 0.3667,
+    "required_classification_correct": 24,
+    "provisional_classification_acceptance": false
+  },
+  "cases": [
+    {
+      "case_id": "transfer_01",
+      "preliminary_score": 1,
+      "meaning_issue": "The missing/not-arrived transfer is weakened into generic missing money, but the request to investigate remains understandable.",
+      "suggested_translation": "Please investigate a money transfer that has not arrived."
+    },
+    {
+      "case_id": "transfer_02",
+      "preliminary_score": 2,
+      "meaning_issue": "The wording is awkward and says cell-phone payment, but the duplicated mobile payment meaning is clear.",
+      "suggested_translation": "A mobile payment was charged twice."
+    },
+    {
+      "case_id": "transfer_03",
+      "preliminary_score": 0,
+      "meaning_issue": "International transfer and unexpectedly high fee are completely lost.",
+      "suggested_translation": "Please explain an unexpectedly high international transfer fee."
+    },
+    {
+      "case_id": "transfer_04",
+      "preliminary_score": 0,
+      "meaning_issue": "A mistaken money transfer is mistranslated as a sort operation.",
+      "suggested_translation": "I want to cancel a transfer sent by mistake."
+    },
+    {
+      "case_id": "transfer_05",
+      "preliminary_score": 1,
+      "meaning_issue": "It identifies a payment-app failure but loses that the transfer itself is failing.",
+      "suggested_translation": "A transfer is failing in the payment app."
+    },
+    {
+      "case_id": "account_01",
+      "preliminary_score": 0,
+      "meaning_issue": "The output is an unrelated temporary-folder error and contains none of the account-opening request.",
+      "suggested_translation": "I need help opening a new bank account."
+    },
+    {
+      "case_id": "account_02",
+      "preliminary_score": 0,
+      "meaning_issue": "The output reverses the request and omits that account closure is still incomplete.",
+      "suggested_translation": "My request to close the account is still incomplete."
+    },
+    {
+      "case_id": "account_03",
+      "preliminary_score": 0,
+      "meaning_issue": "The incorrect monthly account fee is replaced by a vague statement that the account is invalid.",
+      "suggested_translation": "An incorrect monthly account fee was charged."
+    },
+    {
+      "case_id": "account_04",
+      "preliminary_score": 1,
+      "meaning_issue": "The inability to access an account is preserved, but online banking is distorted into an Internet Accounts account.",
+      "suggested_translation": "I cannot access my online bank account."
+    },
+    {
+      "case_id": "account_05",
+      "preliminary_score": 0,
+      "meaning_issue": "The output is an unrelated temporary-folder error and omits the statement-correction request.",
+      "suggested_translation": "I need a correction to my checking account statement."
+    },
+    {
+      "case_id": "card_01",
+      "preliminary_score": 1,
+      "meaning_issue": "It retains that a new card cannot be used, but invents a condition about returning the card.",
+      "suggested_translation": "My new card arrived but cannot be used."
+    },
+    {
+      "case_id": "card_02",
+      "preliminary_score": 0,
+      "meaning_issue": "The output is incoherent and loses the essential fact that the ATM debited the balance without dispensing cash.",
+      "suggested_translation": "The ATM gave no cash but debited the balance."
+    },
+    {
+      "case_id": "card_03",
+      "preliminary_score": 0,
+      "meaning_issue": "The incorrect fee on the credit-card bill is lost and replaced by an invalid-card statement.",
+      "suggested_translation": "The credit card bill contains an incorrect fee."
+    },
+    {
+      "case_id": "card_04",
+      "preliminary_score": 2,
+      "meaning_issue": "The debit-card PIN reset request is translated clearly.",
+      "suggested_translation": "I need to reset the debit card PIN."
+    },
+    {
+      "case_id": "card_05",
+      "preliminary_score": 0,
+      "meaning_issue": "A merchant declining the card payment is replaced by a statement that a credit card is already being paid.",
+      "suggested_translation": "A merchant keeps declining my card payment."
+    },
+    {
+      "case_id": "fraud_01",
+      "preliminary_score": 1,
+      "meaning_issue": "The unauthorized-payment meaning is retained, but payment is narrowed incorrectly to a donation.",
+      "suggested_translation": "I found a payment that I did not make."
+    },
+    {
+      "case_id": "fraud_02",
+      "preliminary_score": 1,
+      "meaning_issue": "The request to protect the account remains, but identity theft is omitted and the reason is distorted.",
+      "suggested_translation": "Protect my account because my identity may have been stolen."
+    },
+    {
+      "case_id": "fraud_03",
+      "preliminary_score": 0,
+      "meaning_issue": "Information belonging to someone else is reversed into having no information in the credit report.",
+      "suggested_translation": "My credit report contains information that is not mine."
+    },
+    {
+      "case_id": "fraud_04",
+      "preliminary_score": 0,
+      "meaning_issue": "The output is an unrelated temporary-folder error and omits the fraudulent-message report.",
+      "suggested_translation": "I want to report a fraudulent message."
+    },
+    {
+      "case_id": "fraud_05",
+      "preliminary_score": 2,
+      "meaning_issue": "The unauthorized account-information change is translated clearly.",
+      "suggested_translation": "Account information was changed without authorization."
+    },
+    {
+      "case_id": "loan_01",
+      "preliminary_score": 0,
+      "meaning_issue": "The incorrect monthly mortgage payment is replaced by a vague error about home information.",
+      "suggested_translation": "My monthly mortgage payment is incorrect."
+    },
+    {
+      "case_id": "loan_02",
+      "preliminary_score": 0,
+      "meaning_issue": "Student-loan repayment is mistranslated as a student's payroll schedule.",
+      "suggested_translation": "I want to change my student loan repayment plan."
+    },
+    {
+      "case_id": "loan_03",
+      "preliminary_score": 1,
+      "meaning_issue": "A wrong financial amount is conveyed, but vehicle loan and interest rate are omitted.",
+      "suggested_translation": "The vehicle loan interest rate was calculated incorrectly."
+    },
+    {
+      "case_id": "loan_04",
+      "preliminary_score": 2,
+      "meaning_issue": "The request for personal-loan status is clear; only the word application is omitted.",
+      "suggested_translation": "I want the status of my personal loan application."
+    },
+    {
+      "case_id": "loan_05",
+      "preliminary_score": 0,
+      "meaning_issue": "The remaining loan balance after repayment is reversed into having no money left.",
+      "suggested_translation": "The loan still shows a balance after repayment."
+    },
+    {
+      "case_id": "general_01",
+      "preliminary_score": 0,
+      "meaning_issue": "The output is an unrelated temporary-folder error and omits the request for department-routing help.",
+      "suggested_translation": "I need help because I do not know which department to contact."
+    },
+    {
+      "case_id": "general_02",
+      "preliminary_score": 1,
+      "meaning_issue": "It loosely asks how to view a situation, but complaint status is not identified.",
+      "suggested_translation": "How can I check the status of my complaint?"
+    },
+    {
+      "case_id": "general_03",
+      "preliminary_score": 0,
+      "meaning_issue": "A general service question is mistranslated as additional questions about sharing.",
+      "suggested_translation": "I have a general question about the service."
+    },
+    {
+      "case_id": "general_04",
+      "preliminary_score": 2,
+      "meaning_issue": "The request to speak with the support team is translated clearly.",
+      "suggested_translation": "I want to speak with the support team."
+    },
+    {
+      "case_id": "general_05",
+      "preliminary_score": 1,
+      "meaning_issue": "The request for more explanation of an answer remains, but not understanding the response is softened and wording is awkward.",
+      "suggested_translation": "Please explain the response again because I do not understand it."
+    }
+  ],
+  "review_notes": {
+    "translation_root_cause": "The selected checkpoint is not reliable enough for this Myanmar complaint domain. Repeated unrelated output such as a temporary-folder error indicates severe mistranslation or memorized/hallucinated text, not a small wording problem.",
+    "classification_root_cause": "Classification failures are not explained by translation alone. Some clear or usable translations are still routed incorrectly, including exact card-PIN and support-team intents. This indicates a separate frozen-classifier/domain-label weakness.",
+    "validation_integrity": "Do not tune prompts, rules, or model parameters directly against these 30 validation cases. Keep them as the frozen validation set and develop fixes on a separate synthetic development set."
+  }
+}

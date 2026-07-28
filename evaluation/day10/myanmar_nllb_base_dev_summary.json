@@ -1,0 +1,61 @@
+{
+  "candidate": "base_nllb_only",
+  "evidence_type": "synthetic_development_only",
+  "semantic_review_status": "pending_owner_review",
+  "total_cases": 30,
+  "successful_translations": 30,
+  "empty_or_error_outputs": 0,
+  "classification_correct": 9,
+  "classification_accuracy": 0.3,
+  "classification_by_department": {
+    "transfer_payment": {
+      "total": 5,
+      "correct": 0
+    },
+    "account_support": {
+      "total": 5,
+      "correct": 2
+    },
+    "card_atm": {
+      "total": 5,
+      "correct": 2
+    },
+    "fraud_security": {
+      "total": 5,
+      "correct": 1
+    },
+    "loan_credit": {
+      "total": 5,
+      "correct": 4
+    },
+    "general_support": {
+      "total": 5,
+      "correct": 0
+    }
+  },
+  "total_runtime_seconds": 150.0966339460001,
+  "mean_inference_seconds": 5.000689002499985,
+  "peak_process_rss_bytes": 3930177536,
+  "deterministic_repeatability": [
+    {
+      "development_id": "day10_dev_transfer_01",
+      "identical": true,
+      "error": null
+    },
+    {
+      "development_id": "day10_dev_card_01",
+      "identical": true,
+      "error": null
+    },
+    {
+      "development_id": "day10_dev_loan_01",
+      "identical": true,
+      "error": null
+    }
+  ],
+  "mechanical_flag_counts": {
+    "empty_output": 0,
+    "obvious_repetition": 0,
+    "unexpected_myanmar_script": 0
+  }
+}

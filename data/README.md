@@ -128,3 +128,46 @@ The production experiment selected 200,000 of 3,822,576 rows, kept validation an
 Day 9 preserves the Day 8 baseline and uses validation only to select among four declared TF-IDF/MultinomialNB candidates and five confidence thresholds. The selected `lower_alpha` candidate uses `MultinomialNB(alpha=0.5)` and threshold `0.0`; it was evaluated on the unchanged 29,942-row test partition exactly once.
 
 The ignored final artifact is `models/generated/cfpb_department_model_v1.joblib`. Aggregate-only final evidence is tracked at `data/processed/cfpb_model_v1_metrics.json` and documented in `docs/model_finalization.md`. Final test macro-F1 is 0.692345, a 0.003861 improvement over Day 8 but still below the 0.70 target.
+## Day 10 synthetic Myanmar validation
+
+Day 10 uses `data/mapping/myanmar_test_cases_v1.json`, containing 30
+privacy-safe synthetic cases, and publishes the aggregate/review evidence at
+`data/processed/myanmar_pipeline_v1_results.json`. The unchanged preliminary
+review is `data/processed/myanmar_pipeline_v1_preliminary_review.json`; its
+owner-approved normalized evidence is
+`data/processed/myanmar_pipeline_v1_owner_review.json`. Owner review recorded
+14/30 usable translations, while classification correctness remained 11/30, so
+Day 10 remains In Progress. The separate
+`data/mapping/myanmar_diagnostic_cases_v1.json` contains new synthetic
+diagnostic wording and is not training data. The local Hugging Face model cache
+stays outside the repository; the frozen classifier and generated datasets
+remain ignored and untracked. See `docs/myanmar_pipeline.md`.
+
+The checkpoint-comparison development set is
+`data/mapping/myanmar_checkpoint_dev_v1.json`. It contains 30 newly authored,
+privacy-safe records (five per department) and is separate from the frozen
+validation set. Its SHA-256 is
+`d21f05ce31c64ca4e3d9c14f0267b5b542e35bf6c120c9e49ef6dab5339cf2ec`.
+It has not been translated or classified. Local candidate acquisition remains
+prohibited on the 7.78 GiB development computer, and no model or cache artifact
+belongs in Git.
+
+The statically validated preparation notebook at
+`notebooks/day10_nllb_colab_evaluation.ipynb` was executed in a free Colab CPU
+runtime using only the development set, ignored frozen classifier joblib, and
+`data/processed/cfpb_model_v1_metrics.json`. The intended Myanmar-specific LoRA
+adapter was unavailable and was not used; only pinned base NLLB was evaluated.
+The actual returned development artifacts are:
+
+- `evaluation/day10/myanmar_nllb_base_dev_results.json`
+- `evaluation/day10/myanmar_nllb_base_dev_summary.json`
+- `evaluation/day10/myanmar_nllb_base_colab_manifest.json`
+- `evaluation/day10/myanmar_nllb_base_semantic_review.json`
+
+Translation executed for 30/30 cases with zero empty/error outputs. Routing
+correctness was 9/30 (30%). Owner semantic review recorded 13 pass, 10 partial,
+and 7 fail; pass plus partial was 23/30, below the prior 24/30 usable threshold.
+This is synthetic development evidence, not frozen-validation evidence.
+Myanmar production readiness was not approved, no final Myanmar translation
+route was accepted, and Day 10 remains In Progress. Day 11 is Done and Day 12
+remains unstarted.

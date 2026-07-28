@@ -1,0 +1,52 @@
+[
+  {
+    "case_id": "diagnostic_fee_notice_01",
+    "input_text": "ဘဏ်ဝန်ဆောင်မှုအတွက် မသိရှိသော အခကြေးငွေတစ်ခု ကောက်ခံထားသည်။",
+    "diagnostic_intent": "An unknown fee was charged for a banking service."
+  },
+  {
+    "case_id": "diagnostic_machine_error_02",
+    "input_text": "ငွေထုတ်စက်၏ မျက်နှာပြင်တွင် အမှားစာ ပေါ်လာပြီး လုပ်ငန်းစဉ် ရပ်တန့်သွားသည်။",
+    "diagnostic_intent": "A machine displayed an error and stopped the transaction."
+  },
+  {
+    "case_id": "diagnostic_contract_question_03",
+    "input_text": "ကျွန်ုပ်၏ ချေးငွေစာချုပ်အကြောင်း ရှင်းလင်းချက် တောင်းခံလိုသည်။",
+    "diagnostic_intent": "I want an explanation of my loan agreement."
+  },
+  {
+    "case_id": "diagnostic_service_rules_04",
+    "input_text": "ကျွန်ုပ်အသုံးပြုနေသော ဝန်ဆောင်မှုအသစ်၏ စည်းမျဉ်းများကို ရှင်းပြပါ။",
+    "diagnostic_intent": "Please explain the rules of the new service I use."
+  },
+  {
+    "case_id": "diagnostic_staff_explanation_05",
+    "input_text": "စာရင်းရှင်းတမ်းပေါ်ရှိ အကြောင်းအရာတစ်ခုကို ဝန်ထမ်းက ရှင်းပြပေးရန် လိုသည်။",
+    "diagnostic_intent": "A staff member should explain an item on a statement."
+  },
+  {
+    "case_id": "diagnostic_online_application_06",
+    "input_text": "အွန်လိုင်းစာမျက်နှာတွင် လျှောက်လွှာအသစ်တင်နည်းကို သိလိုသည်။",
+    "diagnostic_intent": "I want to know how to submit a new online application."
+  },
+  {
+    "case_id": "diagnostic_notice_explanation_07",
+    "input_text": "ဘဏ်ကပို့သော သတိပေးစာကို နားမလည်သဖြင့် ရှင်းလင်းပေးရန် တောင်းဆိုပါသည်။",
+    "diagnostic_intent": "Please explain a bank notice that I do not understand."
+  },
+  {
+    "case_id": "diagnostic_fee_document_08",
+    "input_text": "အခကြေးငွေအကြောင်း အထောက်အထားစာရွက် တောင်းလိုသည်။",
+    "diagnostic_intent": "I want a supporting document explaining a fee."
+  },
+  {
+    "case_id": "diagnostic_registration_help_09",
+    "input_text": "ဝန်ဆောင်မှုအသစ် မှတ်ပုံတင်ရာတွင် အကူအညီလိုအပ်သည်။",
+    "diagnostic_intent": "I need help registering for a new service."
+  },
+  {
+    "case_id": "diagnostic_incorrect_notice_10",
+    "input_text": "မမှန်ကန်သော အသိပေးစာကို တာဝန်ရှိသူထံ တင်ပြလိုသည်။",
+    "diagnostic_intent": "I want to report an incorrect notice to the responsible team."
+  }
+]

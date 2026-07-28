@@ -1,0 +1,182 @@
+[
+  {
+    "case_id": "transfer_01",
+    "input_text": "ငွေလွှဲထားတာ မရောက်သေးလို့ စစ်ဆေးပေးပါ။",
+    "expected_english_intent": "Please investigate a money transfer that has not arrived.",
+    "expected_department": "transfer_payment"
+  },
+  {
+    "case_id": "transfer_02",
+    "input_text": "မိုဘိုင်းငွေပေးချေမှုကို နှစ်ကြိမ် ဖြတ်တောက်ထားပါတယ်။",
+    "expected_english_intent": "A mobile payment was charged twice.",
+    "expected_department": "transfer_payment"
+  },
+  {
+    "case_id": "transfer_03",
+    "input_text": "နိုင်ငံခြားငွေလွှဲခ အရမ်းများနေလို့ ရှင်းပြပေးပါ။",
+    "expected_english_intent": "Please explain an unexpectedly high international transfer fee.",
+    "expected_department": "transfer_payment"
+  },
+  {
+    "case_id": "transfer_04",
+    "input_text": "မှားပြီး လွှဲလိုက်တဲ့ငွေကို ပြန်ဖျက်ချင်ပါတယ်။",
+    "expected_english_intent": "I want to cancel a transfer sent by mistake.",
+    "expected_department": "transfer_payment"
+  },
+  {
+    "case_id": "transfer_05",
+    "input_text": "payment app မှာ ငွေလွှဲမှု ပျက်ကွက်နေပါတယ်။",
+    "expected_english_intent": "A transfer is failing in the payment app.",
+    "expected_department": "transfer_payment"
+  },
+  {
+    "case_id": "account_01",
+    "input_text": "ဘဏ်အကောင့်အသစ် ဖွင့်ဖို့ အကူအညီလိုပါတယ်။",
+    "expected_english_intent": "I need help opening a new bank account.",
+    "expected_department": "account_support"
+  },
+  {
+    "case_id": "account_02",
+    "input_text": "အကောင့်ကို ပိတ်ဖို့ တောင်းဆိုထားတာ မပြီးသေးပါ။",
+    "expected_english_intent": "My request to close the account is still incomplete.",
+    "expected_department": "account_support"
+  },
+  {
+    "case_id": "account_03",
+    "input_text": "လစဉ်အကောင့်ကြေး မမှန်ဘဲ ကောက်ခံထားပါတယ်။",
+    "expected_english_intent": "An incorrect monthly account fee was charged.",
+    "expected_department": "account_support"
+  },
+  {
+    "case_id": "account_04",
+    "input_text": "အွန်လိုင်းဘဏ်အကောင့်ထဲ ဝင်လို့မရပါ။",
+    "expected_english_intent": "I cannot access my online bank account.",
+    "expected_department": "account_support"
+  },
+  {
+    "case_id": "account_05",
+    "input_text": "checking account statement ကို ပြင်ပေးစေချင်ပါတယ်။",
+    "expected_english_intent": "I need a correction to my checking account statement.",
+    "expected_department": "account_support"
+  },
+  {
+    "case_id": "card_01",
+    "input_text": "ကတ်အသစ်ရောက်ပေမယ့် အသုံးပြုလို့မရသေးပါ။",
+    "expected_english_intent": "My new card arrived but cannot be used.",
+    "expected_department": "card_atm"
+  },
+  {
+    "case_id": "card_02",
+    "input_text": "ATM က ငွေမထုတ်ပေးဘဲ လက်ကျန်ထဲက ဖြတ်ထားပါတယ်။",
+    "expected_english_intent": "The ATM gave no cash but debited the balance.",
+    "expected_department": "card_atm"
+  },
+  {
+    "case_id": "card_03",
+    "input_text": "ခရက်ဒစ်ကတ် ငွေတောင်းခံလွှာမှာ မမှန်တဲ့ကြေး ပါနေပါတယ်။",
+    "expected_english_intent": "The credit card bill contains an incorrect fee.",
+    "expected_department": "card_atm"
+  },
+  {
+    "case_id": "card_04",
+    "input_text": "debit card PIN ကို ပြန်သတ်မှတ်ဖို့ လိုပါတယ်။",
+    "expected_english_intent": "I need to reset the debit card PIN.",
+    "expected_department": "card_atm"
+  },
+  {
+    "case_id": "card_05",
+    "input_text": "ကတ်ငွေပေးချေမှုကို ဆိုင်က ပယ်ချနေပါတယ်။",
+    "expected_english_intent": "A merchant keeps declining my card payment.",
+    "expected_department": "card_atm"
+  },
+  {
+    "case_id": "fraud_01",
+    "input_text": "ကျွန်တော် မလုပ်ထားတဲ့ ငွေပေးချေမှုတစ်ခု တွေ့ရပါတယ်။",
+    "expected_english_intent": "I found a payment that I did not make.",
+    "expected_department": "fraud_security"
+  },
+  {
+    "case_id": "fraud_02",
+    "input_text": "ကိုယ်ရေးအချက်အလက် ခိုးယူခံရနိုင်လို့ အကောင့်ကို ကာကွယ်ပေးပါ။",
+    "expected_english_intent": "Protect my account because my identity may have been stolen.",
+    "expected_department": "fraud_security"
+  },
+  {
+    "case_id": "fraud_03",
+    "input_text": "credit report ထဲမှာ ကျွန်တော်နဲ့မဆိုင်တဲ့ အချက်အလက်ရှိပါတယ်။",
+    "expected_english_intent": "My credit report contains information that is not mine.",
+    "expected_department": "fraud_security"
+  },
+  {
+    "case_id": "fraud_04",
+    "input_text": "လိမ်လည်တဲ့ message တစ်ခုရလို့ သတင်းပို့ချင်ပါတယ်။",
+    "expected_english_intent": "I want to report a fraudulent message.",
+    "expected_department": "fraud_security"
+  },
+  {
+    "case_id": "fraud_05",
+    "input_text": "ခွင့်ပြုချက်မရှိဘဲ အကောင့်အချက်အလက် ပြောင်းထားပါတယ်။",
+    "expected_english_intent": "Account information was changed without authorization.",
+    "expected_department": "fraud_security"
+  },
+  {
+    "case_id": "loan_01",
+    "input_text": "အိမ်ချေးငွေ လစဉ်ပေးချေမှု မှားနေပါတယ်။",
+    "expected_english_intent": "My monthly mortgage payment is incorrect.",
+    "expected_department": "loan_credit"
+  },
+  {
+    "case_id": "loan_02",
+    "input_text": "ကျောင်းသားချေးငွေ ပြန်ဆပ်မယ့် အစီအစဉ်ကို ပြောင်းချင်ပါတယ်။",
+    "expected_english_intent": "I want to change my student loan repayment plan.",
+    "expected_department": "loan_credit"
+  },
+  {
+    "case_id": "loan_03",
+    "input_text": "ကားချေးငွေ အတိုးနှုန်းကို မမှန်ဘဲ တွက်ထားပါတယ်။",
+    "expected_english_intent": "The vehicle loan interest rate was calculated incorrectly.",
+    "expected_department": "loan_credit"
+  },
+  {
+    "case_id": "loan_04",
+    "input_text": "personal loan လျှောက်လွှာ အခြေအနေ သိချင်ပါတယ်။",
+    "expected_english_intent": "I want the status of my personal loan application.",
+    "expected_department": "loan_credit"
+  },
+  {
+    "case_id": "loan_05",
+    "input_text": "ချေးငွေပြန်ဆပ်ပြီးပေမယ့် လက်ကျန်ရှိတယ်လို့ ပြနေပါတယ်။",
+    "expected_english_intent": "The loan still shows a balance after repayment.",
+    "expected_department": "loan_credit"
+  },
+  {
+    "case_id": "general_01",
+    "input_text": "ဘယ်ဌာနကို ဆက်သွယ်ရမလဲ မသိလို့ အကူအညီလိုပါတယ်။",
+    "expected_english_intent": "I need help because I do not know which department to contact.",
+    "expected_department": "general_support"
+  },
+  {
+    "case_id": "general_02",
+    "input_text": "ကျွန်တော့် တိုင်ကြားချက် အခြေအနေကို ဘယ်လိုကြည့်ရမလဲ။",
+    "expected_english_intent": "How can I check the status of my complaint?",
+    "expected_department": "general_support"
+  },
+  {
+    "case_id": "general_03",
+    "input_text": "ဝန်ဆောင်မှုနဲ့ပတ်သက်ပြီး အထွေထွေ မေးခွန်းရှိပါတယ်။",
+    "expected_english_intent": "I have a general question about the service.",
+    "expected_department": "general_support"
+  },
+  {
+    "case_id": "general_04",
+    "input_text": "support team နဲ့ စကားပြောချင်ပါတယ်။",
+    "expected_english_intent": "I want to speak with the support team.",
+    "expected_department": "general_support"
+  },
+  {
+    "case_id": "general_05",
+    "input_text": "ပေးထားတဲ့ အဖြေကို နားမလည်လို့ ထပ်ရှင်းပြပေးပါ။",
+    "expected_english_intent": "Please explain the response again because I do not understand it.",
+    "expected_department": "general_support"
+  }
+]
