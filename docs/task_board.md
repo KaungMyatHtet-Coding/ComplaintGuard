@@ -134,6 +134,19 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Record macro-F1 0.692345 and the +0.003861 Day 8 improvement; the 0.70 target remains unmet.
 - Day 9 status: Done.
 
+### Day 11
+
+- [x] Create the local FastAPI ML service around frozen model `v1`.
+- [x] Add typed `GET /health` and `POST /predict` endpoints.
+- [x] Enforce the six stable department IDs and return genuine classifier confidence.
+- [x] Validate missing, empty, whitespace-only, wrong-type, extra-field, over-limit and unsupported input.
+- [x] Return structured errors without echoing complaint text or exposing local paths.
+- [x] Keep Myanmar and mixed input explicitly blocked as a development baseline that is not production-ready.
+- [x] Verify 15 focused API tests, 208 API/affected regression tests, Ruff check and Ruff format check.
+- [x] Confirm frozen-model integrity and a real synthetic prediction response.
+- Day 11 status: Done.
+- Day 12 remains unstarted and unauthorized.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

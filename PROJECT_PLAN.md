@@ -396,14 +396,24 @@ authorized and completed without changing the recorded Day 10 evidence.
 
 ### Day 11 — Thursday, 30 July: ML API
 
-- [ ] FastAPI service ဖန်တီးရန်
-- [ ] `/health` endpoint ပြုလုပ်ရန်
-- [ ] `/predict` endpoint ပြုလုပ်ရန်
-- [ ] Input validation, maximum length နှင့် error handling ထည့်ရန်
-- [ ] Prediction response schema အတည်ပြုရန်
-- [ ] Local API tests ရေးရန်
+- [x] FastAPI service ဖန်တီးရန်
+- [x] `/health` endpoint ပြုလုပ်ရန်
+- [x] `/predict` endpoint ပြုလုပ်ရန်
+- [x] Input validation, maximum length နှင့် error handling ထည့်ရန်
+- [x] Prediction response schema အတည်ပြုရန်
+- [x] Local API tests ရေးရန်
 
 **End-of-day deliverable:** Tested local ML API returning department and confidence.
+
+**Completed evidence:** The local API validates and integrity-checks frozen
+model `v1`, exposes typed `/health` and `/predict` responses, enforces the six
+stable department IDs, rejects missing, empty, whitespace-only, wrong-type,
+over-limit, unsupported-script, Myanmar and mixed input with structured errors,
+and never persists request text. Myanmar remains explicitly marked as a
+development baseline that is not production-ready. Fifteen focused API tests
+and 208 API/affected regression tests passed; Ruff check and format verification
+passed. A synthetic request verified real frozen-model loading and the response
+contract. Day 12 has not started.
 
 ### Day 12 — Friday, 31 July: Frontend foundation and authentication
 
