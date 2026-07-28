@@ -50,9 +50,7 @@ function safeErrorCode(error: unknown): string {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
-  const [status, setStatus] = useState<AuthStatus>(
-    hasFirebaseConfig() ? "loading" : "configuration_missing",
-  );
+  const [status, setStatus] = useState<AuthStatus>("loading");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
 
@@ -61,7 +59,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       window.localStorage.getItem("complaintguard.locale"),
     );
     queueMicrotask(() => setLocaleState(storedLocale));
-    if (!hasFirebaseConfig()) return;
+    if (!hasFirebaseConfig()) {
+      queueMicrotask(() => setStatus("configuration_missing"));
+      return;
+    }
     const { auth, db } = getFirebaseServices();
     return onAuthStateChanged(auth, async (user) => {
       if (!user) {

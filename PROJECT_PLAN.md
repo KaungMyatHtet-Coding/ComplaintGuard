@@ -419,24 +419,26 @@ contract. Day 12 is tracked below.
 
 - [x] Responsive application layout ပြုလုပ်ရန်
 - [x] English/Myanmar language switch ပြုလုပ်ရန်
-- [ ] Firebase Authentication ချိတ်ရန်
+- [x] Firebase Authentication ချိတ်ရန်
 - [x] Role-based navigation ပြုလုပ်ရန်
-- [ ] Demo customer, staff and manager accounts ပြင်ဆင်ရန်
+- [x] Demo customer, staff and manager accounts ပြင်ဆင်ရန်
 - [x] Unauthorized-route protection စတင်ရန်
 
 **End-of-day deliverable:** Users can log in and see the correct role dashboard shell.
 
-**In-progress evidence:** The Next.js frontend now provides responsive home,
+**Completed 29 July 2026:** The Next.js frontend provides responsive home,
 login and protected dashboard shells; reviewed English/Myanmar UI catalogs; a
 configuration-gated modular Firebase email/password flow; active Firestore user
 profile validation for `customer`, `staff`, `manager` and `admin`; role-aware
 navigation; structured loading/configuration/authentication/permission states;
 and explicit reminders that UI routing does not replace Firestore rules or
 trusted-backend authorization. Nine focused synthetic tests, ESLint,
-TypeScript checking and the production build passed. No Firebase project
-configuration or prepared demo credentials are available in the repository, so
-live authentication and the end-of-day login deliverable are not verified.
-Day 12 therefore remains In Progress. Day 13 has not started.
+TypeScript checking and the production build passed. Live verification confirmed
+that prepared customer, staff and manager accounts authenticate against their
+matching `users/{uid}` profiles and open the correct dashboard shells; signed-out
+dashboard access redirects to login; English/Myanmar switching works; and a
+clean restart produces no hydration mismatch. No configuration values or demo
+credentials are tracked. Day 12 status: Done. Day 13 has not started.
 
 ### Day 13 — Saturday, 1 August: Complaint submission integration
 
