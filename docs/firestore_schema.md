@@ -61,13 +61,13 @@ Authoritative operational ticket. Auto-generated IDs are preferred.
 | `customerId` | string | yes | immutable after trusted creation | Owner UID |
 | `complaintText` | string | yes | trusted backend after PII redaction | Minimum PII-redacted user-submitted text preserved in the original submitted language |
 | `inputLocale` | string | yes | immutable after creation | `en` or `my` |
-| `departmentId` | string | yes | trusted backend; manager may request routing action | Current stable department ID |
+| `departmentId` | string or null | yes | trusted routing backend; manager may request routing action | `null` only while submitted and pending classification; otherwise one of the six stable department IDs |
 | `assignedStaffId` | string or null | yes | trusted backend; manager may request assignment | Assigned active staff UID |
 | `status` | string | yes | transition-controlled | Lifecycle state |
 | `priority` | string | yes | manager/trusted backend | `normal`, `high`, or `urgent` |
 | `predictedDepartmentId` | string or null | yes | trusted inference backend only | Original model prediction |
 | `predictionConfidence` | number or null | yes | trusted inference backend only | Value from 0 through 1 |
-| `routingSource` | string | yes | trusted backend only | `model`, `manual_review`, or `manager_override` |
+| `routingSource` | string | yes | trusted backend only | `pending`, `model`, `manual_review`, or `manager_override`; `pending` is a routing state, not a department |
 | `escalated` | boolean | yes | manager/trusted backend | Escalation marker |
 | `resolutionSummary` | string or null | yes | permitted resolver through trusted workflow | Operational resolution note; no sensitive data |
 | `createdAt` | timestamp | yes | trusted backend | Immutable creation time |
@@ -75,6 +75,13 @@ Authoritative operational ticket. Auto-generated IDs are preferred.
 | `resolvedAt` | timestamp or null | yes | trusted backend | Set on resolution, cleared on reopen |
 
 Clients must not directly create tickets because server-side PII redaction, prediction, ownership binding, and immutable-field enforcement require trusted backend code. Customers submit through that backend. Customers cannot alter ownership, routing, assignment, priority, prediction, escalation, lifecycle, resolution, or audit fields.
+
+A newly submitted ticket has `departmentId: null`, `status: submitted`, and
+`routingSource: pending` until trusted classification/routing code completes.
+Only that trusted code may replace `null` with one of the six stable department
+IDs. A ticket must have a valid non-null department before it leaves the
+pending submitted state. No synthetic department such as `unassigned` or
+`pending` is valid.
 
 ### `tickets/{ticketId}/messages/{messageId}`
 
@@ -127,7 +134,7 @@ Allowed transitions:
 | From | To | Authorized actor |
 |---|---|---|
 | new document | `submitted` | trusted submission backend |
-| `submitted` | `triaged` | trusted routing backend, manager |
+| `submitted` | `triaged` | trusted routing backend, manager; requires a valid non-null department |
 | `triaged` | `in_progress` | assigned-department staff, manager |
 | `in_progress` | `awaiting_customer` | assigned staff, manager |
 | `awaiting_customer` | `in_progress` | customer reply through trusted backend, assigned staff, manager |

@@ -70,12 +70,13 @@ This pipeline runs on a developer machine or another free compute environment. I
 
 ## Live complaint prediction pipeline
 
-1. The Next.js frontend validates complaint length and warns against sensitive data.
-2. The FastAPI service detects whether the complaint is English or Myanmar.
-3. English text is normalized directly. Myanmar text is Unicode-normalized and translated to English with an open-source model before the same cleaning path.
-4. The frozen TF-IDF vectorizer and Multinomial Naive Bayes model return a department and confidence score.
-5. A validation-selected threshold routes uncertain text to `general_support`/manual review.
-6. The frontend creates the operational Firestore ticket and displays its ID and status.
+1. The Next.js frontend validates complaint length, warns against sensitive data, and sends only complaint text and input locale with the Firebase ID token.
+2. The FastAPI trusted backend verifies the token and active customer role, derives ownership, normalizes and redacts the text, and creates a `submitted` Firestore ticket with `departmentId: null` and `routingSource: pending`.
+3. The frontend displays the returned ticket ID and initial status; it never writes tickets directly.
+4. Later trusted routing code detects whether the complaint is English or Myanmar.
+5. English text is normalized directly. Myanmar text is Unicode-normalized and translated to English with an open-source model before the same cleaning path.
+6. The frozen TF-IDF vectorizer and Multinomial Naive Bayes model return a department and confidence score.
+7. Trusted routing sets one of the six department IDs and `routingSource: model`; a validation-selected threshold routes uncertain text to `general_support`/manual review before the ticket advances from the pending submitted state.
 
 The live path performs inference only. Translation and prediction failures must produce a useful error state and must not silently claim a successful route.
 

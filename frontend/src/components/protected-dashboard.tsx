@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import { useApp } from "@/components/app-provider";
+import { ComplaintForm } from "@/components/complaint-form";
 
 const shellKeys = {
   customer: "customerShell",
@@ -49,6 +50,7 @@ export function ProtectedDashboard() {
           <h1>{t(shellKeys[profile.role])}</h1>
           <p>{t("foundationOnly")}</p>
           <div className="security-note">{t("securityBoundary")}</div>
+          {profile.role === "customer" ? <ComplaintForm /> : null}
         </section>
       </main>
     </>

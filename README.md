@@ -2,7 +2,7 @@
 
 ComplaintGuard is a planned bilingual web system that accepts financial-service complaints in English or Myanmar, classifies them with TF-IDF and Multinomial Naive Bayes, and routes them to an appropriate support department. Customers track tickets, department staff process assigned complaints, and managers view a small operational dashboard.
 
-The repository has completed **Day 3: dataset acquisition and data dictionary**. It contains a minimal Next.js foundation and aggregate-only CFPB snapshot documentation, but no cleaning, sampling, mapping implementation, EDA notebook, ML implementation, Firebase integration, or FastAPI service. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the full schedule, [`docs/dataset_profile.md`](docs/dataset_profile.md) for the snapshot profile, and [`docs/data_dictionary.md`](docs/data_dictionary.md) for the source fields.
+The repository is implementing **Day 13: trusted complaint submission integration**. It includes the Next.js authentication foundation, the FastAPI ML service, and an authenticated Firebase Admin ticket-creation path. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the schedule and `docs/` for the approved architecture, schema, and access boundaries.
 
 ## Core constraints
 
@@ -27,8 +27,8 @@ The repository has completed **Day 3: dataset acquisition and data dictionary**.
 ## Repository layout
 
 ```text
-frontend/       Planned Next.js application
-ml-api/         Planned FastAPI inference service
+frontend/       Next.js application and authenticated complaint form
+ml-api/         FastAPI inference and trusted ticket-submission service
 notebooks/      Planned numbered data and model notebooks
 data/mapping/   Planned CFPB-to-department mappings
 data/processed/ Small reproducible samples only
@@ -86,7 +86,23 @@ No Python packages are required or installed on Day 2. `requirements-dev.txt` re
 
 Do not commit the raw CFPB dataset. Keep local raw downloads under `data/raw/`, which Git ignores. The official source, snapshot hash, validation, extraction, and chunked profiling procedure are recorded in [`data/README.md`](data/README.md). Only small, privacy-reviewed samples may enter `data/processed/` on a later scheduled day.
 
-Copy `.env.example` to a local `.env.local` only when configuration begins. Replace placeholders locally and never commit the resulting file. Firebase must remain on the Spark plan with billing disabled.
+Copy `frontend/.env.example` to `frontend/.env.local`, replace the public Web
+configuration placeholders locally, and set `NEXT_PUBLIC_ML_API_URL`. Configure
+the FastAPI runtime with Application Default Credentials and
+`ALLOWED_ORIGINS`; never commit service-account JSON or expose Admin credentials
+through `NEXT_PUBLIC_*`. Firebase must remain on the Spark plan with billing
+disabled.
+
+Install and run the current services from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r ml-api\requirements.txt
+Set-Location ml-api
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+
+Set-Location ..\frontend
+npm.cmd run dev
+```
 
 ## Current workflow
 

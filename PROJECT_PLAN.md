@@ -442,14 +442,25 @@ credentials are tracked. Day 12 status: Done. Day 13 has not started.
 
 ### Day 13 — Saturday, 1 August: Complaint submission integration
 
-- [ ] Customer complaint form/chat-style UI ပြုလုပ်ရန်
-- [ ] ML API ခေါ်ပြီး prediction ပြရန်
-- [ ] Complaint result ကို Firestore ထဲသိမ်းရန်
-- [ ] Ticket ID နှင့် current status ပြရန်
-- [ ] Low-confidence manual-review route စမ်းရန်
-- [ ] Loading, API error နှင့် empty-input states ထည့်ရန်
+- [x] Existing Day 12 design ဖြင့် bilingual customer complaint form ပြုလုပ်ရန်
+- [x] Firebase ID token, active customer role နှင့် owner UID ကို trusted FastAPI backend တွင် verify/bind လုပ်ရန်
+- [x] Complaint ကို validate, normalize, PII-redact လုပ်ပြီး pending-classification Firestore ticket အဖြစ်သိမ်းရန်
+- [x] Generated ticket ID နှင့် `submitted` status ပြရန်
+- [x] Loading, validation, authentication, permission, persistence နှင့် unexpected-error states ထည့်ရန်
+- [ ] ML classification, confidence နှင့် department routing ကို နောက် scheduled integration work တွင် ချိတ်ရန်
 
-**End-of-day deliverable:** End-to-end customer submission creates a classified ticket.
+**End-of-day deliverable:** End-to-end customer submission creates a protected
+pending-classification ticket and returns its ID. The ticket remains
+`departmentId: null` and `routingSource: pending`; no ML result or department
+assignment is fabricated.
+
+Day 13 completed on 1 August 2026. The frontend sends only `complaintText` and
+`inputLocale` with the Firebase ID token. The FastAPI endpoint verifies the
+token and active customer profile, derives ownership, validates and redacts
+text, and creates a protected Firestore ticket using server timestamps. Direct
+client writes remain denied. Verification passed with 27 backend tests, 16
+frontend tests, Ruff, ESLint, strict TypeScript, the production build, Firebase
+Admin import verification, and `git diff --check`.
 
 ### Day 14 — Sunday, 2 August: Staff dashboard
 

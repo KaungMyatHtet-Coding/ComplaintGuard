@@ -8,9 +8,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
-from pydantic import TypeAdapter
-
 from app.config import MAX_COMPLAINT_LENGTH, Settings
 from app.main import create_app
 from app.model import (
@@ -20,6 +17,8 @@ from app.model import (
     Prediction,
 )
 from app.schemas import ErrorResponse, HealthResponse, PredictResponse
+from fastapi.testclient import TestClient
+from pydantic import TypeAdapter
 
 
 class FakeClassifier:

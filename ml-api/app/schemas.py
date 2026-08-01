@@ -32,6 +32,30 @@ class PredictRequest(BaseModel):
         return normalized
 
 
+class SubmitComplaintRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    complaint_text: Annotated[
+        StrictStr, Field(alias="complaintText", max_length=MAX_COMPLAINT_LENGTH)
+    ]
+    input_locale: Literal["en", "my"] = Field(alias="inputLocale")
+
+    @field_validator("complaint_text")
+    @classmethod
+    def normalize_and_validate_complaint(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized:
+            raise ValueError("complaint text must not be empty")
+        return normalized
+
+
+class SubmitComplaintResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    complaint_id: str = Field(alias="complaintId")
+    status: Literal["submitted"]
+
+
 class PredictResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
