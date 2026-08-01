@@ -174,6 +174,22 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - Day 13 status: Done on 1 August 2026.
 - ML classification, prediction population and department routing remain deferred; Day 13 does not fabricate them.
 
+### Day 14
+
+- [x] Add a department-scoped staff ticket queue with status, priority and date filters.
+- [x] Add ticket detail, participant-safe messages and immutable audit history.
+- [x] Require a verified active staff profile with a valid department on every endpoint.
+- [x] Hide cross-department, missing and pending null-department tickets with the same not-found response.
+- [x] Add only the four approved staff lifecycle transitions through trusted endpoints.
+- [x] Bind/redact staff replies and persist their immutable message and audit event atomically.
+- [x] Make resolution update plus resolution event transactional and rollback-safe.
+- [x] Add idempotent `request_reassignment` and `request_escalation` events without changing protected state.
+- [x] Add a fixed Admin-only synthetic `card_atm`/`triaged` fixture procedure separate from customer submission.
+- [x] Add English/Myanmar queue, filters, detail, statuses, errors, loading and empty states.
+- [x] Verify 66 backend tests, 27 frontend tests, Ruff, ESLint, strict TypeScript, production build and `git diff --check`.
+- Day 14 status: Done in automated/synthetic scope on 2 August 2026.
+- Firebase Emulator rules evidence and live Firebase workflow verification remain outstanding; neither is claimed as passed.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

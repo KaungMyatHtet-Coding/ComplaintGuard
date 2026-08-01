@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from contextlib import asynccontextmanager
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal
 
 from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
@@ -20,8 +21,22 @@ from app.schemas import (
     HealthResponse,
     PredictRequest,
     PredictResponse,
+    StaffMutationResponse,
+    StaffReplyRequest,
+    StaffRequestAction,
+    StaffTicketDetail,
+    StaffTicketListResponse,
+    StaffTicketSummary,
+    StaffTransitionRequest,
     SubmitComplaintRequest,
     SubmitComplaintResponse,
+)
+from app.staff_workflow import (
+    FirebaseAdminStaffBackend,
+    InvalidTransition,
+    StaffBackend,
+    StaffTicketNotFound,
+    StaffWorkflowService,
 )
 from app.ticketing import (
     AuthenticationError,
@@ -73,6 +88,7 @@ def create_app(
     settings: Settings | None = None,
     model_loader: ModelLoader = FrozenDepartmentClassifier.load,
     ticket_backend: TicketBackend | None = None,
+    staff_backend: StaffBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -244,6 +260,181 @@ def create_app(
         return SubmitComplaintResponse(
             complaintId=result.complaint_id,
             status=result.status,
+        )
+
+    def staff_service() -> StaffWorkflowService:
+        try:
+            return StaffWorkflowService(staff_backend or FirebaseAdminStaffBackend())
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="staff_service_unavailable",
+                message="The staff service is unavailable.",
+            ) from None
+
+    def staff_actor(service: StaffWorkflowService, authorization: str | None):
+        try:
+            return service.authenticate(authorization)
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except SubmissionPermissionError:
+            raise ApiError(
+                status_code=403,
+                code="staff_role_required",
+                message="An active staff profile with a valid department is required.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="staff_service_unavailable",
+                message="The staff service is unavailable.",
+            ) from None
+
+    def staff_error(exc: Exception) -> ApiError:
+        if isinstance(exc, StaffTicketNotFound):
+            return ApiError(
+                status_code=404, code="ticket_not_found", message="Ticket not found."
+            )
+        if isinstance(exc, InvalidTransition):
+            return ApiError(
+                status_code=409, code="invalid_transition", message=str(exc)
+            )
+        return ApiError(
+            status_code=503,
+            code="staff_service_unavailable",
+            message="The staff service is unavailable.",
+        )
+
+    @api.get(
+        "/staff/tickets",
+        response_model=StaffTicketListResponse,
+        response_model_by_alias=True,
+    )
+    async def list_staff_tickets(
+        authorization: str | None = Header(default=None),
+        status: Literal["triaged", "in_progress", "awaiting_customer", "resolved"]
+        | None = None,
+        priority: Literal["normal", "high", "urgent"] | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
+    ) -> StaffTicketListResponse:
+        service = staff_service()
+        actor = staff_actor(service, authorization)
+        try:
+            tickets = service.list_tickets(
+                actor,
+                status=status,
+                priority=priority,
+                created_from=created_from,
+                created_to=created_to,
+            )
+        except PersistenceError as exc:
+            raise staff_error(exc) from None
+        return StaffTicketListResponse(
+            tickets=[StaffTicketSummary.model_validate(ticket) for ticket in tickets]
+        )
+
+    @api.get(
+        "/staff/tickets/{ticket_id}",
+        response_model=StaffTicketDetail,
+        response_model_by_alias=True,
+    )
+    async def get_staff_ticket(
+        ticket_id: str,
+        authorization: str | None = Header(default=None),
+    ) -> StaffTicketDetail:
+        service = staff_service()
+        actor = staff_actor(service, authorization)
+        try:
+            return StaffTicketDetail.model_validate(service.detail(actor, ticket_id))
+        except (StaffTicketNotFound, PersistenceError) as exc:
+            raise staff_error(exc) from None
+
+    @api.post(
+        "/staff/tickets/{ticket_id}/replies",
+        response_model=StaffMutationResponse,
+        response_model_by_alias=True,
+    )
+    async def add_staff_reply(
+        ticket_id: str,
+        payload: StaffReplyRequest,
+        authorization: str | None = Header(default=None),
+    ) -> StaffMutationResponse:
+        service = staff_service()
+        actor = staff_actor(service, authorization)
+        try:
+            result = service.reply(
+                actor, ticket_id, body=payload.body, action_id=payload.action_id
+            )
+        except (StaffTicketNotFound, PersistenceError) as exc:
+            raise staff_error(exc) from None
+        return StaffMutationResponse(
+            ticketId=result.ticket_id,
+            actionId=result.action_id,
+            status=result.status,
+            duplicate=result.duplicate,
+        )
+
+    @api.post(
+        "/staff/tickets/{ticket_id}/transitions",
+        response_model=StaffMutationResponse,
+        response_model_by_alias=True,
+    )
+    async def transition_staff_ticket(
+        ticket_id: str,
+        payload: StaffTransitionRequest,
+        authorization: str | None = Header(default=None),
+    ) -> StaffMutationResponse:
+        service = staff_service()
+        actor = staff_actor(service, authorization)
+        try:
+            result = service.transition(
+                actor,
+                ticket_id,
+                to_status=payload.status,
+                resolution_summary=payload.resolution_summary,
+                action_id=payload.action_id,
+            )
+        except (StaffTicketNotFound, InvalidTransition, PersistenceError) as exc:
+            raise staff_error(exc) from None
+        return StaffMutationResponse(
+            ticketId=result.ticket_id,
+            actionId=result.action_id,
+            status=result.status,
+            duplicate=result.duplicate,
+        )
+
+    @api.post(
+        "/staff/tickets/{ticket_id}/requests",
+        response_model=StaffMutationResponse,
+        response_model_by_alias=True,
+    )
+    async def request_staff_action(
+        ticket_id: str,
+        payload: StaffRequestAction,
+        authorization: str | None = Header(default=None),
+    ) -> StaffMutationResponse:
+        service = staff_service()
+        actor = staff_actor(service, authorization)
+        try:
+            result = service.request(
+                actor,
+                ticket_id,
+                request_type=payload.type,
+                reason=payload.reason,
+                action_id=payload.action_id,
+            )
+        except (StaffTicketNotFound, PersistenceError) as exc:
+            raise staff_error(exc) from None
+        return StaffMutationResponse(
+            ticketId=result.ticket_id,
+            actionId=result.action_id,
+            status=result.status,
+            duplicate=result.duplicate,
         )
 
     return api

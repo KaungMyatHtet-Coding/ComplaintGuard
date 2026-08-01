@@ -1,0 +1,415 @@
+"""Department-scoped trusted staff workflow and Firestore adapter."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Literal, Protocol
+
+from app.schemas import DepartmentId
+from app.ticketing import (
+    DEPARTMENT_IDS,
+    AuthenticationError,
+    FirebaseAdminTicketBackend,
+    PermissionError,
+    PersistenceError,
+    redact_sensitive_data,
+)
+
+StaffStatus = Literal[
+    "submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"
+]
+RequestType = Literal["request_reassignment", "request_escalation"]
+
+ALLOWED_STAFF_TRANSITIONS: dict[str, frozenset[str]] = {
+    "triaged": frozenset({"in_progress"}),
+    "in_progress": frozenset({"awaiting_customer", "resolved"}),
+    "awaiting_customer": frozenset({"in_progress"}),
+}
+
+
+class StaffTicketNotFound(RuntimeError):
+    """Ticket is absent or outside the authenticated department boundary."""
+
+
+class InvalidTransition(RuntimeError):
+    """Requested staff transition is not permitted."""
+
+
+@dataclass(frozen=True)
+class StaffActor:
+    uid: str
+    department_id: DepartmentId
+
+
+@dataclass(frozen=True)
+class MutationResult:
+    ticket_id: str
+    action_id: str
+    status: StaffStatus
+    duplicate: bool
+
+
+class StaffBackend(Protocol):
+    def verify_id_token(self, token: str) -> str: ...
+
+    def get_user_profile(self, uid: str) -> dict[str, Any] | None: ...
+
+    def list_department_tickets(
+        self,
+        department_id: str,
+        *,
+        status: str | None,
+        priority: str | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_department_ticket(
+        self, ticket_id: str, department_id: str
+    ) -> dict[str, Any] | None: ...
+
+    def list_messages(self, ticket_id: str) -> list[dict[str, Any]]: ...
+
+    def list_events(self, ticket_id: str) -> list[dict[str, Any]]: ...
+
+    def add_reply(
+        self, *, ticket_id: str, actor: StaffActor, body: str, action_id: str
+    ) -> MutationResult: ...
+
+    def transition_ticket(
+        self,
+        *,
+        ticket_id: str,
+        actor: StaffActor,
+        to_status: str,
+        resolution_summary: str | None,
+        action_id: str,
+    ) -> MutationResult: ...
+
+    def request_action(
+        self,
+        *,
+        ticket_id: str,
+        actor: StaffActor,
+        request_type: RequestType,
+        reason: str,
+        action_id: str,
+    ) -> MutationResult: ...
+
+
+class StaffWorkflowService:
+    def __init__(self, backend: StaffBackend) -> None:
+        self._backend = backend
+
+    def authenticate(self, authorization: str | None) -> StaffActor:
+        token = _bearer_token(authorization)
+        try:
+            uid = self._backend.verify_id_token(token)
+        except Exception as exc:
+            raise AuthenticationError("invalid Firebase ID token") from exc
+        try:
+            profile = self._backend.get_user_profile(uid)
+        except Exception as exc:
+            raise PersistenceError("profile lookup failed") from exc
+        if (
+            not profile
+            or profile.get("active") is not True
+            or profile.get("role") != "staff"
+        ):
+            raise PermissionError("active staff profile required")
+        department_id = profile.get("departmentId")
+        if not isinstance(department_id, str) or department_id not in DEPARTMENT_IDS:
+            raise PermissionError("valid staff department required")
+        return StaffActor(uid=uid, department_id=department_id)  # type: ignore[arg-type]
+
+    def list_tickets(
+        self,
+        actor: StaffActor,
+        *,
+        status: str | None,
+        priority: str | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> list[dict[str, Any]]:
+        try:
+            return self._backend.list_department_tickets(
+                actor.department_id,
+                status=status,
+                priority=priority,
+                created_from=created_from,
+                created_to=created_to,
+            )
+        except Exception as exc:
+            raise PersistenceError("ticket query failed") from exc
+
+    def detail(self, actor: StaffActor, ticket_id: str) -> dict[str, Any]:
+        try:
+            ticket = self._backend.get_department_ticket(ticket_id, actor.department_id)
+        except Exception as exc:
+            raise PersistenceError("ticket lookup failed") from exc
+        if ticket is None:
+            raise StaffTicketNotFound("ticket not found")
+        try:
+            return {
+                **ticket,
+                "messages": self._backend.list_messages(ticket_id),
+                "events": self._backend.list_events(ticket_id),
+            }
+        except Exception as exc:
+            raise PersistenceError("ticket history lookup failed") from exc
+
+    def reply(
+        self, actor: StaffActor, ticket_id: str, *, body: str, action_id: str
+    ) -> MutationResult:
+        try:
+            return self._backend.add_reply(
+                ticket_id=ticket_id,
+                actor=actor,
+                body=redact_sensitive_data(body),
+                action_id=action_id,
+            )
+        except StaffTicketNotFound:
+            raise
+        except Exception as exc:
+            raise PersistenceError("reply transaction failed") from exc
+
+    def transition(
+        self,
+        actor: StaffActor,
+        ticket_id: str,
+        *,
+        to_status: str,
+        resolution_summary: str | None,
+        action_id: str,
+    ) -> MutationResult:
+        try:
+            return self._backend.transition_ticket(
+                ticket_id=ticket_id,
+                actor=actor,
+                to_status=to_status,
+                resolution_summary=(
+                    redact_sensitive_data(resolution_summary)
+                    if resolution_summary is not None
+                    else None
+                ),
+                action_id=action_id,
+            )
+        except (StaffTicketNotFound, InvalidTransition):
+            raise
+        except Exception as exc:
+            raise PersistenceError("transition transaction failed") from exc
+
+    def request(
+        self,
+        actor: StaffActor,
+        ticket_id: str,
+        *,
+        request_type: RequestType,
+        reason: str,
+        action_id: str,
+    ) -> MutationResult:
+        try:
+            return self._backend.request_action(
+                ticket_id=ticket_id,
+                actor=actor,
+                request_type=request_type,
+                reason=redact_sensitive_data(reason),
+                action_id=action_id,
+            )
+        except StaffTicketNotFound:
+            raise
+        except Exception as exc:
+            raise PersistenceError("request transaction failed") from exc
+
+
+def validate_staff_transition(from_status: str, to_status: str) -> None:
+    if to_status not in ALLOWED_STAFF_TRANSITIONS.get(from_status, frozenset()):
+        raise InvalidTransition(
+            f"transition {from_status} to {to_status} is not allowed"
+        )
+
+
+def _bearer_token(authorization: str | None) -> str:
+    if not authorization:
+        raise AuthenticationError("Firebase ID token required")
+    scheme, separator, token = authorization.partition(" ")
+    if separator != " " or scheme.lower() != "bearer" or not token.strip():
+        raise AuthenticationError("Firebase ID token required")
+    return token.strip()
+
+
+class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
+    """Admin-SDK adapter. All mutations recheck department inside transactions."""
+
+    def _summary(self, snapshot: Any) -> dict[str, Any]:
+        data = snapshot.to_dict()
+        return {"ticketId": snapshot.id, **data}
+
+    def list_department_tickets(
+        self,
+        department_id: str,
+        *,
+        status: str | None,
+        priority: str | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> list[dict[str, Any]]:
+        # Authorization is the only Firestore predicate. Optional UI filters are
+        # applied to the already department-scoped demo result set, avoiding a
+        # combinatorial set of guessed composite indexes on the Spark plan.
+        query = self._db.collection("tickets").where(
+            "departmentId", "==", department_id
+        )
+        values = [self._summary(item) for item in query.stream()]
+        if status:
+            values = [value for value in values if value["status"] == status]
+        if priority:
+            values = [value for value in values if value["priority"] == priority]
+        if created_from:
+            values = [value for value in values if value["createdAt"] >= created_from]
+        if created_to:
+            values = [value for value in values if value["createdAt"] <= created_to]
+        return sorted(values, key=lambda value: value["createdAt"], reverse=True)
+
+    def get_department_ticket(
+        self, ticket_id: str, department_id: str
+    ) -> dict[str, Any] | None:
+        snapshot = self._db.collection("tickets").document(ticket_id).get()
+        if not snapshot.exists or snapshot.get("departmentId") != department_id:
+            return None
+        return self._summary(snapshot)
+
+    def list_messages(self, ticket_id: str) -> list[dict[str, Any]]:
+        query = (
+            self._db.collection("tickets")
+            .document(ticket_id)
+            .collection("messages")
+            .order_by("createdAt")
+        )
+        return [{"messageId": item.id, **item.to_dict()} for item in query.stream()]
+
+    def list_events(self, ticket_id: str) -> list[dict[str, Any]]:
+        query = (
+            self._db.collection("tickets")
+            .document(ticket_id)
+            .collection("events")
+            .order_by("createdAt")
+        )
+        return [{"eventId": item.id, **item.to_dict()} for item in query.stream()]
+
+    def _ticket_for_mutation(
+        self, transaction: Any, ticket_id: str, actor: StaffActor
+    ) -> tuple[Any, dict[str, Any]]:
+        reference = self._db.collection("tickets").document(ticket_id)
+        snapshot = next(transaction.get(reference))
+        if not snapshot.exists or snapshot.get("departmentId") != actor.department_id:
+            raise StaffTicketNotFound("ticket not found")
+        return reference, snapshot.to_dict()
+
+    def add_reply(
+        self, *, ticket_id: str, actor: StaffActor, body: str, action_id: str
+    ) -> MutationResult:
+        transaction = self._db.transaction()
+        ticket_ref, ticket = self._ticket_for_mutation(transaction, ticket_id, actor)
+        message_ref = ticket_ref.collection("messages").document(action_id)
+        event_ref = ticket_ref.collection("events").document(f"reply_{action_id}")
+        if next(transaction.get(event_ref)).exists:
+            return MutationResult(ticket_id, action_id, ticket["status"], True)
+        transaction.set(
+            message_ref,
+            {
+                "authorId": actor.uid,
+                "authorRole": "staff",
+                "body": body,
+                "visibility": "participants",
+                "createdAt": self.server_timestamp,
+            },
+        )
+        transaction.set(
+            event_ref,
+            {
+                "type": "staff_reply",
+                "actorId": actor.uid,
+                "actorRole": "staff",
+                "fromValue": None,
+                "toValue": action_id,
+                "createdAt": self.server_timestamp,
+            },
+        )
+        transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
+        transaction.commit()
+        return MutationResult(ticket_id, action_id, ticket["status"], False)
+
+    def transition_ticket(
+        self,
+        *,
+        ticket_id: str,
+        actor: StaffActor,
+        to_status: str,
+        resolution_summary: str | None,
+        action_id: str,
+    ) -> MutationResult:
+        transaction = self._db.transaction()
+        ticket_ref, ticket = self._ticket_for_mutation(transaction, ticket_id, actor)
+        event_ref = ticket_ref.collection("events").document(action_id)
+        if next(transaction.get(event_ref)).exists:
+            return MutationResult(ticket_id, action_id, ticket["status"], True)
+        from_status = ticket["status"]
+        validate_staff_transition(from_status, to_status)
+        if to_status == "resolved" and not resolution_summary:
+            raise InvalidTransition("resolution summary is required")
+        changes: dict[str, Any] = {
+            "status": to_status,
+            "updatedAt": self.server_timestamp,
+        }
+        if to_status == "resolved":
+            changes.update(
+                {
+                    "resolutionSummary": resolution_summary,
+                    "resolvedAt": self.server_timestamp,
+                }
+            )
+        transaction.update(ticket_ref, changes)
+        transaction.set(
+            event_ref,
+            {
+                "type": "status_transition",
+                "actorId": actor.uid,
+                "actorRole": "staff",
+                "fromValue": from_status,
+                "toValue": to_status,
+                "createdAt": self.server_timestamp,
+            },
+        )
+        transaction.commit()
+        return MutationResult(ticket_id, action_id, to_status, False)
+
+    def request_action(
+        self,
+        *,
+        ticket_id: str,
+        actor: StaffActor,
+        request_type: RequestType,
+        reason: str,
+        action_id: str,
+    ) -> MutationResult:
+        transaction = self._db.transaction()
+        ticket_ref, ticket = self._ticket_for_mutation(transaction, ticket_id, actor)
+        event_ref = ticket_ref.collection("events").document(action_id)
+        if next(transaction.get(event_ref)).exists:
+            return MutationResult(ticket_id, action_id, ticket["status"], True)
+        transaction.set(
+            event_ref,
+            {
+                "type": request_type,
+                "actorId": actor.uid,
+                "actorRole": "staff",
+                "fromValue": None,
+                "toValue": reason,
+                "createdAt": self.server_timestamp,
+            },
+        )
+        transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
+        transaction.commit()
+        return MutationResult(ticket_id, action_id, ticket["status"], False)

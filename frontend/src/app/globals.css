@@ -32,7 +32,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -368,6 +369,133 @@ a {
   padding: 0.9rem 1rem;
 }
 
+.staff-workspace {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.8fr) minmax(22rem, 1.2fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.staff-queue-panel,
+.staff-detail-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.staff-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.staff-filters label,
+.staff-detail-panel form,
+.staff-detail-panel label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.staff-filters input,
+.staff-filters select,
+.staff-detail-panel textarea {
+  width: 100%;
+  border: 1px solid #b9c5d5;
+  border-radius: 0.6rem;
+  background: white;
+  padding: 0.65rem;
+}
+
+.ticket-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.ticket-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.ticket-row[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: #eef4ff;
+}
+
+.empty-state {
+  color: var(--muted);
+  padding: 1rem;
+}
+
+.ticket-metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.ticket-metadata div,
+.history-item {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ticket-metadata dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.ticket-metadata dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.complaint-body,
+.history-item {
+  border-radius: 0.75rem;
+  background: var(--canvas);
+  padding: 0.85rem;
+}
+
+.staff-detail-panel form,
+.staff-detail-panel section,
+.staff-actions {
+  margin-top: 1rem;
+}
+
+.staff-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.staff-detail-panel button {
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--brand);
+  color: white;
+  cursor: pointer;
+  padding: 0.65rem 0.8rem;
+}
+
+.staff-detail-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.history-item {
+  margin-bottom: 0.5rem;
+}
+
 .centered-state {
   display: grid;
   min-height: 100vh;
@@ -425,5 +553,11 @@ a {
 
   .dashboard-nav {
     min-height: auto;
+  }
+
+  .staff-workspace,
+  .staff-filters,
+  .ticket-metadata {
+    grid-template-columns: 1fr;
   }
 }

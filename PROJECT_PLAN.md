@@ -464,13 +464,31 @@ Admin import verification, and `git diff --check`.
 
 ### Day 14 — Sunday, 2 August: Staff dashboard
 
-- [ ] Assigned complaints list ပြုလုပ်ရန်
-- [ ] Status, priority, date filters ထည့်ရန်
-- [ ] Complaint detail screen ပြုလုပ်ရန်
-- [ ] Reply, status update, reassign and escalate functions ထည့်ရန်
-- [ ] Complaint event/audit log သိမ်းရန်
+- [x] Department-scoped assigned complaints list ပြုလုပ်ရန်
+- [x] Status, priority, date filters ထည့်ရန်
+- [x] Complaint detail screen ပြုလုပ်ရန်
+- [x] Trusted reply နှင့် approved lifecycle status updates ထည့်ရန်
+- [x] Staff `request_reassignment` နှင့် `request_escalation` audit requests ထည့်ရန်
+- [x] Immutable complaint message/event audit history သိမ်းရန်
+- [x] Privacy-safe synthetic routed/triaged fixture ဖြင့် automated workflow စမ်းရန်
 
-**End-of-day deliverable:** Staff can receive, process and resolve a complaint.
+**End-of-day deliverable:** In deterministic synthetic/adapter verification,
+authorized department staff can receive, process, reply to, request management
+review for, and resolve an already-routed complaint. Production ML routing is
+not implemented; normal Day 13 submissions remain `submitted` with
+`departmentId: null` and `routingSource: pending`.
+
+Day 14 completed in automated/synthetic scope on 2 August 2026. Every endpoint
+verifies the Firebase token, active staff role, valid staff department, and
+exact ticket department. Valid staff transitions are limited to `triaged` →
+`in_progress`, `in_progress` → `awaiting_customer`, `awaiting_customer` →
+`in_progress`, and `in_progress` → `resolved`. Replies are author-bound and
+PII-redacted; mutations use action IDs for idempotency; resolution and its event
+are transactional. Reassignment and escalation are audit requests only and do
+not change protected ticket state. Verification passed with 66 backend tests,
+27 frontend tests, Ruff, ESLint, strict TypeScript, the production build, and
+`git diff --check`. Firebase Emulator and live Firestore verification remain
+outstanding because the CLI/test setup and runtime credentials are unavailable.
 
 ### Day 15 — Monday, 3 August: Customer tracking and messaging
 
