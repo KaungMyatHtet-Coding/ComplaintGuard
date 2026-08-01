@@ -2,7 +2,12 @@
 
 ComplaintGuard is a planned bilingual web system that accepts financial-service complaints in English or Myanmar, classifies them with TF-IDF and Multinomial Naive Bayes, and routes them to an appropriate support department. Customers track tickets, department staff process assigned complaints, and managers view a small operational dashboard.
 
-The repository is implementing **Day 13: trusted complaint submission integration**. It includes the Next.js authentication foundation, the FastAPI ML service, and an authenticated Firebase Admin ticket-creation path. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the schedule and `docs/` for the approved architecture, schema, and access boundaries.
+The repository has completed the automated/synthetic implementation for **Day
+14: department-scoped staff workflow**. It includes the Next.js authentication
+foundation, trusted customer submission, the FastAPI ML service, and trusted
+staff queue/workflow endpoints. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the
+schedule and `docs/` for the approved architecture, schema, and access
+boundaries.
 
 ## Core constraints
 
@@ -103,6 +108,27 @@ Set-Location ml-api
 Set-Location ..\frontend
 npm.cmd run dev
 ```
+
+Day 14 staff endpoints are `GET /staff/tickets`, `GET
+/staff/tickets/{ticketId}`, and trusted reply, transition, and request endpoints
+below the same ticket path. They require an active Firebase staff profile whose
+valid department exactly matches the ticket. Direct client writes remain
+denied.
+
+For local staff-workflow verification only, an administrator may seed one fixed
+synthetic `card_atm` ticket that explicitly represents completed manual routing
+and triage:
+
+```powershell
+Set-Location ml-api
+..\.venv\Scripts\python.exe scripts\seed_synthetic_staff_ticket.py --confirm-synthetic-only
+```
+
+This Admin-only script requires Application Default Credentials, is not an API
+endpoint, cannot be invoked by customers or staff, and is separate from normal
+`POST /tickets` submission. It does not implement production classification or
+routing. Firebase Emulator rules tests remain outstanding because the Firebase
+CLI and rules-test setup are not installed in the current environment.
 
 ## Current workflow
 

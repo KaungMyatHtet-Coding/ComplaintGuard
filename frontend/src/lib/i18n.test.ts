@@ -7,6 +7,25 @@ describe("localization foundation", () => {
     expect(translate("en", "loginTitle")).toBe("Sign in");
     expect(translate("en", "complaintTitle")).toBe("Submit a complaint");
     expect(translate("my", "complaintTitle")).toContain("တိုင်ကြားချက်");
+    expect(translate("en", "staffQueueTitle")).toBe("Department complaint queue");
+    expect(translate("my", "staffQueueTitle")).toContain("ဌာန");
+    expect(translate("en", "status_awaiting_customer")).toBe("Awaiting customer");
+    for (const key of [
+      "staffLoading",
+      "staffEmpty",
+      "staffBackendError",
+      "staffDetailTitle",
+      "staffStatusFilter",
+      "staffPriorityFilter",
+      "staffDateFrom",
+      "staffRequestReassignment",
+      "staffRequestEscalation",
+      "status_triaged",
+      "priority_urgent",
+    ] as const) {
+      expect(translate("en", key)).not.toMatch(/^\[/u);
+      expect(translate("my", key)).not.toMatch(/^\[/u);
+    }
     expect(translate("my", "loginTitle")).toContain("အကောင့်");
   });
 
