@@ -5,7 +5,7 @@ This Day 4 matrix was owner-approved on 21 July 2026. Authorization must be enfo
 ## Access predicates
 
 - **Own ticket:** authenticated UID equals `ticket.customerId`.
-- **Assigned department:** active staff profile has `departmentId == ticket.departmentId`.
+- **Assigned department:** ticket has a non-null stable department ID and the active staff profile has `departmentId == ticket.departmentId`. Pending unclassified tickets are not staff-readable.
 - **Manager:** active profile role is `manager`.
 - **Admin:** active profile role is `admin`.
 - **Trusted backend:** verified server environment using the Admin SDK; it bypasses Firestore rules and must independently validate, authorize, redact, transact, and audit every operation.
@@ -52,5 +52,12 @@ This Day 4 matrix was owner-approved on 21 July 2026. Authorization must be enfo
 ## Protected fields
 
 Ordinary clients cannot directly write `customerId`, `role`, `departmentId`, `assignedStaffId`, `priority`, `status`, `predictedDepartmentId`, `predictionConfidence`, `routingSource`, `escalated`, `resolutionSummary`, timestamps, audit fields, or author identity. Initial Day 4 rules intentionally deny ticket, message, and event client writes until trusted backend endpoints implement the approved controls.
+
+On trusted creation, `departmentId` is `null` while `routingSource` is
+`pending`. Only trusted classification/routing code may set it to one of the
+six operational department IDs, and it must do so before the ticket enters a
+routed state. `pending` and `unassigned` are not department IDs. The existing
+staff rule requires the staff profile's string department to equal the ticket
+department, so it does not grant staff access to a null department.
 
 Managers have broad operational visibility but do not administer identities. Admin manages role and department configuration but is not granted routine complaint-processing power. This separation limits privilege and makes exceptional corrections auditable.

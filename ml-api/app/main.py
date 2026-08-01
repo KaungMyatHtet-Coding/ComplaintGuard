@@ -6,8 +6,9 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import MODEL_VERSION, Settings
@@ -19,6 +20,18 @@ from app.schemas import (
     HealthResponse,
     PredictRequest,
     PredictResponse,
+    SubmitComplaintRequest,
+    SubmitComplaintResponse,
+)
+from app.ticketing import (
+    AuthenticationError,
+    ComplaintSubmissionService,
+    FirebaseAdminTicketBackend,
+    PersistenceError,
+    TicketBackend,
+)
+from app.ticketing import (
+    PermissionError as SubmissionPermissionError,
 )
 
 ModelLoader = Callable[..., FrozenDepartmentClassifier]
@@ -59,6 +72,7 @@ def create_app(
     *,
     settings: Settings | None = None,
     model_loader: ModelLoader = FrozenDepartmentClassifier.load,
+    ticket_backend: TicketBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -84,6 +98,13 @@ def create_app(
             "Myanmar translation remains a development baseline and is not approved."
         ),
         lifespan=lifespan,
+    )
+    api.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(runtime_settings.allowed_origins),
+        allow_credentials=False,
+        allow_methods=["POST", "GET"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     @api.exception_handler(ApiError)
@@ -178,6 +199,51 @@ def create_app(
             model_version=classifier.model_version,
             fallback=prediction.fallback,
             fallback_reason=prediction.fallback_reason,
+        )
+
+    @api.post(
+        "/tickets",
+        response_model=SubmitComplaintResponse,
+        response_model_by_alias=True,
+        status_code=201,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def submit_complaint(
+        payload: SubmitComplaintRequest,
+        authorization: str | None = Header(default=None),
+    ) -> SubmitComplaintResponse:
+        try:
+            backend = ticket_backend or FirebaseAdminTicketBackend()
+            result = ComplaintSubmissionService(backend).submit(
+                authorization=authorization,
+                payload=payload,
+            )
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except SubmissionPermissionError:
+            raise ApiError(
+                status_code=403,
+                code="customer_role_required",
+                message="Only an active customer may submit a complaint.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="ticket_creation_unavailable",
+                message="The complaint could not be saved. Try again.",
+            ) from None
+        return SubmitComplaintResponse(
+            complaintId=result.complaint_id,
+            status=result.status,
         )
 
     return api

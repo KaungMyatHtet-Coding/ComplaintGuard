@@ -1,5 +1,6 @@
 """Configuration for the local ComplaintGuard ML API."""
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,7 @@ class Settings:
 
     model_path: Path
     expected_model_sha256: str = MODEL_SHA256
+    allowed_origins: tuple[str, ...] = ("http://localhost:3000",)
 
     @classmethod
     def default(cls) -> "Settings":
@@ -22,5 +24,12 @@ class Settings:
             model_path=repository_root
             / "models"
             / "generated"
-            / "cfpb_department_model_v1.joblib"
+            / "cfpb_department_model_v1.joblib",
+            allowed_origins=tuple(
+                origin.strip()
+                for origin in os.getenv(
+                    "ALLOWED_ORIGINS", "http://localhost:3000"
+                ).split(",")
+                if origin.strip()
+            ),
         )

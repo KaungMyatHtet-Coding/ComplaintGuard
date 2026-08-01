@@ -158,7 +158,21 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Verify signed-out dashboard redirection, English/Myanmar switching and clean-restart hydration.
 - [x] Verify nine synthetic frontend tests, ESLint, TypeScript and the production build.
 - Day 12 status: Done on 29 July 2026.
-- Day 13 remains unstarted.
+
+### Day 13
+
+- [x] Resolve pending classification with nullable `departmentId` and `routingSource: pending` without adding a seventh department.
+- [x] Add the bilingual customer complaint form to the authenticated Day 12 dashboard.
+- [x] Validate, trim and normalize complaint text up to 5,000 characters and preserve input after failures.
+- [x] Send only complaint text and input locale with the Firebase ID token to trusted FastAPI.
+- [x] Verify the token and active customer role, derive the owner UID, and reject protected request fields.
+- [x] Apply deterministic demo PII redaction before persistence.
+- [x] Create Firestore tickets with generated IDs, server timestamps and protected pending defaults.
+- [x] Keep client ticket writes denied and prove null-department tickets do not match staff access.
+- [x] Show accessible loading, validation, authentication, permission, backend, unexpected-error and success states.
+- [x] Verify 27 backend tests, 16 frontend tests, Ruff, ESLint, strict TypeScript, production build, Firebase Admin import and `git diff --check`.
+- Day 13 status: Done on 1 August 2026.
+- ML classification, prediction population and department routing remain deferred; Day 13 does not fabricate them.
 
 ## Day 2 completion rule
 
