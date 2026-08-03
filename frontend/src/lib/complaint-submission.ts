@@ -44,8 +44,7 @@ export async function submitComplaint(
   idToken: string,
   fetcher: Fetcher = fetch,
 ): Promise<ComplaintSuccess> {
-  const apiUrl = process.env.NEXT_PUBLIC_ML_API_URL;
-  if (!apiUrl) throw new ComplaintSubmissionError("backend");
+  const apiUrl = process.env.NEXT_PUBLIC_ML_API_URL || "http://localhost:8000";
 
   let response: Response;
   try {

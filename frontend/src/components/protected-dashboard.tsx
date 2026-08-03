@@ -48,10 +48,9 @@ export function ProtectedDashboard() {
           </a>
         </aside>
         <section id="overview" className="dashboard-content">
-          <p className="eyebrow">Day 12 foundation</p>
+          <p className="eyebrow">ComplaintGuard System</p>
           <h1>{t(shellKeys[profile.role])}</h1>
-          <p>{t("foundationOnly")}</p>
-          <div className="security-note">{t("securityBoundary")}</div>
+          <div className="security-note mb-6">{t("securityBoundary")}</div>
           {profile.role === "customer" ? <CustomerDashboardWorkflow /> : null}
           {profile.role === "staff" ? <StaffTicketQueue /> : null}
           {profile.role === "manager" ? <ManagerDashboardWorkflow /> : null}
@@ -60,3 +59,4 @@ export function ProtectedDashboard() {
     </>
   );
 }
+

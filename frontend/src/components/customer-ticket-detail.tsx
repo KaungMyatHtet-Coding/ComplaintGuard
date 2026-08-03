@@ -1,149 +1,210 @@
 "use client";
 
-import { useState } from "react";
-import { useApp } from "@/components/app-provider";
-import type { MessageKey } from "@/lib/i18n";
+import React, { useState } from "react";
+import type { Locale } from "@/lib/i18n";
+import { translate } from "@/lib/i18n";
 import type { CustomerTicketDetail } from "@/lib/customer-workflow";
 
-type CustomerTicketDetailViewProps = {
-  detail: CustomerTicketDetail;
+type CustomerTicketDetailProps = {
+  locale: Locale;
+  ticket: CustomerTicketDetail | null;
+  loading: boolean;
   onSendMessage: (text: string) => Promise<void>;
   onSubmitFeedback: (rating: number, comments: string) => Promise<void>;
 };
 
-const TIMELINE_STEPS = [
-  { id: "submitted", key: "customerTimelineSubmitted" },
-  { id: "assigned", key: "customerTimelineAssigned" },
-  { id: "investigation", key: "customerTimelineInvestigation" },
-  { id: "resolved", key: "customerTimelineResolved" },
-] as const;
-
-function getStepIndex(status: string): number {
-  if (status === "resolved") return 3;
-  if (status === "in_progress" || status === "awaiting_customer") return 2;
-  if (status === "triaged") return 1;
-  return 0;
-}
-
 export function CustomerTicketDetailView({
-  detail,
+  locale,
+  ticket,
+  loading,
   onSendMessage,
   onSubmitFeedback,
-}: CustomerTicketDetailViewProps) {
-  const { t } = useApp();
-  const [msgText, setMsgText] = useState("");
+}: CustomerTicketDetailProps) {
+  const [messageText, setMessageText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
-  const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
-  const [feedbackComments, setFeedbackComments] = useState("");
+  const [comments, setComments] = useState("");
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const activeStep = getStepIndex(detail.status);
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500">
+        {translate(locale, "loading")}
+      </div>
+    );
+  }
+
+  if (!ticket) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500">
+        {translate(locale, "customerHistorySelect")}
+      </div>
+    );
+  }
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!msgText.trim()) return;
+    if (!messageText.trim() || sendingMsg) return;
+    setErrorMsg(null);
     setSendingMsg(true);
     try {
-      await onSendMessage(msgText);
-      setMsgText("");
+      await onSendMessage(messageText.trim());
+      setMessageText("");
+    } catch {
+      setErrorMsg("Failed to send message. Please try again.");
     } finally {
       setSendingMsg(false);
     }
   };
 
-  const handleFeedbackSubmit = async () => {
+  const handleFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submittingFeedback) return;
+    setErrorMsg(null);
     setSubmittingFeedback(true);
     try {
-      await onSubmitFeedback(rating, feedbackComments);
-      setShowRatingModal(false);
+      await onSubmitFeedback(rating, comments.trim());
+      setFeedbackDone(true);
+    } catch {
+      setErrorMsg("Failed to submit feedback. Please try again.");
     } finally {
       setSubmittingFeedback(false);
     }
   };
 
+  // Timeline steps
+  const steps = [
+    { key: "submitted", label: translate(locale, "customerTimelineSubmitted") },
+    { key: "triaged", label: translate(locale, "customerTimelineTriaged") },
+    { key: "in_progress", label: translate(locale, "customerTimelineInProgress") },
+    { key: "resolved", label: translate(locale, "customerTimelineResolved") },
+  ];
+
+  const getStepStatus = (stepKey: string) => {
+    const order = ["submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"];
+    const currentIdx = order.indexOf(ticket.status);
+    const stepIdx = order.indexOf(stepKey);
+
+    if (currentIdx >= stepIdx) return "completed";
+    return "pending";
+  };
+
+  const isResolvedOrClosed = ticket.status === "resolved" || ticket.status === "closed";
+
   return (
-    <div className="space-y-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-      <div className="flex justify-between items-start border-b pb-4">
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
         <div>
-          <span className="font-mono text-xs text-gray-500 font-semibold">ID: {detail.id}</span>
-          <h2 className="text-xl font-bold text-gray-900 mt-1">{t("staffDetailTitle")}</h2>
+          <span className="text-xs text-gray-400 font-mono">ID: {ticket.id}</span>
+          <h2 className="text-xl font-bold text-gray-900 mt-1">
+            {translate(locale, "staffDetailTitle")}
+          </h2>
         </div>
-        {detail.status === "resolved" && !detail.rating && (
-          <button
-            type="button"
-            onClick={() => setShowRatingModal(true)}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm"
-          >
-            {t("customerFeedbackBtn")}
-          </button>
-        )}
+        <div className="text-right text-xs text-gray-500">
+          <div>
+            {translate(locale, "staffCreated")}:{" "}
+            {new Date(ticket.createdAt).toLocaleString(
+              locale === "my" ? "my-MM" : "en-US"
+            )}
+          </div>
+        </div>
       </div>
 
+      {errorMsg && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">
+          {errorMsg}
+        </div>
+      )}
+
       {/* Visual Timeline */}
-      <div className="space-y-2">
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-          Complaint Status Timeline
-        </p>
-        <div className="grid grid-cols-4 gap-2 pt-2">
-          {TIMELINE_STEPS.map((step, idx) => {
-            const isPassed = idx <= activeStep;
+      <div>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          {translate(locale, "customerTimelineTitle")}
+        </h3>
+        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-2">
+          {steps.map((step, idx) => {
+            const status = getStepStatus(step.key);
+            const isLast = idx === steps.length - 1;
             return (
-              <div key={step.id} className="text-center space-y-1">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    isPassed ? "bg-blue-600" : "bg-gray-200"
-                  }`}
-                />
-                <span
-                  className={`text-[11px] font-semibold block ${
-                    isPassed ? "text-blue-900" : "text-gray-400"
-                  }`}
-                >
-                  {t(step.key as MessageKey)}
-                </span>
-              </div>
+              <React.Fragment key={step.key}>
+                <div className="flex flex-col items-center text-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                      status === "completed"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-400 border border-gray-300"
+                    }`}
+                  >
+                    {idx + 1}
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 mt-1 max-w-[80px]">
+                    {step.label}
+                  </span>
+                </div>
+                {!isLast && (
+                  <div
+                    className={`flex-1 h-0.5 mx-2 ${
+                      status === "completed" ? "bg-blue-600" : "bg-gray-200"
+                    }`}
+                  />
+                )}
+              </React.Fragment>
             );
           })}
         </div>
       </div>
 
-      {/* Complaint Text */}
-      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
-        <span className="text-xs font-bold text-gray-500 uppercase">Complaint Text</span>
-        <p className="text-sm text-gray-800 font-medium whitespace-pre-wrap">
-          {detail.complaintText}
+      {/* Original Complaint Box */}
+      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          {translate(locale, "complaintTextLabel")}
+        </h4>
+        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+          {ticket.complaintText}
         </p>
       </div>
 
-      {/* Messages Thread */}
-      <div className="space-y-3 pt-2">
-        <h4 className="text-sm font-bold text-gray-900">{t("customerMessagesTitle")}</h4>
-        <div className="space-y-3 max-h-80 overflow-y-auto p-3 bg-gray-50 rounded-xl border border-gray-200">
-          {detail.messages.length === 0 ? (
-            <p className="text-xs text-gray-500 text-center py-4">{t("customerNoMessages")}</p>
+      {/* Message Thread */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold text-gray-900">
+          {translate(locale, "staffMessages")}
+        </h3>
+
+        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+          {ticket.messages.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">
+              {translate(locale, "staffNoMessages")}
+            </p>
           ) : (
-            detail.messages.map((m) => {
-              const isCust = m.senderRole === "customer";
+            ticket.messages.map((m) => {
+              const isMe = m.senderRole === "customer";
               return (
                 <div
-                  key={m.messageId}
-                  className={`flex flex-col ${isCust ? "items-end" : "items-start"}`}
+                  key={m.id}
+                  className={`flex flex-col ${
+                    isMe ? "items-end" : "items-start"
+                  }`}
                 >
                   <div
-                    className={`p-3 rounded-xl max-w-xs text-xs font-medium ${
-                      isCust
+                    className={`max-w-md rounded-lg p-3 text-sm ${
+                      isMe
                         ? "bg-blue-600 text-white rounded-br-none"
-                        : "bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm"
+                        : "bg-gray-100 text-gray-900 rounded-bl-none border border-gray-200"
                     }`}
                   >
-                    <span className="block text-[10px] opacity-75 font-bold mb-1">
-                      {isCust ? "You" : "Department Staff"}
-                    </span>
-                    {m.text}
+                    <div className="text-[10px] opacity-75 mb-1 font-semibold">
+                      {isMe ? "You" : "Department Staff"}
+                    </div>
+                    <p className="whitespace-pre-wrap">{m.text}</p>
                   </div>
                   <span className="text-[10px] text-gray-400 mt-1">
-                    {new Date(m.createdAt).toLocaleTimeString()}
+                    {new Date(m.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
               );
@@ -151,86 +212,89 @@ export function CustomerTicketDetailView({
           )}
         </div>
 
-        {/* Message Input Box */}
-        {detail.status !== "resolved" && (
+        {/* Message Input Form */}
+        {!isResolvedOrClosed && (
           <form onSubmit={handleSend} className="flex gap-2 pt-2">
             <input
               type="text"
-              value={msgText}
-              onChange={(e) => setMsgText(e.target.value)}
-              placeholder={t("customerSendMessagePlaceholder")}
-              className="flex-1 p-2.5 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder={translate(locale, "customerSendMessage")}
+              disabled={sendingMsg}
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
-              disabled={sendingMsg || !msgText.trim()}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-sm"
+              disabled={sendingMsg || !messageText.trim()}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
             >
-              {sendingMsg ? t("customerSendingBtn") : t("customerSendBtn")}
+              {sendingMsg
+                ? translate(locale, "customerSending")
+                : translate(locale, "customerSend")}
             </button>
           </form>
         )}
       </div>
 
-      {/* Rating Modal */}
-      {showRatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
-            <h4 className="text-lg font-bold text-gray-900">
-              {t("customerFeedbackModalTitle")}
-            </h4>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-700">
-                {t("customerRatingLabel")}
-              </label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className={`p-2 rounded-lg text-lg font-bold ${
-                      rating >= star
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    ★
-                  </button>
-                ))}
+      {/* Rating & Feedback Section (When Resolved) */}
+      {isResolvedOrClosed && (
+        <div className="border-t border-gray-200 pt-6 mt-6">
+          <h3 className="text-md font-bold text-gray-900 mb-2">
+            {translate(locale, "customerFeedbackTitle")}
+          </h3>
+
+          {feedbackDone || ticket.feedback ? (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm font-medium">
+              ✓ {translate(locale, "customerFeedbackSuccess")}
+            </div>
+          ) : (
+            <form onSubmit={handleFeedback} className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {translate(locale, "customerRatingLabel")}
+                </label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className={`text-2xl transition-transform ${
+                        star <= rating ? "text-yellow-400 scale-110" : "text-gray-300"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                  <span className="text-xs text-gray-500 ml-2 font-medium">
+                    {rating} / 5
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-700">
-                {t("customerCommentsLabel")}
-              </label>
-              <textarea
-                rows={3}
-                value={feedbackComments}
-                onChange={(e) => setFeedbackComments(e.target.value)}
-                className="w-full p-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  {translate(locale, "customerCommentsLabel")}
+                </label>
+                <textarea
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div className="flex justify-end gap-3 pt-2">
               <button
-                type="button"
-                onClick={() => setShowRatingModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleFeedbackSubmit}
+                type="submit"
                 disabled={submittingFeedback}
-                className="px-4 py-2 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm"
+                className="bg-green-600 hover:bg-green-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
               >
-                {t("customerSubmitFeedbackBtn")}
+                {submittingFeedback
+                  ? translate(locale, "customerSubmittingFeedback")
+                  : translate(locale, "customerSubmitFeedback")}
               </button>
-            </div>
-          </div>
+            </form>
+          )}
         </div>
       )}
     </div>

@@ -1,9 +1,9 @@
 """Typed API request, response, and error schemas."""
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator, model_validator
 
 from app.config import MAX_COMPLAINT_LENGTH
 from app.language import normalize_input
@@ -191,19 +191,38 @@ class CustomerTicketSummary(BaseModel):
 
     id: str
     status: TicketStatus
-    complaint_text: str = Field(alias="complaintText")
+    complaint_text: str = Field(default="", alias="complaintText")
+    summary_text: str = Field(default="", alias="summaryText")
+    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
+    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
+
+
+class CustomerTicketListResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    tickets: list[CustomerTicketSummary]
 
 
 class CustomerMessageItem(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    message_id: str = Field(alias="messageId")
+    id: str | None = None
+    message_id: str = Field(default="", alias="messageId")
     sender_id: str = Field(alias="senderId")
     sender_role: Literal["customer", "staff"] = Field(alias="senderRole")
     text: str
     created_at: str = Field(alias="createdAt")
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_msg_id(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            msg_id = data.get("messageId") or data.get("id") or ""
+            data["messageId"] = msg_id
+            data["id"] = msg_id
+        return data
 
 
 class CustomerTicketDetail(BaseModel):
@@ -225,9 +244,17 @@ class CustomerTicketDetail(BaseModel):
 
 
 class CustomerMessageRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    text: Annotated[StrictStr, Field(max_length=MAX_COMPLAINT_LENGTH)]
+    text: Annotated[StrictStr, Field(default="", max_length=MAX_COMPLAINT_LENGTH)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def pre_normalize(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if "messageText" in values and ("text" not in values or not values["text"]):
+                values["text"] = values["messageText"]
+        return values
 
     @field_validator("text")
     @classmethod
@@ -246,11 +273,13 @@ class CustomerFeedbackRequest(BaseModel):
 
 
 class CustomerFeedbackResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     ticket_id: str = Field(alias="ticketId")
-    rating: int
-    submitted_at: str = Field(alias="submittedAt")
+    feedback_id: str | None = Field(default=None, alias="feedbackId")
+    rating: int | None = None
+    submitted_at: str | None = Field(default=None, alias="submittedAt")
+    status: str = "feedback_submitted"
 
 
 class PredictResponse(BaseModel):
@@ -352,3 +381,4 @@ class ManagerOverrideResponse(BaseModel):
 
 
 assert set(DepartmentId.__args__) == set(LABELS)
+

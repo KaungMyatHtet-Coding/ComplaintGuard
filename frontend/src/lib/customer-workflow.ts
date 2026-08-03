@@ -1,49 +1,49 @@
-import type { Locale } from "./i18n";
-
 export type CustomerTicketSummary = {
   id: string;
   status: string;
-  complaintText: string;
+  predictedDepartmentId?: string | null;
+  assignedDepartmentId?: string | null;
   createdAt: string;
   updatedAt: string;
+  summaryText: string;
 };
 
 export type CustomerMessageItem = {
-  messageId: string;
+  id: string;
   senderId: string;
-  senderRole: "customer" | "staff";
+  senderRole: "customer" | "staff" | "manager" | "system";
   text: string;
   createdAt: string;
 };
 
 export type CustomerTicketDetail = {
   id: string;
+  customerId: string;
   status: string;
   complaintText: string;
-  inputLocale: Locale;
-  predictedDepartmentId: string | null;
-  assignedDepartmentId: string | null;
+  inputLocale: string;
+  predictedDepartmentId?: string | null;
+  assignedDepartmentId?: string | null;
   priority: string;
   createdAt: string;
   updatedAt: string;
-  resolvedAt: string | null;
+  resolvedAt?: string | null;
   messages: CustomerMessageItem[];
-  rating?: number;
-  feedbackComments?: string;
-};
-
-export type CustomerFeedbackResult = {
-  ticketId: string;
-  rating: number;
-  submittedAt: string;
+  feedback?: {
+    rating: number;
+    comments?: string;
+    submittedAt: string;
+  } | null;
 };
 
 export type CustomerWorkflowErrorCode =
-  | "authentication"
+  | "auth"
   | "permission"
   | "not_found"
+  | "conflict"
   | "validation"
-  | "backend";
+  | "backend"
+  | "unexpected";
 
 export class CustomerWorkflowError extends Error {
   constructor(public readonly code: CustomerWorkflowErrorCode) {
@@ -58,96 +58,129 @@ function getApiUrl(): string {
   return apiUrl.replace(/\/$/u, "");
 }
 
-async function request<T>(
-  path: string,
-  token: string,
-  init: RequestInit = {},
-  fetcher: Fetcher = fetch,
-): Promise<T> {
+export async function fetchCustomerTickets(
+  idToken: string,
+  fetcher: Fetcher = fetch
+): Promise<CustomerTicketSummary[]> {
+  const baseUrl = getApiUrl();
   let response: Response;
   try {
-    response = await fetcher(`${getApiUrl()}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        ...(init.headers ?? {}),
-      },
+    response = await fetcher(`${baseUrl}/customer/tickets`, {
+      headers: { Authorization: `Bearer ${idToken}` },
     });
   } catch {
     throw new CustomerWorkflowError("backend");
   }
 
-  if (response.ok) {
-    return (await response.json()) as T;
+  if (response.status === 401) throw new CustomerWorkflowError("auth");
+  if (response.status === 403) throw new CustomerWorkflowError("permission");
+  if (!response.ok) throw new CustomerWorkflowError("backend");
+
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object" || !Array.isArray((data as { tickets?: unknown }).tickets)) {
+    throw new CustomerWorkflowError("unexpected");
   }
 
-  if (response.status === 401) {
-    throw new CustomerWorkflowError("authentication");
-  }
-  if (response.status === 403) {
-    throw new CustomerWorkflowError("permission");
-  }
-  if (response.status === 404) {
-    throw new CustomerWorkflowError("not_found");
-  }
-  if (response.status === 400) {
-    throw new CustomerWorkflowError("validation");
-  }
-  throw new CustomerWorkflowError("backend");
-}
-
-export async function fetchCustomerTickets(
-  token: string,
-  fetcher: Fetcher = fetch,
-): Promise<CustomerTicketSummary[]> {
-  return request<CustomerTicketSummary[]>("/customer/tickets", token, {}, fetcher);
+  return (data as { tickets: CustomerTicketSummary[] }).tickets;
 }
 
 export async function fetchCustomerTicketDetail(
-  token: string,
   ticketId: string,
-  fetcher: Fetcher = fetch,
+  idToken: string,
+  fetcher: Fetcher = fetch
 ): Promise<CustomerTicketDetail> {
-  return request<CustomerTicketDetail>(
-    `/customer/tickets/${encodeURIComponent(ticketId)}`,
-    token,
-    {},
-    fetcher,
-  );
+  const baseUrl = getApiUrl();
+  let response: Response;
+  try {
+    response = await fetcher(`${baseUrl}/customer/tickets/${ticketId}`, {
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+  } catch {
+    throw new CustomerWorkflowError("backend");
+  }
+
+  if (response.status === 401) throw new CustomerWorkflowError("auth");
+  if (response.status === 403) throw new CustomerWorkflowError("permission");
+  if (response.status === 404) throw new CustomerWorkflowError("not_found");
+  if (!response.ok) throw new CustomerWorkflowError("backend");
+
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object" || typeof (data as { id?: unknown }).id !== "string") {
+    throw new CustomerWorkflowError("unexpected");
+  }
+
+  return data as CustomerTicketDetail;
 }
 
-export async function postCustomerMessage(
-  token: string,
+export async function sendCustomerMessage(
   ticketId: string,
-  text: string,
-  fetcher: Fetcher = fetch,
+  messageText: string,
+  idToken: string,
+  fetcher: Fetcher = fetch
 ): Promise<CustomerMessageItem> {
-  return request<CustomerMessageItem>(
-    `/customer/tickets/${encodeURIComponent(ticketId)}/messages`,
-    token,
-    {
+  const baseUrl = getApiUrl();
+  let response: Response;
+  try {
+    response = await fetcher(`${baseUrl}/customer/tickets/${ticketId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ text }),
-    },
-    fetcher,
-  );
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ messageText }),
+    });
+  } catch {
+    throw new CustomerWorkflowError("backend");
+  }
+
+  if (response.status === 401) throw new CustomerWorkflowError("auth");
+  if (response.status === 403) throw new CustomerWorkflowError("permission");
+  if (response.status === 404) throw new CustomerWorkflowError("not_found");
+  if (response.status === 409) throw new CustomerWorkflowError("conflict");
+  if (response.status === 422) throw new CustomerWorkflowError("validation");
+  if (!response.ok) throw new CustomerWorkflowError("backend");
+
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object" || typeof (data as { text?: unknown }).text !== "string") {
+    throw new CustomerWorkflowError("unexpected");
+  }
+
+  return data as CustomerMessageItem;
 }
 
 export async function submitCustomerFeedback(
-  token: string,
   ticketId: string,
   rating: number,
-  comments?: string,
-  fetcher: Fetcher = fetch,
-): Promise<CustomerFeedbackResult> {
-  return request<CustomerFeedbackResult>(
-    `/customer/tickets/${encodeURIComponent(ticketId)}/feedback`,
-    token,
-    {
+  comments: string,
+  idToken: string,
+  fetcher: Fetcher = fetch
+): Promise<{ ticketId: string; feedbackId: string; status: string }> {
+  const baseUrl = getApiUrl();
+  let response: Response;
+  try {
+    response = await fetcher(`${baseUrl}/customer/tickets/${ticketId}/feedback`, {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ rating, comments }),
-    },
-    fetcher,
-  );
+    });
+  } catch {
+    throw new CustomerWorkflowError("backend");
+  }
+
+  if (response.status === 401) throw new CustomerWorkflowError("auth");
+  if (response.status === 403) throw new CustomerWorkflowError("permission");
+  if (response.status === 404) throw new CustomerWorkflowError("not_found");
+  if (response.status === 409) throw new CustomerWorkflowError("conflict");
+  if (response.status === 422) throw new CustomerWorkflowError("validation");
+  if (!response.ok) throw new CustomerWorkflowError("backend");
+
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object" || typeof (data as { feedbackId?: unknown }).feedbackId !== "string") {
+    throw new CustomerWorkflowError("unexpected");
+  }
+
+  return data as { ticketId: string; feedbackId: string; status: string };
 }
