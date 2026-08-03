@@ -1,7 +1,7 @@
 """Typed API request, response, and error schemas."""
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
 
@@ -230,4 +230,87 @@ class ErrorResponse(BaseModel):
     error: ErrorBody
 
 
+class CustomerTicketSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    id: str
+    status: str
+    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
+    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
+    created_at: str = Field(alias="createdAt")
+    updated_at: str = Field(alias="updatedAt")
+    summary_text: str = Field(alias="summaryText")
+
+
+class CustomerTicketListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    tickets: list[CustomerTicketSummary]
+
+
+class CustomerMessageItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    id: str
+    sender_id: str = Field(alias="senderId")
+    sender_role: str = Field(alias="senderRole")
+    text: str
+    created_at: str = Field(alias="createdAt")
+
+
+class CustomerTicketDetail(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    id: str
+    customer_id: str = Field(alias="customerId")
+    status: str
+    complaint_text: str = Field(alias="complaintText")
+    input_locale: str = Field(alias="inputLocale")
+    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
+    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
+    priority: str = Field(default="medium")
+    created_at: str = Field(alias="createdAt")
+    updated_at: str = Field(alias="updatedAt")
+    resolved_at: str | None = Field(default=None, alias="resolvedAt")
+    messages: list[CustomerMessageItem] = Field(default_factory=list)
+    feedback: dict[str, Any] | None = None
+
+
+class CustomerMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    message_text: str = Field(alias="messageText")
+
+    @field_validator("message_text")
+    @classmethod
+    def validate_message(cls, val: str) -> str:
+        norm = normalize_input(val)
+        if not norm:
+            raise ValueError("message text must not be empty")
+        return norm
+
+
+class CustomerFeedbackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rating: int
+    comments: str = ""
+
+    @field_validator("rating")
+    @classmethod
+    def validate_rating(cls, val: int) -> int:
+        if val < 1 or val > 5:
+            raise ValueError("rating must be between 1 and 5")
+        return val
+
+
+class CustomerFeedbackResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    ticket_id: str = Field(alias="ticketId")
+    feedback_id: str = Field(alias="feedbackId")
+    status: Literal["feedback_submitted"]
+
+
 assert set(DepartmentId.__args__) == set(LABELS)
+

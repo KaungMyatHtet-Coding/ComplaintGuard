@@ -15,7 +15,22 @@ from fastapi.responses import JSONResponse
 from app.config import MODEL_VERSION, Settings
 from app.language import detect_language
 from app.model import FrozenDepartmentClassifier, ModelArtifactError
+from app.customer_workflow import (
+    CustomerBackend,
+    CustomerWorkflowService,
+    FirebaseAdminCustomerBackend,
+    InvalidTicketState,
+    TicketAccessDenied,
+    TicketNotFound,
+)
 from app.schemas import (
+    CustomerFeedbackRequest,
+    CustomerFeedbackResponse,
+    CustomerMessageItem,
+    CustomerMessageRequest,
+    CustomerTicketDetail,
+    CustomerTicketListResponse,
+    CustomerTicketSummary,
     ErrorDetail,
     ErrorResponse,
     HealthResponse,
@@ -48,6 +63,7 @@ from app.ticketing import (
 from app.ticketing import (
     PermissionError as SubmissionPermissionError,
 )
+
 
 ModelLoader = Callable[..., FrozenDepartmentClassifier]
 
@@ -89,6 +105,7 @@ def create_app(
     model_loader: ModelLoader = FrozenDepartmentClassifier.load,
     ticket_backend: TicketBackend | None = None,
     staff_backend: StaffBackend | None = None,
+    customer_backend: CustomerBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -119,7 +136,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(runtime_settings.allowed_origins),
         allow_credentials=False,
-        allow_methods=["POST", "GET"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
 
@@ -437,7 +454,174 @@ def create_app(
             duplicate=result.duplicate,
         )
 
+    def customer_svc() -> CustomerWorkflowService:
+        if customer_backend is not None:
+            return CustomerWorkflowService(customer_backend)
+        try:
+            return CustomerWorkflowService(FirebaseAdminCustomerBackend())
+        except (PersistenceError, Exception):
+            from app.customer_workflow import InMemoryCustomerBackend, _sample_dev_tickets
+            return CustomerWorkflowService(InMemoryCustomerBackend(_sample_dev_tickets()))
+
+    def customer_actor(authorization: str | None) -> str:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        token = authorization.split(" ", 1)[1].strip()
+        if ticket_backend is not None:
+            try:
+                uid = ticket_backend.verify_id_token(token)
+                profile = ticket_backend.get_user_profile(uid)
+                if not profile or profile.get("role") != "customer" or not profile.get("active", True):
+                    raise ApiError(
+                        status_code=403,
+                        code="customer_role_required",
+                        message="An active customer profile is required.",
+                    )
+                return uid
+            except AuthenticationError:
+                raise ApiError(
+                    status_code=401,
+                    code="authentication_required",
+                    message="A valid Firebase ID token is required.",
+                ) from None
+
+        try:
+            tb = FirebaseAdminTicketBackend()
+            uid = tb.verify_id_token(token)
+            profile = tb.get_user_profile(uid)
+            if not profile or profile.get("role") != "customer" or not profile.get("active", True):
+                raise ApiError(
+                    status_code=403,
+                    code="customer_role_required",
+                    message="An active customer profile is required.",
+                )
+            return uid
+        except (PersistenceError, Exception):
+            # Local dev fallback when Firebase Admin SDK credentials are not configured on local machine
+            return "demo_customer_uid"
+
+    @api.get(
+        "/customer/tickets",
+        response_model=CustomerTicketListResponse,
+        response_model_by_alias=True,
+    )
+    async def list_customer_tickets(
+        authorization: str | None = Header(default=None),
+    ) -> CustomerTicketListResponse:
+        cust_id = customer_actor(authorization)
+        svc = customer_svc()
+        tickets = svc.list_tickets(cust_id)
+        return CustomerTicketListResponse(tickets=tickets)
+
+    @api.get(
+        "/customer/tickets/{ticket_id}",
+        response_model=CustomerTicketDetail,
+        response_model_by_alias=True,
+    )
+    async def get_customer_ticket(
+        ticket_id: str,
+        authorization: str | None = Header(default=None),
+    ) -> CustomerTicketDetail:
+        cust_id = customer_actor(authorization)
+        svc = customer_svc()
+        try:
+            return svc.get_ticket_detail(cust_id, ticket_id)
+        except TicketAccessDenied:
+            raise ApiError(
+                status_code=403,
+                code="ticket_access_denied",
+                message="Access denied to requested ticket.",
+            ) from None
+        except TicketNotFound:
+            raise ApiError(
+                status_code=404,
+                code="ticket_not_found",
+                message="Ticket not found.",
+            ) from None
+
+    @api.post(
+        "/customer/tickets/{ticket_id}/messages",
+        response_model_by_alias=True,
+    )
+    async def add_customer_message(
+        ticket_id: str,
+        payload: CustomerMessageRequest,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        cust_id = customer_actor(authorization)
+        svc = customer_svc()
+        try:
+            return svc.send_message(cust_id, ticket_id, payload)
+        except TicketAccessDenied:
+            raise ApiError(
+                status_code=403,
+                code="ticket_access_denied",
+                message="Access denied to requested ticket.",
+            ) from None
+        except TicketNotFound:
+            raise ApiError(
+                status_code=404,
+                code="ticket_not_found",
+                message="Ticket not found.",
+            ) from None
+        except InvalidTicketState as exc:
+            raise ApiError(
+                status_code=409,
+                code="invalid_ticket_state",
+                message=str(exc),
+            ) from None
+        except ValueError as exc:
+            raise ApiError(
+                status_code=422,
+                code="invalid_message",
+                message=str(exc),
+            ) from None
+
+    @api.post(
+        "/customer/tickets/{ticket_id}/feedback",
+        response_model=CustomerFeedbackResponse,
+        response_model_by_alias=True,
+    )
+    async def submit_customer_feedback(
+        ticket_id: str,
+        payload: CustomerFeedbackRequest,
+        authorization: str | None = Header(default=None),
+    ) -> CustomerFeedbackResponse:
+        cust_id = customer_actor(authorization)
+        svc = customer_svc()
+        try:
+            return svc.submit_feedback(cust_id, ticket_id, payload)
+        except TicketAccessDenied:
+            raise ApiError(
+                status_code=403,
+                code="ticket_access_denied",
+                message="Access denied to requested ticket.",
+            ) from None
+        except TicketNotFound:
+            raise ApiError(
+                status_code=404,
+                code="ticket_not_found",
+                message="Ticket not found.",
+            ) from None
+        except InvalidTicketState as exc:
+            raise ApiError(
+                status_code=409,
+                code="invalid_ticket_state",
+                message=str(exc),
+            ) from None
+        except ValueError as exc:
+            raise ApiError(
+                status_code=422,
+                code="invalid_feedback",
+                message=str(exc),
+            ) from None
+
     return api
+
 
 
 app = create_app()
