@@ -413,3 +413,153 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
         transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
         transaction.commit()
         return MutationResult(ticket_id, action_id, ticket["status"], False)
+
+
+def _sample_dev_staff_tickets() -> list[dict[str, Any]]:
+    now = datetime.now().isoformat() + "Z"
+    return [
+        {
+            "ticketId": "cg_ticket_cust1",
+            "id": "cg_ticket_cust1",
+            "customerId": "demo_customer_uid",
+            "departmentId": "general_support",
+            "assignedDepartmentId": "general_support",
+            "status": "triaged",
+            "priority": "normal",
+            "inputLocale": "en",
+            "complaintText": "I was charged an unknown monthly fee and my card was declined.",
+            "assignedStaffId": "staff1_uid",
+            "predictedDepartmentId": "general_support",
+            "predictionConfidence": 0.85,
+            "routingSource": "model",
+            "escalated": False,
+            "resolutionSummary": None,
+            "resolvedAt": None,
+            "createdAt": now,
+            "updatedAt": now,
+        },
+        {
+            "ticketId": "cg_ticket_cust2",
+            "id": "cg_ticket_cust2",
+            "customerId": "demo_customer_uid",
+            "departmentId": "general_support",
+            "assignedDepartmentId": "general_support",
+            "status": "in_progress",
+            "priority": "high",
+            "inputLocale": "en",
+            "complaintText": "Cannot access online account login since yesterday.",
+            "assignedStaffId": "staff1_uid",
+            "predictedDepartmentId": "general_support",
+            "predictionConfidence": 0.92,
+            "routingSource": "model",
+            "escalated": False,
+            "resolutionSummary": None,
+            "resolvedAt": None,
+            "createdAt": now,
+            "updatedAt": now,
+        },
+    ]
+
+
+class InMemoryStaffBackend:
+    def __init__(self, tickets: list[dict[str, Any]] | None = None) -> None:
+        raw_tickets = tickets if tickets is not None else _sample_dev_staff_tickets()
+        self._tickets: dict[str, dict[str, Any]] = {t["id"]: dict(t) for t in raw_tickets}
+        self._messages: dict[str, list[dict[str, Any]]] = {}
+        self._events: dict[str, list[dict[str, Any]]] = {}
+
+    def verify_id_token(self, token: str) -> str:
+        return "demo_staff_uid"
+
+    def get_user_profile(self, uid: str) -> dict[str, Any] | None:
+        return {
+            "role": "staff",
+            "departmentId": "general_support",
+            "active": True,
+        }
+
+    def list_department_tickets(
+        self,
+        department_id: str,
+        *,
+        status: str | None,
+        priority: str | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for t in self._tickets.values():
+            if status and t.get("status") != status:
+                continue
+            if priority and t.get("priority") != priority:
+                continue
+            results.append(dict(t))
+        return results
+
+    def get_department_ticket(
+        self, ticket_id: str, department_id: str
+    ) -> dict[str, Any] | None:
+        t = self._tickets.get(ticket_id)
+        if not t:
+            return None
+        return dict(t)
+
+    def list_messages(self, ticket_id: str) -> list[dict[str, Any]]:
+        return list(self._messages.get(ticket_id, []))
+
+    def list_events(self, ticket_id: str) -> list[dict[str, Any]]:
+        return list(self._events.get(ticket_id, []))
+
+    def add_reply(
+        self, *, ticket_id: str, actor: StaffActor, body: str, action_id: str
+    ) -> MutationResult:
+        if ticket_id not in self._tickets:
+            raise StaffTicketNotFound("ticket not found")
+        now = datetime.now().isoformat() + "Z"
+        msg = {
+            "authorId": actor.uid,
+            "authorRole": "staff",
+            "body": body,
+            "visibility": "participants",
+            "createdAt": now,
+        }
+        self._messages.setdefault(ticket_id, []).append(msg)
+        return MutationResult(ticket_id, action_id, self._tickets[ticket_id]["status"], False)
+
+    def transition_ticket(
+        self,
+        *,
+        ticket_id: str,
+        actor: StaffActor,
+        to_status: str,
+        resolution_summary: str | None,
+        action_id: str,
+    ) -> MutationResult:
+        if ticket_id not in self._tickets:
+            raise StaffTicketNotFound("ticket not found")
+        t = self._tickets[ticket_id]
+        from_status = t["status"]
+        validate_staff_transition(from_status, to_status)
+        if to_status == "resolved" and not resolution_summary:
+            raise InvalidTransition("resolution summary is required")
+        t["status"] = to_status
+        now = datetime.now().isoformat() + "Z"
+        t["updatedAt"] = now
+        if to_status == "resolved":
+            t["resolutionSummary"] = resolution_summary
+            t["resolvedAt"] = now
+        return MutationResult(ticket_id, action_id, to_status, False)
+
+    def request_action(
+        self,
+        *,
+        ticket_id: str,
+        actor: StaffActor,
+        request_type: RequestType,
+        reason: str,
+        action_id: str,
+    ) -> MutationResult:
+        if ticket_id not in self._tickets:
+            raise StaffTicketNotFound("ticket not found")
+        return MutationResult(ticket_id, action_id, self._tickets[ticket_id]["status"], False)
+

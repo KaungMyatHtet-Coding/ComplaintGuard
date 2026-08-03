@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator, model_validator
 
 from app.config import MAX_COMPLAINT_LENGTH
 from app.language import normalize_input
@@ -64,7 +64,7 @@ TicketPriority = Literal["normal", "high", "urgent"]
 
 
 class StaffTicketSummary(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     ticket_id: str = Field(alias="ticketId")
     customer_id: str = Field(alias="customerId")
@@ -73,23 +73,23 @@ class StaffTicketSummary(BaseModel):
     department_id: DepartmentId = Field(alias="departmentId")
     status: TicketStatus
     priority: TicketPriority
-    assigned_staff_id: str | None = Field(alias="assignedStaffId")
-    predicted_department_id: DepartmentId | None = Field(alias="predictedDepartmentId")
+    assigned_staff_id: str | None = Field(default=None, alias="assignedStaffId")
+    predicted_department_id: DepartmentId | None = Field(default=None, alias="predictedDepartmentId")
     prediction_confidence: float | None = Field(
-        alias="predictionConfidence", ge=0.0, le=1.0
+        default=None, alias="predictionConfidence", ge=0.0, le=1.0
     )
     routing_source: Literal["model", "manual_review", "manager_override"] = Field(
-        alias="routingSource"
+        default="model", alias="routingSource"
     )
-    escalated: bool
-    resolution_summary: str | None = Field(alias="resolutionSummary")
+    escalated: bool = False
+    resolution_summary: str | None = Field(default=None, alias="resolutionSummary")
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
-    resolved_at: datetime | None = Field(alias="resolvedAt")
+    resolved_at: datetime | None = Field(default=None, alias="resolvedAt")
 
 
 class StaffMessage(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     message_id: str = Field(alias="messageId")
     author_id: str = Field(alias="authorId")
@@ -100,7 +100,7 @@ class StaffMessage(BaseModel):
 
 
 class StaffEvent(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     event_id: str = Field(alias="eventId")
     type: str
@@ -186,6 +186,102 @@ class StaffMutationResponse(BaseModel):
     duplicate: bool
 
 
+class CustomerTicketSummary(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    id: str
+    status: TicketStatus
+    complaint_text: str = Field(default="", alias="complaintText")
+    summary_text: str = Field(default="", alias="summaryText")
+    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
+    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
+    created_at: str = Field(alias="createdAt")
+    updated_at: str = Field(alias="updatedAt")
+
+
+class CustomerTicketListResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    tickets: list[CustomerTicketSummary]
+
+
+class CustomerMessageItem(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    id: str | None = None
+    message_id: str = Field(default="", alias="messageId")
+    sender_id: str = Field(alias="senderId")
+    sender_role: Literal["customer", "staff"] = Field(alias="senderRole")
+    text: str
+    created_at: str = Field(alias="createdAt")
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_msg_id(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            msg_id = data.get("messageId") or data.get("id") or ""
+            data["messageId"] = msg_id
+            data["id"] = msg_id
+        return data
+
+
+class CustomerTicketDetail(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    id: str
+    status: TicketStatus
+    complaint_text: str = Field(alias="complaintText")
+    input_locale: Literal["en", "my"] = Field(alias="inputLocale")
+    predicted_department_id: DepartmentId | None = Field(default=None, alias="predictedDepartmentId")
+    assigned_department_id: DepartmentId | None = Field(default=None, alias="assignedDepartmentId")
+    priority: str
+    created_at: str = Field(alias="createdAt")
+    updated_at: str = Field(alias="updatedAt")
+    resolved_at: str | None = Field(default=None, alias="resolvedAt")
+    messages: list[CustomerMessageItem] = Field(default_factory=list)
+    rating: int | None = None
+    feedback_comments: str | None = Field(default=None, alias="feedbackComments")
+
+
+class CustomerMessageRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    text: Annotated[StrictStr, Field(default="", max_length=MAX_COMPLAINT_LENGTH)]
+
+    @model_validator(mode="before")
+    @classmethod
+    def pre_normalize(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if "messageText" in values and ("text" not in values or not values["text"]):
+                values["text"] = values["messageText"]
+        return values
+
+    @field_validator("text")
+    @classmethod
+    def normalize_message_text(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized:
+            raise ValueError("message text must not be empty")
+        return normalized
+
+
+class CustomerFeedbackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rating: Annotated[int, Field(ge=1, le=5)]
+    comments: Annotated[StrictStr | None, Field(max_length=MAX_COMPLAINT_LENGTH)] = None
+
+
+class CustomerFeedbackResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    ticket_id: str = Field(alias="ticketId")
+    feedback_id: str | None = Field(default=None, alias="feedbackId")
+    rating: int | None = None
+    submitted_at: str | None = Field(default=None, alias="submittedAt")
+    status: str = "feedback_submitted"
+
+
 class PredictResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -230,86 +326,58 @@ class ErrorResponse(BaseModel):
     error: ErrorBody
 
 
-class CustomerTicketSummary(BaseModel):
+class DepartmentMetricItem(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str
-    status: str
-    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
-    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
-    created_at: str = Field(alias="createdAt")
-    updated_at: str = Field(alias="updatedAt")
-    summary_text: str = Field(alias="summaryText")
+    department_id: DepartmentId = Field(alias="departmentId")
+    label: str
+    total: int
+    in_progress: int = Field(alias="inProgress")
+    resolved: int
+    avg_resolution_hours: float = Field(alias="avgResolutionHours")
 
 
-class CustomerTicketListResponse(BaseModel):
+class ManagerAnalyticsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    tickets: list[CustomerTicketSummary]
+    total_tickets: int = Field(alias="totalTickets")
+    active_tickets: int = Field(alias="activeTickets")
+    resolved_tickets: int = Field(alias="resolvedTickets")
+    low_confidence_count: int = Field(alias="lowConfidenceCount")
+    avg_resolution_hours: float = Field(alias="avgResolutionHours")
+    department_metrics: list[DepartmentMetricItem] = Field(alias="departmentMetrics")
 
 
-class CustomerMessageItem(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    id: str
-    sender_id: str = Field(alias="senderId")
-    sender_role: str = Field(alias="senderRole")
-    text: str
-    created_at: str = Field(alias="createdAt")
-
-
-class CustomerTicketDetail(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+class LowConfidenceTicketItem(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: str
     customer_id: str = Field(alias="customerId")
-    status: str
     complaint_text: str = Field(alias="complaintText")
-    input_locale: str = Field(alias="inputLocale")
-    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
-    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
-    priority: str = Field(default="medium")
+    input_locale: Literal["en", "my"] = Field(alias="inputLocale")
+    predicted_department_id: DepartmentId | None = Field(default=None, alias="predictedDepartmentId")
+    prediction_confidence: float | None = Field(default=None, alias="predictionConfidence")
+    assigned_department_id: DepartmentId = Field(alias="assignedDepartmentId")
+    status: str
+    priority: str
+    routing_source: str = Field(alias="routingSource")
     created_at: str = Field(alias="createdAt")
-    updated_at: str = Field(alias="updatedAt")
-    resolved_at: str | None = Field(default=None, alias="resolvedAt")
-    messages: list[CustomerMessageItem] = Field(default_factory=list)
-    feedback: dict[str, Any] | None = None
 
 
-class CustomerMessageRequest(BaseModel):
+class ManagerOverrideRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    message_text: str = Field(alias="messageText")
-
-    @field_validator("message_text")
-    @classmethod
-    def validate_message(cls, val: str) -> str:
-        norm = normalize_input(val)
-        if not norm:
-            raise ValueError("message text must not be empty")
-        return norm
+    new_department_id: DepartmentId = Field(alias="newDepartmentId")
+    reason: str | None = Field(default=None, max_length=1000)
 
 
-class CustomerFeedbackRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    rating: int
-    comments: str = ""
-
-    @field_validator("rating")
-    @classmethod
-    def validate_rating(cls, val: int) -> int:
-        if val < 1 or val > 5:
-            raise ValueError("rating must be between 1 and 5")
-        return val
-
-
-class CustomerFeedbackResponse(BaseModel):
+class ManagerOverrideResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     ticket_id: str = Field(alias="ticketId")
-    feedback_id: str = Field(alias="feedbackId")
-    status: Literal["feedback_submitted"]
+    assigned_department_id: DepartmentId = Field(alias="assignedDepartmentId")
+    routing_source: Literal["manager_override"] = Field(alias="routingSource")
+    updated_at: str = Field(alias="updatedAt")
 
 
 assert set(DepartmentId.__args__) == set(LABELS)

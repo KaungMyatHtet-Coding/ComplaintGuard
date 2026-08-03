@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { AppHeader } from "@/components/app-header";
 import { useApp } from "@/components/app-provider";
 import { CustomerDashboardWorkflow } from "@/components/customer-dashboard-workflow";
+import { ManagerDashboardWorkflow } from "@/components/manager-dashboard-workflow";
 import { StaffTicketQueue } from "@/components/staff-ticket-queue";
 
 const shellKeys = {
@@ -47,11 +48,12 @@ export function ProtectedDashboard() {
           </a>
         </aside>
         <section id="overview" className="dashboard-content">
-          <p className="eyebrow">Day 15 workflow</p>
+          <p className="eyebrow">ComplaintGuard System</p>
           <h1>{t(shellKeys[profile.role])}</h1>
           <div className="security-note mb-6">{t("securityBoundary")}</div>
           {profile.role === "customer" ? <CustomerDashboardWorkflow /> : null}
           {profile.role === "staff" ? <StaffTicketQueue /> : null}
+          {profile.role === "manager" ? <ManagerDashboardWorkflow /> : null}
         </section>
       </main>
     </>

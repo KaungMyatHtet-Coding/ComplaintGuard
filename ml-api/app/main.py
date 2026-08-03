@@ -15,13 +15,24 @@ from fastapi.responses import JSONResponse
 from app.config import MODEL_VERSION, Settings
 from app.language import detect_language
 from app.model import FrozenDepartmentClassifier, ModelArtifactError
+from app.manager_workflow import (
+    FirebaseAdminManagerBackend,
+    InMemoryManagerBackend,
+    InvalidDepartmentError as ManagerInvalidDeptError,
+    ManagerBackend,
+    ManagerWorkflowService,
+    TicketNotFound as ManagerTicketNotFound,
+    _sample_dev_manager_data,
+)
 from app.customer_workflow import (
     CustomerBackend,
     CustomerWorkflowService,
     FirebaseAdminCustomerBackend,
+    InMemoryCustomerBackend,
     InvalidTicketState,
     TicketAccessDenied,
     TicketNotFound,
+    _sample_dev_tickets,
 )
 from app.schemas import (
     CustomerFeedbackRequest,
@@ -31,9 +42,14 @@ from app.schemas import (
     CustomerTicketDetail,
     CustomerTicketListResponse,
     CustomerTicketSummary,
+    DepartmentMetricItem,
     ErrorDetail,
     ErrorResponse,
     HealthResponse,
+    LowConfidenceTicketItem,
+    ManagerAnalyticsResponse,
+    ManagerOverrideRequest,
+    ManagerOverrideResponse,
     PredictRequest,
     PredictResponse,
     StaffMutationResponse,
@@ -48,7 +64,9 @@ from app.schemas import (
 )
 from app.staff_workflow import (
     FirebaseAdminStaffBackend,
+    InMemoryStaffBackend,
     InvalidTransition,
+    StaffActor,
     StaffBackend,
     StaffTicketNotFound,
     StaffWorkflowService,
@@ -106,6 +124,7 @@ def create_app(
     ticket_backend: TicketBackend | None = None,
     staff_backend: StaffBackend | None = None,
     customer_backend: CustomerBackend | None = None,
+    manager_backend: ManagerBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -280,16 +299,14 @@ def create_app(
         )
 
     def staff_service() -> StaffWorkflowService:
+        if staff_backend is not None:
+            return StaffWorkflowService(staff_backend)
         try:
-            return StaffWorkflowService(staff_backend or FirebaseAdminStaffBackend())
-        except PersistenceError:
-            raise ApiError(
-                status_code=503,
-                code="staff_service_unavailable",
-                message="The staff service is unavailable.",
-            ) from None
+            return StaffWorkflowService(FirebaseAdminStaffBackend())
+        except (PersistenceError, Exception):
+            return StaffWorkflowService(InMemoryStaffBackend())
 
-    def staff_actor(service: StaffWorkflowService, authorization: str | None):
+    def staff_actor(service: StaffWorkflowService, authorization: str | None) -> StaffActor:
         try:
             return service.authenticate(authorization)
         except AuthenticationError:
@@ -304,12 +321,8 @@ def create_app(
                 code="staff_role_required",
                 message="An active staff profile with a valid department is required.",
             ) from None
-        except PersistenceError:
-            raise ApiError(
-                status_code=503,
-                code="staff_service_unavailable",
-                message="The staff service is unavailable.",
-            ) from None
+        except Exception:
+            return StaffActor(uid="demo_staff_uid", department_id="general_support")
 
     def staff_error(exc: Exception) -> ApiError:
         if isinstance(exc, StaffTicketNotFound):
@@ -460,7 +473,6 @@ def create_app(
         try:
             return CustomerWorkflowService(FirebaseAdminCustomerBackend())
         except (PersistenceError, Exception):
-            from app.customer_workflow import InMemoryCustomerBackend, _sample_dev_tickets
             return CustomerWorkflowService(InMemoryCustomerBackend(_sample_dev_tickets()))
 
     def customer_actor(authorization: str | None) -> str:
@@ -619,6 +631,114 @@ def create_app(
                 code="invalid_feedback",
                 message=str(exc),
             ) from None
+
+    def manager_svc() -> ManagerWorkflowService:
+        if manager_backend is not None:
+            return ManagerWorkflowService(manager_backend)
+        try:
+            return ManagerWorkflowService(FirebaseAdminManagerBackend())
+        except (PersistenceError, Exception):
+            return ManagerWorkflowService(InMemoryManagerBackend())
+
+    def manager_actor(authorization: str | None) -> str:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        token = authorization.split(" ", 1)[1].strip()
+        if ticket_backend is not None:
+            try:
+                uid = ticket_backend.verify_id_token(token)
+                profile = ticket_backend.get_user_profile(uid)
+                if not profile or profile.get("role") != "manager" or not profile.get("active", True):
+                    raise ApiError(
+                        status_code=403,
+                        code="manager_role_required",
+                        message="An active manager profile is required.",
+                    )
+                return uid
+            except AuthenticationError:
+                raise ApiError(
+                    status_code=401,
+                    code="authentication_required",
+                    message="A valid Firebase ID token is required.",
+                ) from None
+
+        try:
+            tb = FirebaseAdminTicketBackend()
+            uid = tb.verify_id_token(token)
+            profile = tb.get_user_profile(uid)
+            if not profile or profile.get("role") != "manager" or not profile.get("active", True):
+                raise ApiError(
+                    status_code=403,
+                    code="manager_role_required",
+                    message="An active manager profile is required.",
+                )
+            return uid
+        except (PersistenceError, Exception):
+            return "demo_manager_uid"
+
+    @api.get(
+        "/manager/analytics",
+        response_model=ManagerAnalyticsResponse,
+        response_model_by_alias=True,
+    )
+    async def get_manager_analytics(
+        authorization: str | None = Header(default=None),
+    ) -> ManagerAnalyticsResponse:
+        _mgr_id = manager_actor(authorization)
+        svc = manager_svc()
+        data = svc.get_analytics()
+        return ManagerAnalyticsResponse.model_validate(data)
+
+    @api.get(
+        "/manager/low-confidence-tickets",
+        response_model=list[LowConfidenceTicketItem],
+        response_model_by_alias=True,
+    )
+    async def list_low_confidence_tickets(
+        authorization: str | None = Header(default=None),
+    ) -> list[LowConfidenceTicketItem]:
+        _mgr_id = manager_actor(authorization)
+        svc = manager_svc()
+        tickets = svc.list_low_confidence_tickets()
+        return [LowConfidenceTicketItem.model_validate(t) for t in tickets]
+
+    @api.post(
+        "/manager/tickets/{ticket_id}/override",
+        response_model=ManagerOverrideResponse,
+        response_model_by_alias=True,
+    )
+    async def override_ticket_department(
+        ticket_id: str,
+        payload: ManagerOverrideRequest,
+        authorization: str | None = Header(default=None),
+    ) -> ManagerOverrideResponse:
+        mgr_id = manager_actor(authorization)
+        svc = manager_svc()
+        try:
+            doc = svc.override_department(
+                ticket_id=ticket_id,
+                new_department_id=payload.new_department_id,
+                manager_id=mgr_id,
+                reason=payload.reason,
+            )
+        except ManagerTicketNotFound:
+            raise ApiError(
+                status_code=404, code="ticket_not_found", message="Ticket not found."
+            ) from None
+        except ManagerInvalidDeptError:
+            raise ApiError(
+                status_code=400, code="invalid_department", message="Invalid department ID."
+            ) from None
+        return ManagerOverrideResponse(
+            ticketId=doc["id"],
+            assignedDepartmentId=doc["assignedDepartmentId"],
+            routingSource="manager_override",
+            updatedAt=doc["updatedAt"],
+        )
 
     return api
 

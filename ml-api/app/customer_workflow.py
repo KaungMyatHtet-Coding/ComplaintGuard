@@ -400,7 +400,8 @@ class CustomerWorkflowService:
         if detail.status in ("closed",):
             raise InvalidTicketState("Cannot add message to closed ticket.")
 
-        clean_text = redact_pii(req.message_text.strip())
+        raw_msg = getattr(req, "text", "") or getattr(req, "message_text", "")
+        clean_text = redact_pii(raw_msg.strip())
         if not clean_text:
             raise ValueError("Message text cannot be empty.")
 
