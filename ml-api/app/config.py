@@ -15,7 +15,7 @@ class Settings:
 
     model_path: Path
     expected_model_sha256: str = MODEL_SHA256
-    allowed_origins: tuple[str, ...] = ("http://localhost:3000",)
+    allowed_origins: tuple[str, ...] = ("http://localhost:3000", "http://127.0.0.1:3000")
 
     @classmethod
     def default(cls) -> "Settings":
@@ -28,7 +28,7 @@ class Settings:
             allowed_origins=tuple(
                 origin.strip()
                 for origin in os.getenv(
-                    "ALLOWED_ORIGINS", "http://localhost:3000"
+                    "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
                 ).split(",")
                 if origin.strip()
             ),
