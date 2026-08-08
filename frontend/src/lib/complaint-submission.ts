@@ -5,6 +5,7 @@ export const MAX_COMPLAINT_LENGTH = 5_000;
 export type ComplaintInput = {
   complaintText: string;
   inputLocale: Locale;
+  actionId: string;
 };
 
 export type ComplaintSuccess = {
@@ -57,6 +58,7 @@ export async function submitComplaint(
       body: JSON.stringify({
         complaintText: input.complaintText,
         inputLocale: input.inputLocale,
+        actionId: input.actionId,
       }),
     });
   } catch {

@@ -2,6 +2,8 @@ export type CustomerTicketSummary = {
   id: string;
   status: string;
   predictedDepartmentId?: string | null;
+  predictionConfidence?: number | null;
+  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
   assignedDepartmentId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,6 +25,8 @@ export type CustomerTicketDetail = {
   complaintText: string;
   inputLocale: string;
   predictedDepartmentId?: string | null;
+  predictionConfidence?: number | null;
+  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
   assignedDepartmentId?: string | null;
   priority: string;
   createdAt: string;
@@ -116,7 +120,8 @@ export async function sendCustomerMessage(
   ticketId: string,
   messageText: string,
   idToken: string,
-  fetcher: Fetcher = fetch
+  fetcher: Fetcher = fetch,
+  actionId: string = crypto.randomUUID()
 ): Promise<CustomerMessageItem> {
   const baseUrl = getApiUrl();
   let response: Response;
@@ -127,7 +132,7 @@ export async function sendCustomerMessage(
         Authorization: `Bearer ${idToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ messageText }),
+      body: JSON.stringify({ messageText, actionId }),
     });
   } catch {
     throw new CustomerWorkflowError("backend");
@@ -153,7 +158,8 @@ export async function submitCustomerFeedback(
   rating: number,
   comments: string,
   idToken: string,
-  fetcher: Fetcher = fetch
+  fetcher: Fetcher = fetch,
+  actionId: string = crypto.randomUUID()
 ): Promise<{ ticketId: string; feedbackId: string; status: string }> {
   const baseUrl = getApiUrl();
   let response: Response;
@@ -164,7 +170,7 @@ export async function submitCustomerFeedback(
         Authorization: `Bearer ${idToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ rating, comments }),
+      body: JSON.stringify({ rating, comments, actionId }),
     });
   } catch {
     throw new CustomerWorkflowError("backend");

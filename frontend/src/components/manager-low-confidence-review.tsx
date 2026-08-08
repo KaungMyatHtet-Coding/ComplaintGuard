@@ -30,7 +30,7 @@ export function ManagerLowConfidenceReview({
 
   const handleOpenModal = (ticket: LowConfidenceTicket) => {
     setSelectedTicket(ticket);
-    setTargetDeptId(ticket.assignedDepartmentId || "fraud_security");
+    setTargetDeptId(ticket.departmentId || "fraud_security");
     setReason("");
   };
 
@@ -87,7 +87,7 @@ export function ManagerLowConfidenceReview({
                         : "Manual"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{t.assignedDepartmentId}</td>
+                  <td className="px-4 py-3">{t.departmentId}</td>
                   <td className="px-4 py-3">
                     <button
                       type="button"

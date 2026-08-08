@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
+
 from app.config import Settings
 from app.main import create_app
 from app.model import Prediction
@@ -20,7 +22,6 @@ from app.staff_workflow import (
     validate_staff_transition,
 )
 from app.synthetic_fixture import build_synthetic_triaged_ticket
-from fastapi.testclient import TestClient
 
 NOW = datetime(2026, 8, 2, 8, 0, tzinfo=UTC)
 
@@ -324,6 +325,28 @@ def test_same_department_detail_includes_messages_and_events(
     assert response.status_code == 200
     assert response.json()["ticketId"] == "same"
     assert response.json()["messages"] == [] and response.json()["events"] == []
+
+
+def test_staff_detail_accepts_complete_canonical_customer_message(
+    client: TestClient, backend: FakeStaffBackend
+) -> None:
+    backend.messages["same"] = [
+        {
+            "messageId": "canonical-customer-message",
+            "authorId": "synthetic-customer",
+            "authorRole": "customer",
+            "body": "Complete canonical customer reply.",
+            "visibility": "participants",
+            "createdAt": NOW,
+        }
+    ]
+
+    response = client.get("/staff/tickets/same", headers=headers())
+
+    assert response.status_code == 200
+    assert response.json()["messages"][0]["body"] == (
+        "Complete canonical customer reply."
+    )
 
 
 @pytest.mark.parametrize(

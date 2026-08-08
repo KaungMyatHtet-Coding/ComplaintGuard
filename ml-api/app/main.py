@@ -13,27 +13,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import MODEL_VERSION, Settings
-from app.language import detect_language
-from app.model import FrozenDepartmentClassifier, ModelArtifactError
-from app.manager_workflow import (
-    FirebaseAdminManagerBackend,
-    InMemoryManagerBackend,
-    InvalidDepartmentError as ManagerInvalidDeptError,
-    ManagerBackend,
-    ManagerWorkflowService,
-    TicketNotFound as ManagerTicketNotFound,
-    _sample_dev_manager_data,
-)
 from app.customer_workflow import (
     CustomerBackend,
     CustomerWorkflowService,
+    FeedbackAlreadySubmitted,
     FirebaseAdminCustomerBackend,
-    InMemoryCustomerBackend,
     InvalidTicketState,
-    TicketAccessDenied,
     TicketNotFound,
-    _sample_dev_tickets,
 )
+from app.language import detect_language
+from app.manager_workflow import (
+    FirebaseAdminManagerBackend,
+    ManagerBackend,
+    ManagerWorkflowService,
+)
+from app.manager_workflow import (
+    InvalidDepartmentError as ManagerInvalidDeptError,
+)
+from app.manager_workflow import (
+    TicketNotFound as ManagerTicketNotFound,
+)
+from app.model import FrozenDepartmentClassifier, ModelArtifactError
+from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
@@ -41,8 +42,6 @@ from app.schemas import (
     CustomerMessageRequest,
     CustomerTicketDetail,
     CustomerTicketListResponse,
-    CustomerTicketSummary,
-    DepartmentMetricItem,
     ErrorDetail,
     ErrorResponse,
     HealthResponse,
@@ -64,7 +63,6 @@ from app.schemas import (
 )
 from app.staff_workflow import (
     FirebaseAdminStaffBackend,
-    InMemoryStaffBackend,
     InvalidTransition,
     StaffActor,
     StaffBackend,
@@ -81,7 +79,6 @@ from app.ticketing import (
 from app.ticketing import (
     PermissionError as SubmissionPermissionError,
 )
-
 
 ModelLoader = Callable[..., FrozenDepartmentClassifier]
 
@@ -131,15 +128,22 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.classifier = None
+        app.state.routing_inference = None
         app.state.model_error_code = None
         try:
             app.state.classifier = model_loader(
                 runtime_settings.model_path,
                 expected_sha256=runtime_settings.expected_model_sha256,
             )
+            app.state.routing_inference = TrustedRoutingInference(
+                app.state.classifier,
+                confidence_threshold=runtime_settings.routing_confidence_threshold,
+                translator=OfflineMyanmarTranslator(),
+            )
         except (ModelArtifactError, OSError, ValueError, TypeError):
             app.state.model_error_code = "model_unavailable"
         yield
+        app.state.routing_inference = None
         app.state.classifier = None
 
     api = FastAPI(
@@ -267,11 +271,15 @@ def create_app(
     )
     async def submit_complaint(
         payload: SubmitComplaintRequest,
+        request: Request,
         authorization: str | None = Header(default=None),
     ) -> SubmitComplaintResponse:
         try:
             backend = ticket_backend or FirebaseAdminTicketBackend()
-            result = ComplaintSubmissionService(backend).submit(
+            result = ComplaintSubmissionService(
+                backend,
+                routing_inference=request.app.state.routing_inference,
+            ).submit(
                 authorization=authorization,
                 payload=payload,
             )
@@ -303,10 +311,16 @@ def create_app(
             return StaffWorkflowService(staff_backend)
         try:
             return StaffWorkflowService(FirebaseAdminStaffBackend())
-        except (PersistenceError, Exception):
-            return StaffWorkflowService(InMemoryStaffBackend())
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="staff_service_unavailable",
+                message="The staff service is unavailable.",
+            ) from None
 
-    def staff_actor(service: StaffWorkflowService, authorization: str | None) -> StaffActor:
+    def staff_actor(
+        service: StaffWorkflowService, authorization: str | None
+    ) -> StaffActor:
         try:
             return service.authenticate(authorization)
         except AuthenticationError:
@@ -321,8 +335,6 @@ def create_app(
                 code="staff_role_required",
                 message="An active staff profile with a valid department is required.",
             ) from None
-        except Exception:
-            return StaffActor(uid="demo_staff_uid", department_id="general_support")
 
     def staff_error(exc: Exception) -> ApiError:
         if isinstance(exc, StaffTicketNotFound):
@@ -472,8 +484,12 @@ def create_app(
             return CustomerWorkflowService(customer_backend)
         try:
             return CustomerWorkflowService(FirebaseAdminCustomerBackend())
-        except (PersistenceError, Exception):
-            return CustomerWorkflowService(InMemoryCustomerBackend(_sample_dev_tickets()))
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="customer_service_unavailable",
+                message="The customer service is unavailable.",
+            ) from None
 
     def customer_actor(authorization: str | None) -> str:
         if not authorization or not authorization.startswith("Bearer "):
@@ -486,35 +502,67 @@ def create_app(
         if ticket_backend is not None:
             try:
                 uid = ticket_backend.verify_id_token(token)
-                profile = ticket_backend.get_user_profile(uid)
-                if not profile or profile.get("role") != "customer" or not profile.get("active", True):
-                    raise ApiError(
-                        status_code=403,
-                        code="customer_role_required",
-                        message="An active customer profile is required.",
-                    )
-                return uid
-            except AuthenticationError:
+            except Exception:  # noqa: BLE001 -- adapters expose SDK-specific auth errors
                 raise ApiError(
                     status_code=401,
                     code="authentication_required",
                     message="A valid Firebase ID token is required.",
                 ) from None
-
-        try:
-            tb = FirebaseAdminTicketBackend()
-            uid = tb.verify_id_token(token)
-            profile = tb.get_user_profile(uid)
-            if not profile or profile.get("role") != "customer" or not profile.get("active", True):
+            try:
+                profile = ticket_backend.get_user_profile(uid)
+            except Exception:  # noqa: BLE001 -- backend profile failures must fail closed
+                raise ApiError(
+                    status_code=503,
+                    code="profile_lookup_unavailable",
+                    message="The customer profile could not be verified.",
+                ) from None
+            if (
+                not profile
+                or profile.get("role") != "customer"
+                or profile.get("active") is not True
+            ):
                 raise ApiError(
                     status_code=403,
                     code="customer_role_required",
                     message="An active customer profile is required.",
                 )
             return uid
-        except (PersistenceError, Exception):
-            # Local dev fallback when Firebase Admin SDK credentials are not configured on local machine
-            return "demo_customer_uid"
+
+        try:
+            tb = ticket_backend or FirebaseAdminTicketBackend()
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="authentication_service_unavailable",
+                message="Authentication could not be completed.",
+            ) from None
+        try:
+            uid = tb.verify_id_token(token)
+        except Exception:  # noqa: BLE001 -- Firebase SDK auth errors are not stable API types
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        try:
+            profile = tb.get_user_profile(uid)
+        except Exception:  # noqa: BLE001 -- backend profile failures must fail closed
+            raise ApiError(
+                status_code=503,
+                code="profile_lookup_unavailable",
+                message="The customer profile could not be verified.",
+            ) from None
+        if (
+            not profile
+            or profile.get("role") != "customer"
+            or profile.get("active") is not True
+        ):
+            raise ApiError(
+                status_code=403,
+                code="customer_role_required",
+                message="An active customer profile is required.",
+            )
+        return uid
 
     @api.get(
         "/customer/tickets",
@@ -526,7 +574,14 @@ def create_app(
     ) -> CustomerTicketListResponse:
         cust_id = customer_actor(authorization)
         svc = customer_svc()
-        tickets = svc.list_tickets(cust_id)
+        try:
+            tickets = svc.list_tickets(cust_id)
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="customer_service_unavailable",
+                message="The customer service is unavailable.",
+            ) from None
         return CustomerTicketListResponse(tickets=tickets)
 
     @api.get(
@@ -542,12 +597,6 @@ def create_app(
         svc = customer_svc()
         try:
             return svc.get_ticket_detail(cust_id, ticket_id)
-        except TicketAccessDenied:
-            raise ApiError(
-                status_code=403,
-                code="ticket_access_denied",
-                message="Access denied to requested ticket.",
-            ) from None
         except TicketNotFound:
             raise ApiError(
                 status_code=404,
@@ -557,23 +606,20 @@ def create_app(
 
     @api.post(
         "/customer/tickets/{ticket_id}/messages",
+        response_model=CustomerMessageItem,
         response_model_by_alias=True,
     )
     async def add_customer_message(
         ticket_id: str,
         payload: CustomerMessageRequest,
         authorization: str | None = Header(default=None),
-    ) -> dict[str, Any]:
+    ) -> CustomerMessageItem:
         cust_id = customer_actor(authorization)
         svc = customer_svc()
         try:
-            return svc.send_message(cust_id, ticket_id, payload)
-        except TicketAccessDenied:
-            raise ApiError(
-                status_code=403,
-                code="ticket_access_denied",
-                message="Access denied to requested ticket.",
-            ) from None
+            return CustomerMessageItem.model_validate(
+                svc.send_message(cust_id, ticket_id, payload)
+            )
         except TicketNotFound:
             raise ApiError(
                 status_code=404,
@@ -592,6 +638,12 @@ def create_app(
                 code="invalid_message",
                 message=str(exc),
             ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="customer_service_unavailable",
+                message="The customer service is unavailable.",
+            ) from None
 
     @api.post(
         "/customer/tickets/{ticket_id}/feedback",
@@ -607,12 +659,6 @@ def create_app(
         svc = customer_svc()
         try:
             return svc.submit_feedback(cust_id, ticket_id, payload)
-        except TicketAccessDenied:
-            raise ApiError(
-                status_code=403,
-                code="ticket_access_denied",
-                message="Access denied to requested ticket.",
-            ) from None
         except TicketNotFound:
             raise ApiError(
                 status_code=404,
@@ -625,11 +671,23 @@ def create_app(
                 code="invalid_ticket_state",
                 message=str(exc),
             ) from None
+        except FeedbackAlreadySubmitted as exc:
+            raise ApiError(
+                status_code=409,
+                code="feedback_already_submitted",
+                message=str(exc),
+            ) from None
         except ValueError as exc:
             raise ApiError(
                 status_code=422,
                 code="invalid_feedback",
                 message=str(exc),
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="customer_service_unavailable",
+                message="The customer service is unavailable.",
             ) from None
 
     def manager_svc() -> ManagerWorkflowService:
@@ -637,8 +695,12 @@ def create_app(
             return ManagerWorkflowService(manager_backend)
         try:
             return ManagerWorkflowService(FirebaseAdminManagerBackend())
-        except (PersistenceError, Exception):
-            return ManagerWorkflowService(InMemoryManagerBackend())
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="manager_service_unavailable",
+                message="The manager service is unavailable.",
+            ) from None
 
     def manager_actor(authorization: str | None) -> str:
         if not authorization or not authorization.startswith("Bearer "):
@@ -651,34 +713,67 @@ def create_app(
         if ticket_backend is not None:
             try:
                 uid = ticket_backend.verify_id_token(token)
-                profile = ticket_backend.get_user_profile(uid)
-                if not profile or profile.get("role") != "manager" or not profile.get("active", True):
-                    raise ApiError(
-                        status_code=403,
-                        code="manager_role_required",
-                        message="An active manager profile is required.",
-                    )
-                return uid
-            except AuthenticationError:
+            except Exception:  # noqa: BLE001 -- adapters expose SDK-specific auth errors
                 raise ApiError(
                     status_code=401,
                     code="authentication_required",
                     message="A valid Firebase ID token is required.",
                 ) from None
-
-        try:
-            tb = FirebaseAdminTicketBackend()
-            uid = tb.verify_id_token(token)
-            profile = tb.get_user_profile(uid)
-            if not profile or profile.get("role") != "manager" or not profile.get("active", True):
+            try:
+                profile = ticket_backend.get_user_profile(uid)
+            except Exception:  # noqa: BLE001 -- backend profile failures must fail closed
+                raise ApiError(
+                    status_code=503,
+                    code="profile_lookup_unavailable",
+                    message="The manager profile could not be verified.",
+                ) from None
+            if (
+                not profile
+                or profile.get("role") != "manager"
+                or profile.get("active") is not True
+            ):
                 raise ApiError(
                     status_code=403,
                     code="manager_role_required",
                     message="An active manager profile is required.",
                 )
             return uid
-        except (PersistenceError, Exception):
-            return "demo_manager_uid"
+
+        try:
+            tb = ticket_backend or FirebaseAdminTicketBackend()
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="authentication_service_unavailable",
+                message="Authentication could not be completed.",
+            ) from None
+        try:
+            uid = tb.verify_id_token(token)
+        except Exception:  # noqa: BLE001 -- Firebase SDK auth errors are not stable API types
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        try:
+            profile = tb.get_user_profile(uid)
+        except Exception:  # noqa: BLE001 -- backend profile failures must fail closed
+            raise ApiError(
+                status_code=503,
+                code="profile_lookup_unavailable",
+                message="The manager profile could not be verified.",
+            ) from None
+        if (
+            not profile
+            or profile.get("role") != "manager"
+            or profile.get("active") is not True
+        ):
+            raise ApiError(
+                status_code=403,
+                code="manager_role_required",
+                message="An active manager profile is required.",
+            )
+        return uid
 
     @api.get(
         "/manager/analytics",
@@ -724,6 +819,7 @@ def create_app(
                 new_department_id=payload.new_department_id,
                 manager_id=mgr_id,
                 reason=payload.reason,
+                action_id=payload.action_id,
             )
         except ManagerTicketNotFound:
             raise ApiError(
@@ -731,17 +827,24 @@ def create_app(
             ) from None
         except ManagerInvalidDeptError:
             raise ApiError(
-                status_code=400, code="invalid_department", message="Invalid department ID."
+                status_code=400,
+                code="invalid_department",
+                message="Invalid department ID.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="manager_service_unavailable",
+                message="The manager service is unavailable.",
             ) from None
         return ManagerOverrideResponse(
             ticketId=doc["id"],
-            assignedDepartmentId=doc["assignedDepartmentId"],
+            departmentId=doc["departmentId"],
             routingSource="manager_override",
             updatedAt=doc["updatedAt"],
         )
 
     return api
-
 
 
 app = create_app()

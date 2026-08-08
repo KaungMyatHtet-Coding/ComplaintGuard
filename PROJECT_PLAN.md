@@ -515,14 +515,25 @@ outstanding because the CLI/test setup and runtime credentials are unavailable.
 
 ### Day 17 — Wednesday, 5 August: Full integration and security
 
-- [ ] Frontend, Firestore and ML backend end-to-end ချိတ်ရန်
-- [ ] Firestore production security rules အပြီးသတ်ရန်
-- [ ] Secrets ကို environment variables သို့ရွှေ့ရန်
-- [ ] Customer/staff/manager permission tests ပြုလုပ်ရန်
-- [ ] Sensitive information warning/redaction စမ်းရန်
-- [ ] Seed demo complaints and users ပြင်ဆင်ရန်
+- [x] Frontend, Firestore and ML backend end-to-end ချိတ်ရန်
+- [x] Firestore production security rules အပြီးသတ်ရန်
+- [x] Secrets ကို environment variables သို့ရွှေ့ရန်
+- [x] Customer/staff/manager permission tests ပြုလုပ်ရန်
+- [x] Sensitive information warning/redaction စမ်းရန်
+- [x] Seed demo complaints and users ပြင်ဆင်ရန်
 
 **End-of-day deliverable:** Feature-complete release candidate with role security.
+
+**Local/emulator verification completed 8 August 2026:** The trusted backend uses the frozen
+TF-IDF/Multinomial Naive Bayes model for genuine English and Myanmar inference. Accepted
+high-confidence English predictions route transactionally; low-confidence, Myanmar and
+mixed-language predictions remain unrouted for manager review. Auth and Firestore Emulator
+tests plus browser E2E verify customer, staff and manager identity/authorization boundaries,
+submission idempotency, routing, review and lifecycle behavior. The configurable `0.60`
+threshold is an operational policy, not a statistically calibrated threshold. Frozen-model
+macro-F1 remains below `0.70`, Myanmar translation quality remains below its target, and live
+Firebase/production deployment is not verified. Day 17 is accepted only as a local/emulator-
+verified milestone.
 
 ### Day 18 — Thursday, 6 August: Deployment deadline
 

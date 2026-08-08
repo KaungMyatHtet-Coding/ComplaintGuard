@@ -190,6 +190,19 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - Day 14 status: Done in automated/synthetic scope on 2 August 2026.
 - Firebase Emulator rules evidence and live Firebase workflow verification remain outstanding; neither is claimed as passed.
 
+### Day 17
+
+- [x] Integrate the frozen TF-IDF/Multinomial Naive Bayes classifier with trusted ticket submission and routing.
+- [x] Route accepted high-confidence English predictions transactionally and retain low-confidence cases for manager review.
+- [x] Run genuine Myanmar and mixed-language inference while keeping both manual-review only pending quality acceptance.
+- [x] Add explicit Auth and Firestore Emulator configuration, deterministic local identity/profile seeding and reliable cleanup.
+- [x] Add customer submission idempotency and emulator-backed routing, authorization, transaction and rollback coverage.
+- [x] Verify high-confidence and manual-review browser workflows using authenticated emulator identities without fallback identities.
+- [x] Verify backend, ML, rules, Auth, Firestore adapters, frontend, production build and Playwright E2E locally.
+- Day 17 status: Local/emulator verified on 8 August 2026; live Firebase and production deployment are not verified.
+- The `0.60` routing confidence threshold is configurable operational policy, not a statistically calibrated threshold.
+- Frozen-model macro-F1 remains below `0.70`; Myanmar translation quality remains below target, so Myanmar/mixed-language tickets remain manual-review only.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

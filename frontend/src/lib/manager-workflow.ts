@@ -25,7 +25,7 @@ export type LowConfidenceTicket = {
   inputLocale: Locale;
   predictedDepartmentId: string | null;
   predictionConfidence: number | null;
-  assignedDepartmentId: string;
+  departmentId: string;
   status: string;
   priority: string;
   routingSource: string;
@@ -34,7 +34,7 @@ export type LowConfidenceTicket = {
 
 export type ManagerOverrideResult = {
   ticketId: string;
-  assignedDepartmentId: string;
+  departmentId: string;
   routingSource: "manager_override";
   updatedAt: string;
 };
@@ -118,6 +118,7 @@ export async function overrideTicketDepartment(
   newDepartmentId: string,
   reason?: string,
   fetcher: Fetcher = fetch,
+  actionId: string = crypto.randomUUID(),
 ): Promise<ManagerOverrideResult> {
   return request<ManagerOverrideResult>(
     `/manager/tickets/${encodeURIComponent(ticketId)}/override`,
@@ -127,6 +128,7 @@ export async function overrideTicketDepartment(
       body: JSON.stringify({
         newDepartmentId,
         reason: reason || null,
+        actionId,
       }),
     },
     fetcher,

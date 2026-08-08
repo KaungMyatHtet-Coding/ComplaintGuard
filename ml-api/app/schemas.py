@@ -3,7 +3,14 @@
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
 from app.config import MAX_COMPLAINT_LENGTH
 from app.language import normalize_input
@@ -16,6 +23,10 @@ DepartmentId = Literal[
     "fraud_security",
     "loan_credit",
     "general_support",
+]
+
+ActionId = Annotated[
+    StrictStr, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
 ]
 
 
@@ -40,6 +51,7 @@ class SubmitComplaintRequest(BaseModel):
         StrictStr, Field(alias="complaintText", max_length=MAX_COMPLAINT_LENGTH)
     ]
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
+    action_id: ActionId = Field(alias="actionId")
 
     @field_validator("complaint_text")
     @classmethod
@@ -70,22 +82,35 @@ class StaffTicketSummary(BaseModel):
     customer_id: str = Field(alias="customerId")
     complaint_text: str = Field(alias="complaintText")
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
-    department_id: DepartmentId = Field(alias="departmentId")
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
     status: TicketStatus
     priority: TicketPriority
     assigned_staff_id: str | None = Field(default=None, alias="assignedStaffId")
-    predicted_department_id: DepartmentId | None = Field(default=None, alias="predictedDepartmentId")
+    predicted_department_id: DepartmentId | None = Field(
+        default=None, alias="predictedDepartmentId"
+    )
     prediction_confidence: float | None = Field(
         default=None, alias="predictionConfidence", ge=0.0, le=1.0
     )
-    routing_source: Literal["model", "manual_review", "manager_override"] = Field(
-        default="model", alias="routingSource"
+    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
+        Field(default="pending", alias="routingSource")
     )
     escalated: bool = False
     resolution_summary: str | None = Field(default=None, alias="resolutionSummary")
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
     resolved_at: datetime | None = Field(default=None, alias="resolvedAt")
+
+    @model_validator(mode="before")
+    @classmethod
+    def pre_normalize(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            tid = values.get("ticketId") or values.get("id")
+            if tid:
+                values["ticketId"] = tid
+                values["id"] = tid
+            values["departmentId"] = values.get("departmentId")
+        return values
 
 
 class StaffMessage(BaseModel):
@@ -120,11 +145,6 @@ class StaffTicketListResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     tickets: list[StaffTicketSummary]
-
-
-ActionId = Annotated[
-    StrictStr, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
-]
 
 
 class StaffReplyRequest(BaseModel):
@@ -193,8 +213,18 @@ class CustomerTicketSummary(BaseModel):
     status: TicketStatus
     complaint_text: str = Field(default="", alias="complaintText")
     summary_text: str = Field(default="", alias="summaryText")
-    predicted_department_id: str | None = Field(default=None, alias="predictedDepartmentId")
-    assigned_department_id: str | None = Field(default=None, alias="assignedDepartmentId")
+    predicted_department_id: str | None = Field(
+        default=None, alias="predictedDepartmentId"
+    )
+    prediction_confidence: float | None = Field(
+        default=None, alias="predictionConfidence", ge=0.0, le=1.0
+    )
+    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
+        Field(default="pending", alias="routingSource")
+    )
+    assigned_department_id: str | None = Field(
+        default=None, alias="assignedDepartmentId"
+    )
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
 
@@ -225,6 +255,14 @@ class CustomerMessageItem(BaseModel):
         return data
 
 
+class CustomerTicketFeedback(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rating: Annotated[int, Field(ge=1, le=5)]
+    comments: str | None = None
+    submitted_at: str = Field(alias="submittedAt")
+
+
 class CustomerTicketDetail(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -232,28 +270,41 @@ class CustomerTicketDetail(BaseModel):
     status: TicketStatus
     complaint_text: str = Field(alias="complaintText")
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
-    predicted_department_id: DepartmentId | None = Field(default=None, alias="predictedDepartmentId")
-    assigned_department_id: DepartmentId | None = Field(default=None, alias="assignedDepartmentId")
+    predicted_department_id: DepartmentId | None = Field(
+        default=None, alias="predictedDepartmentId"
+    )
+    prediction_confidence: float | None = Field(
+        default=None, alias="predictionConfidence", ge=0.0, le=1.0
+    )
+    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
+        Field(default="pending", alias="routingSource")
+    )
+    assigned_department_id: DepartmentId | None = Field(
+        default=None, alias="assignedDepartmentId"
+    )
     priority: str
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
     resolved_at: str | None = Field(default=None, alias="resolvedAt")
     messages: list[CustomerMessageItem] = Field(default_factory=list)
-    rating: int | None = None
-    feedback_comments: str | None = Field(default=None, alias="feedbackComments")
+    feedback: CustomerTicketFeedback | None = None
 
 
 class CustomerMessageRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     text: Annotated[StrictStr, Field(default="", max_length=MAX_COMPLAINT_LENGTH)]
+    action_id: ActionId = Field(alias="actionId")
 
     @model_validator(mode="before")
     @classmethod
     def pre_normalize(cls, values: Any) -> Any:
-        if isinstance(values, dict):
-            if "messageText" in values and ("text" not in values or not values["text"]):
-                values["text"] = values["messageText"]
+        if (
+            isinstance(values, dict)
+            and "messageText" in values
+            and ("text" not in values or not values["text"])
+        ):
+            values["text"] = values.pop("messageText")
         return values
 
     @field_validator("text")
@@ -270,6 +321,7 @@ class CustomerFeedbackRequest(BaseModel):
 
     rating: Annotated[int, Field(ge=1, le=5)]
     comments: Annotated[StrictStr | None, Field(max_length=MAX_COMPLAINT_LENGTH)] = None
+    action_id: ActionId = Field(alias="actionId")
 
 
 class CustomerFeedbackResponse(BaseModel):
@@ -355,13 +407,17 @@ class LowConfidenceTicketItem(BaseModel):
     customer_id: str = Field(alias="customerId")
     complaint_text: str = Field(alias="complaintText")
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
-    predicted_department_id: DepartmentId | None = Field(default=None, alias="predictedDepartmentId")
-    prediction_confidence: float | None = Field(default=None, alias="predictionConfidence")
-    assigned_department_id: DepartmentId = Field(alias="assignedDepartmentId")
+    predicted_department_id: DepartmentId | None = Field(
+        default=None, alias="predictedDepartmentId"
+    )
+    prediction_confidence: float | None = Field(
+        default=None, alias="predictionConfidence"
+    )
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
     status: str
     priority: str
     routing_source: str = Field(alias="routingSource")
-    created_at: str = Field(alias="createdAt")
+    created_at: datetime = Field(alias="createdAt")
 
 
 class ManagerOverrideRequest(BaseModel):
@@ -369,16 +425,16 @@ class ManagerOverrideRequest(BaseModel):
 
     new_department_id: DepartmentId = Field(alias="newDepartmentId")
     reason: str | None = Field(default=None, max_length=1000)
+    action_id: ActionId = Field(alias="actionId")
 
 
 class ManagerOverrideResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     ticket_id: str = Field(alias="ticketId")
-    assigned_department_id: DepartmentId = Field(alias="assignedDepartmentId")
+    department_id: DepartmentId = Field(alias="departmentId")
     routing_source: Literal["manager_override"] = Field(alias="routingSource")
     updated_at: str = Field(alias="updatedAt")
 
 
 assert set(DepartmentId.__args__) == set(LABELS)
-
