@@ -6,3 +6,7 @@ joblib>=1.4,<2
 numpy>=2.0,<3
 scikit-learn>=1.6,<2
 firebase-admin>=6,<8
+# Pinned local-only Myanmar translation path evaluated during Day 10.
+torch==2.9.1
+transformers==4.57.6
+sentencepiece==0.2.1

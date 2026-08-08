@@ -25,6 +25,10 @@ DepartmentId = Literal[
     "general_support",
 ]
 
+ActionId = Annotated[
+    StrictStr, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+]
+
 
 class PredictRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -47,6 +51,7 @@ class SubmitComplaintRequest(BaseModel):
         StrictStr, Field(alias="complaintText", max_length=MAX_COMPLAINT_LENGTH)
     ]
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
+    action_id: ActionId = Field(alias="actionId")
 
     @field_validator("complaint_text")
     @classmethod
@@ -142,11 +147,6 @@ class StaffTicketListResponse(BaseModel):
     tickets: list[StaffTicketSummary]
 
 
-ActionId = Annotated[
-    StrictStr, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
-]
-
-
 class StaffReplyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -216,6 +216,12 @@ class CustomerTicketSummary(BaseModel):
     predicted_department_id: str | None = Field(
         default=None, alias="predictedDepartmentId"
     )
+    prediction_confidence: float | None = Field(
+        default=None, alias="predictionConfidence", ge=0.0, le=1.0
+    )
+    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
+        Field(default="pending", alias="routingSource")
+    )
     assigned_department_id: str | None = Field(
         default=None, alias="assignedDepartmentId"
     )
@@ -258,6 +264,12 @@ class CustomerTicketDetail(BaseModel):
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
     predicted_department_id: DepartmentId | None = Field(
         default=None, alias="predictedDepartmentId"
+    )
+    prediction_confidence: float | None = Field(
+        default=None, alias="predictionConfidence", ge=0.0, le=1.0
+    )
+    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
+        Field(default="pending", alias="routingSource")
     )
     assigned_department_id: DepartmentId | None = Field(
         default=None, alias="assignedDepartmentId"
@@ -394,11 +406,11 @@ class LowConfidenceTicketItem(BaseModel):
     prediction_confidence: float | None = Field(
         default=None, alias="predictionConfidence"
     )
-    department_id: DepartmentId = Field(alias="departmentId")
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
     status: str
     priority: str
     routing_source: str = Field(alias="routingSource")
-    created_at: str = Field(alias="createdAt")
+    created_at: datetime = Field(alias="createdAt")
 
 
 class ManagerOverrideRequest(BaseModel):

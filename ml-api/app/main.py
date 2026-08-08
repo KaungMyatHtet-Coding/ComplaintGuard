@@ -33,6 +33,7 @@ from app.manager_workflow import (
     TicketNotFound as ManagerTicketNotFound,
 )
 from app.model import FrozenDepartmentClassifier, ModelArtifactError
+from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
@@ -125,15 +126,22 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.classifier = None
+        app.state.routing_inference = None
         app.state.model_error_code = None
         try:
             app.state.classifier = model_loader(
                 runtime_settings.model_path,
                 expected_sha256=runtime_settings.expected_model_sha256,
             )
+            app.state.routing_inference = TrustedRoutingInference(
+                app.state.classifier,
+                confidence_threshold=runtime_settings.routing_confidence_threshold,
+                translator=OfflineMyanmarTranslator(),
+            )
         except (ModelArtifactError, OSError, ValueError, TypeError):
             app.state.model_error_code = "model_unavailable"
         yield
+        app.state.routing_inference = None
         app.state.classifier = None
 
     api = FastAPI(
@@ -261,11 +269,15 @@ def create_app(
     )
     async def submit_complaint(
         payload: SubmitComplaintRequest,
+        request: Request,
         authorization: str | None = Header(default=None),
     ) -> SubmitComplaintResponse:
         try:
             backend = ticket_backend or FirebaseAdminTicketBackend()
-            result = ComplaintSubmissionService(backend).submit(
+            result = ComplaintSubmissionService(
+                backend,
+                routing_inference=request.app.state.routing_inference,
+            ).submit(
                 authorization=authorization,
                 payload=payload,
             )

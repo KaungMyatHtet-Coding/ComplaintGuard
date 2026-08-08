@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
 
+from app.config import DEFAULT_ROUTING_CONFIDENCE_THRESHOLD
 from app.schemas import LABELS
 
 
@@ -104,7 +105,7 @@ class ManagerBackend(ABC):
 
     @abstractmethod
     def get_low_confidence_tickets(
-        self, threshold: float = 0.60
+        self, threshold: float = DEFAULT_ROUTING_CONFIDENCE_THRESHOLD
     ) -> list[dict[str, Any]]:
         """Fetch tickets with low prediction confidence or manual triage flags."""
 
@@ -134,7 +135,7 @@ class InMemoryManagerBackend(ManagerBackend):
         return [dict(t) for t in self.tickets.values()]
 
     def get_low_confidence_tickets(
-        self, threshold: float = 0.60
+        self, threshold: float = DEFAULT_ROUTING_CONFIDENCE_THRESHOLD
     ) -> list[dict[str, Any]]:
         results = []
         for t in self.tickets.values():
@@ -187,14 +188,9 @@ class FirebaseAdminManagerBackend(ManagerBackend):
             self.db = db
         else:
             try:
-                import firebase_admin
-                from firebase_admin import firestore
+                from app.ticketing import firebase_admin_clients
 
-                try:
-                    firebase_admin.get_app()
-                except ValueError:
-                    firebase_admin.initialize_app()
-                self.db = firestore.client()
+                _, self.db, _ = firebase_admin_clients()
             except Exception as exc:
                 from app.ticketing import PersistenceError
 
@@ -210,7 +206,7 @@ class FirebaseAdminManagerBackend(ManagerBackend):
         return results
 
     def get_low_confidence_tickets(
-        self, threshold: float = 0.60
+        self, threshold: float = DEFAULT_ROUTING_CONFIDENCE_THRESHOLD
     ) -> list[dict[str, Any]]:
         docs = self.db.collection("tickets").stream()
         results = []
@@ -300,7 +296,11 @@ class ManagerWorkflowService:
             in ("submitted", "triaged", "in_progress", "awaiting_customer")
         )
         resolved_count = sum(1 for t in tickets if t.get("status") == "resolved")
-        low_confidence_count = len(self.backend.get_low_confidence_tickets(0.60))
+        low_confidence_count = len(
+            self.backend.get_low_confidence_tickets(
+                DEFAULT_ROUTING_CONFIDENCE_THRESHOLD
+            )
+        )
 
         resolution_hours: list[float] = []
         for t in tickets:
@@ -392,7 +392,9 @@ class ManagerWorkflowService:
         }
 
     def list_low_confidence_tickets(self) -> list[dict[str, Any]]:
-        return self.backend.get_low_confidence_tickets(0.60)
+        return self.backend.get_low_confidence_tickets(
+            DEFAULT_ROUTING_CONFIDENCE_THRESHOLD
+        )
 
     def override_department(
         self,

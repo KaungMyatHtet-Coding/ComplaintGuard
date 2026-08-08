@@ -40,9 +40,10 @@ class FakeBackend:
         assert uid == self.uid
         return self.profile
 
-    def create_ticket(self, document: dict[str, Any]) -> str:
+    def create_ticket(self, document: dict[str, Any], *, idempotency_key: str) -> str:
         if self.fail_write:
             raise RuntimeError("synthetic Firestore failure")
+        assert idempotency_key
         self.documents.append(document)
         return "ticket-day13-001"
 
@@ -66,6 +67,7 @@ def client(tmp_path: Path, backend: FakeBackend):
 
 
 def submit(client: TestClient, payload: dict[str, object], token: str = "valid-token"):
+    payload.setdefault("actionId", "submission-action-001")
     return client.post(
         "/tickets", json=payload, headers={"Authorization": f"Bearer {token}"}
     )
@@ -106,7 +108,11 @@ def test_missing_or_invalid_token_is_rejected(client: TestClient, token: str) ->
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     response = client.post(
         "/tickets",
-        json={"complaintText": "Synthetic complaint", "inputLocale": "en"},
+        json={
+            "complaintText": "Synthetic complaint",
+            "inputLocale": "en",
+            "actionId": "submission-action-001",
+        },
         headers=headers,
     )
     assert response.status_code == 401

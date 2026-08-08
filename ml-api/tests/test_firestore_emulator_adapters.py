@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import firestore
 
+from app.config import MODEL_SHA256
 from app.customer_workflow import (
     CustomerWorkflowService,
     FirebaseAdminCustomerBackend,
@@ -21,12 +23,23 @@ from app.manager_workflow import (
 from app.manager_workflow import (
     TicketNotFound as ManagerTicketNotFound,
 )
-from app.schemas import CustomerFeedbackRequest, CustomerMessageRequest
+from app.model import FrozenDepartmentClassifier
+from app.routing import RoutingPrediction, TrustedRoutingInference
+from app.schemas import (
+    CustomerFeedbackRequest,
+    CustomerMessageRequest,
+    SubmitComplaintRequest,
+)
 from app.staff_workflow import (
     FirebaseAdminStaffBackend,
     InvalidTransition,
     StaffActor,
     StaffTicketNotFound,
+)
+from app.ticketing import (
+    ComplaintSubmissionService,
+    FirebaseAdminTicketBackend,
+    PersistenceError,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -330,3 +343,163 @@ def test_manager_override_audit_retry_and_missing_ticket_rollback_are_emulator_b
         .get()
         .exists
     )
+
+
+def test_prediction_routing_transaction_and_staff_visibility_are_emulator_backed(
+    emulator_db,
+):
+    high_id = ticket_id("routing-high")
+    low_id = ticket_id("routing-low")
+    failed_id = ticket_id("routing-failed")
+    tickets = emulator_db.collection("tickets")
+    for current_id in (high_id, low_id, failed_id):
+        tickets.document(current_id).set(
+            base_ticket(
+                customer_id="customer-routing", department_id=None, status="submitted"
+            )
+        )
+
+    backend = FirebaseAdminTicketBackend(db=emulator_db)
+    high = RoutingPrediction(
+        department_id="fraud_security",
+        confidence=0.94,
+        detected_language="en",
+        requires_manual_review=False,
+        manual_review_reason=None,
+        model_version="v1",
+    )
+    low = RoutingPrediction(
+        department_id="card_atm",
+        confidence=0.41,
+        detected_language="en",
+        requires_manual_review=True,
+        manual_review_reason="low_prediction_confidence",
+        model_version="v1",
+    )
+    backend.persist_prediction(high_id, high)
+    backend.persist_prediction(high_id, high)
+    backend.persist_prediction(low_id, low)
+    backend.persist_inference_failure(
+        failed_id, code="classification_failed", detected_language="en"
+    )
+
+    high_doc = tickets.document(high_id).get()
+    assert high_doc.get("departmentId") == "fraud_security"
+    assert high_doc.get("predictedDepartmentId") == "fraud_security"
+    assert high_doc.get("predictionConfidence") == 0.94
+    assert high_doc.get("routingSource") == "model"
+    assert high_doc.get("status") == "triaged"
+    assert len(list(high_doc.reference.collection("events").stream())) == 1
+
+    low_doc = tickets.document(low_id).get()
+    assert low_doc.get("departmentId") is None
+    assert low_doc.get("predictedDepartmentId") == "card_atm"
+    assert low_doc.get("routingSource") == "manual_review"
+
+    failed_doc = tickets.document(failed_id).get()
+    assert failed_doc.get("departmentId") is None
+    assert failed_doc.get("predictedDepartmentId") is None
+    assert failed_doc.get("routingSource") == "manual_review"
+
+    missing_id = ticket_id("routing-missing")
+    with pytest.raises(PersistenceError):
+        backend.persist_prediction(missing_id, high)
+    missing_ref = tickets.document(missing_id)
+    assert not missing_ref.get().exists
+    assert (
+        not missing_ref.collection("events").document("model_v1_routing").get().exists
+    )
+    assert (
+        not missing_ref.collection("actions").document("model_v1_routing").get().exists
+    )
+
+    staff = FirebaseAdminStaffBackend(db=emulator_db)
+    assert staff.get_department_ticket(high_id, "fraud_security") is not None
+    assert staff.get_department_ticket(high_id, "card_atm") is None
+    assert staff.get_department_ticket(low_id, "card_atm") is None
+    assert staff.get_department_ticket(failed_id, "fraud_security") is None
+
+    manager = FirebaseAdminManagerBackend(db=emulator_db)
+    manager.override_department(
+        ticket_id=low_id,
+        new_department_id="card_atm",
+        manager_id="manager-routing",
+        reason="Approved after low-confidence review",
+        action_id="manager-routing-approval",
+    )
+    assert staff.get_department_ticket(low_id, "card_atm") is not None
+    assert (
+        tickets.document(low_id)
+        .collection("events")
+        .document("manager-routing-approval")
+        .get()
+        .exists
+    )
+
+
+def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db):
+    artifact = (
+        Path(__file__).resolve().parents[2]
+        / "models"
+        / "generated"
+        / "cfpb_department_model_v1.joblib"
+    )
+    if not artifact.is_file():
+        pytest.skip("ignored frozen model artifact is not installed")
+
+    class EmulatorSubmissionBackend(FirebaseAdminTicketBackend):
+        def verify_id_token(self, token: str) -> str:
+            assert token == "emulator-token"
+            return "customer-routing-e2e"
+
+        def get_user_profile(self, uid: str) -> dict:
+            assert uid == "customer-routing-e2e"
+            return {"active": True, "role": "customer"}
+
+    classifier = FrozenDepartmentClassifier.load(artifact, expected_sha256=MODEL_SHA256)
+    service = ComplaintSubmissionService(
+        EmulatorSubmissionBackend(db=emulator_db),
+        TrustedRoutingInference(classifier, confidence_threshold=0.60),
+    )
+    result = service.submit(
+        authorization="Bearer emulator-token",
+        payload=SubmitComplaintRequest(
+            complaintText="My credit report contains accounts caused by identity theft and fraud.",
+            inputLocale="en",
+            actionId="emulator-submission-001",
+        ),
+    )
+    retry = service.submit(
+        authorization="Bearer emulator-token",
+        payload=SubmitComplaintRequest(
+            complaintText="My credit report contains accounts caused by identity theft and fraud.",
+            inputLocale="en",
+            actionId="emulator-submission-001",
+        ),
+    )
+    separate = service.submit(
+        authorization="Bearer emulator-token",
+        payload=SubmitComplaintRequest(
+            complaintText="My credit report contains a second synthetic identity theft entry.",
+            inputLocale="en",
+            actionId="emulator-submission-002",
+        ),
+    )
+    assert retry.complaint_id == result.complaint_id
+    assert separate.complaint_id != result.complaint_id
+    ticket = emulator_db.collection("tickets").document(result.complaint_id).get()
+    assert ticket.get("customerId") == "customer-routing-e2e"
+    assert ticket.get("predictedDepartmentId") == "fraud_security"
+    assert ticket.get("predictionConfidence") > 0.60
+    assert ticket.get("departmentId") == "fraud_security"
+    assert ticket.get("routingSource") == "model"
+    assert ticket.get("status") == "triaged"
+    owned = list(
+        emulator_db.collection("tickets")
+        .where("customerId", "==", "customer-routing-e2e")
+        .stream()
+    )
+    assert {item.id for item in owned} == {
+        result.complaint_id,
+        separate.complaint_id,
+    }

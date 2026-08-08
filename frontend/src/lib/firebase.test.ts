@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { hasFirebaseConfig } from "./firebase";
+import { hasFirebaseConfig, shouldUseFirebaseEmulators } from "./firebase";
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("Firebase configuration boundary", () => {
   it("rejects missing and placeholder configuration", () => {
@@ -24,5 +26,19 @@ describe("Firebase configuration boundary", () => {
         appId: "1:000:web:synthetic",
       }),
     ).toBe(true);
+  });
+
+  it("requires an explicit local development switch for emulators", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
+    vi.stubEnv("NEXT_PUBLIC_USE_FIREBASE_EMULATORS", "true");
+    expect(shouldUseFirebaseEmulators()).toBe(true);
+  });
+
+  it("refuses emulator connections in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
+    vi.stubEnv("NEXT_PUBLIC_USE_FIREBASE_EMULATORS", "true");
+    expect(shouldUseFirebaseEmulators()).toBe(false);
   });
 });

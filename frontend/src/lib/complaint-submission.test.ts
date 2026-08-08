@@ -22,16 +22,16 @@ describe("trusted complaint API client", () => {
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://localhost:8000/");
     const fetcher = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       expect(init?.headers).toEqual({ Authorization: "Bearer synthetic-token", "Content-Type": "application/json" });
-      expect(JSON.parse(String(init?.body))).toEqual({ complaintText: "Synthetic complaint", inputLocale: "en" });
+      expect(JSON.parse(String(init?.body))).toEqual({ complaintText: "Synthetic complaint", inputLocale: "en", actionId: "submission-action-001" });
       return new Response(JSON.stringify({ complaintId: "ticket-001", status: "submitted" }), { status: 201 });
     });
-    await expect(submitComplaint({ complaintText: "Synthetic complaint", inputLocale: "en" }, "synthetic-token", fetcher)).resolves.toEqual({ complaintId: "ticket-001", status: "submitted" });
+    await expect(submitComplaint({ complaintText: "Synthetic complaint", inputLocale: "en", actionId: "submission-action-001" }, "synthetic-token", fetcher)).resolves.toEqual({ complaintId: "ticket-001", status: "submitted" });
   });
 
   it.each([[401, "authentication"], [403, "permission"], [503, "backend"]] as const)("maps HTTP %s to %s", async (status, code) => {
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://localhost:8000");
     const fetcher = vi.fn(async () => new Response("{}", { status }));
-    await expect(submitComplaint({ complaintText: "Synthetic complaint", inputLocale: "my" }, "token", fetcher)).rejects.toMatchObject({ code });
+    await expect(submitComplaint({ complaintText: "Synthetic complaint", inputLocale: "my", actionId: "submission-action-001" }, "token", fetcher)).rejects.toMatchObject({ code });
   });
 
   it("prevents duplicate actions while submission is pending", async () => {

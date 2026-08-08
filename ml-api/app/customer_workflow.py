@@ -223,14 +223,9 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
             self.db = db
         else:
             try:
-                import firebase_admin
-                from firebase_admin import firestore
+                from app.ticketing import firebase_admin_clients
 
-                try:
-                    firebase_admin.get_app()
-                except ValueError:
-                    firebase_admin.initialize_app()
-                self.db = firestore.client()
+                _, self.db, _ = firebase_admin_clients()
             except Exception as exc:
                 from app.ticketing import PersistenceError
 
@@ -380,8 +375,9 @@ class CustomerWorkflowService:
                 CustomerTicketSummary(
                     id=t["id"],
                     status=t.get("status", "submitted"),
-                    predictedDepartmentId=t.get("predictedDepartmentId")
-                    or t.get("departmentId"),
+                    predictedDepartmentId=t.get("predictedDepartmentId"),
+                    predictionConfidence=t.get("predictionConfidence"),
+                    routingSource=t.get("routingSource", "pending"),
                     assignedDepartmentId=t.get("departmentId"),
                     createdAt=str(t.get("createdAt", "")),
                     updatedAt=str(t.get("updatedAt", t.get("createdAt", ""))),
@@ -420,8 +416,9 @@ class CustomerWorkflowService:
                 "complaintText", raw_ticket.get("originalText", "")
             ),
             inputLocale=raw_ticket.get("inputLocale", "en"),
-            predictedDepartmentId=raw_ticket.get("predictedDepartmentId")
-            or raw_ticket.get("departmentId"),
+            predictedDepartmentId=raw_ticket.get("predictedDepartmentId"),
+            predictionConfidence=raw_ticket.get("predictionConfidence"),
+            routingSource=raw_ticket.get("routingSource", "pending"),
             assignedDepartmentId=raw_ticket.get("departmentId"),
             priority=raw_ticket.get("priority", "medium"),
             createdAt=str(raw_ticket.get("createdAt", "")),

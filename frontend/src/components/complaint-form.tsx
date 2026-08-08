@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 
 import { useApp } from "@/components/app-provider";
 import {
@@ -30,6 +30,7 @@ export function ComplaintForm() {
   const [errorCode, setErrorCode] = useState<ComplaintErrorCode | null>(null);
   const [success, setSuccess] = useState<ComplaintSuccess | null>(null);
   const guard = useMemo(() => createSubmissionGuard(), []);
+  const actionId = useRef<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,12 +52,18 @@ export function ComplaintForm() {
         const user = getFirebaseServices().auth.currentUser;
         if (!user) throw new ComplaintSubmissionError("authentication");
         const idToken = await user.getIdToken();
+        actionId.current ??= crypto.randomUUID();
         const result = await submitComplaint(
-          { complaintText: checked.complaintText, inputLocale: locale },
+          {
+            complaintText: checked.complaintText,
+            inputLocale: locale,
+            actionId: actionId.current,
+          },
           idToken,
         );
         setSuccess(result);
         setText("");
+        actionId.current = null;
       } catch (error) {
         setErrorCode(
           error instanceof ComplaintSubmissionError ? error.code : "unexpected",
@@ -97,6 +104,7 @@ export function ComplaintForm() {
           value={text}
           onChange={(event) => {
             setText(event.target.value);
+            actionId.current = null;
             if (fieldError) setErrorCode(null);
           }}
         />

@@ -2,6 +2,8 @@ export type CustomerTicketSummary = {
   id: string;
   status: string;
   predictedDepartmentId?: string | null;
+  predictionConfidence?: number | null;
+  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
   assignedDepartmentId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -23,6 +25,8 @@ export type CustomerTicketDetail = {
   complaintText: string;
   inputLocale: string;
   predictedDepartmentId?: string | null;
+  predictionConfidence?: number | null;
+  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
   assignedDepartmentId?: string | null;
   priority: string;
   createdAt: string;
