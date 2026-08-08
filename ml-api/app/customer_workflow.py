@@ -87,12 +87,10 @@ class CustomerBackend(ABC):
         """List all tickets owned by customer_id."""
 
     @abstractmethod
-    def get_customer_ticket(self, customer_id: str, ticket_id: str) -> dict[str, Any] | None:
+    def get_customer_ticket(
+        self, customer_id: str, ticket_id: str
+    ) -> dict[str, Any] | None:
         """Get ticket dict if owned by customer_id, else None if not found or denied."""
-
-    @abstractmethod
-    def get_ticket_raw(self, ticket_id: str) -> dict[str, Any] | None:
-        """Get ticket dict regardless of owner to distinguish 404 from 403."""
 
     @abstractmethod
     def get_ticket_messages(self, ticket_id: str) -> list[dict[str, Any]]:
@@ -105,6 +103,7 @@ class CustomerBackend(ABC):
         ticket_id: str,
         message_text: str,
         created_at: datetime,
+        action_id: str,
     ) -> dict[str, Any]:
         """Add customer message to ticket thread and update ticket timestamp."""
 
@@ -116,6 +115,7 @@ class CustomerBackend(ABC):
         rating: int,
         comments: str,
         created_at: datetime,
+        action_id: str,
     ) -> dict[str, Any]:
         """Save feedback rating/comments for a resolved ticket."""
 
@@ -124,29 +124,28 @@ class InMemoryCustomerBackend(CustomerBackend):
     """In-memory mock backend for testing and development."""
 
     def __init__(self, initial_tickets: list[dict[str, Any]] | None = None) -> None:
-        self.tickets: dict[str, dict[str, Any]] = {}
-        self.messages: dict[str, list[dict[str, Any]]] = {}
+        tickets = initial_tickets or []
+        self.tickets = {ticket["id"]: dict(ticket) for ticket in tickets}
+        self.messages = {
+            ticket["id"]: list(ticket.get("messages", [])) for ticket in tickets
+        }
         self.feedbacks: dict[str, dict[str, Any]] = {}
-
-        if initial_tickets:
-            for t in initial_tickets:
-                tid = t["id"]
-                self.tickets[tid] = dict(t)
-                self.messages[tid] = t.get("messages", [])
+        self.actions: dict[tuple[str, str], dict[str, Any]] = {}
 
     def list_customer_tickets(self, customer_id: str) -> list[dict[str, Any]]:
         res = [t for t in self.tickets.values() if t.get("customerId") == customer_id]
         res.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
         return res
 
-    def get_customer_ticket(self, customer_id: str, ticket_id: str) -> dict[str, Any] | None:
+    def get_customer_ticket(
+        self, customer_id: str, ticket_id: str
+    ) -> dict[str, Any] | None:
         t = self.tickets.get(ticket_id)
-        if not t or t.get("customerId") != customer_id:
+        if not t:
+            return None
+        if t.get("customerId") != customer_id:
             return None
         return t
-
-    def get_ticket_raw(self, ticket_id: str) -> dict[str, Any] | None:
-        return self.tickets.get(ticket_id)
 
     def get_ticket_messages(self, ticket_id: str) -> list[dict[str, Any]]:
         msgs = self.messages.get(ticket_id, [])
@@ -159,8 +158,12 @@ class InMemoryCustomerBackend(CustomerBackend):
         ticket_id: str,
         message_text: str,
         created_at: datetime,
+        action_id: str,
     ) -> dict[str, Any]:
-        msg_id = f"msg_{len(self.messages.get(ticket_id, [])) + 1}"
+        key = (ticket_id, f"message:{action_id}")
+        if key in self.actions:
+            return dict(self.actions[key])
+        msg_id = action_id
         iso_str = created_at.isoformat()
         msg_doc = {
             "id": msg_id,
@@ -172,6 +175,7 @@ class InMemoryCustomerBackend(CustomerBackend):
         if ticket_id not in self.messages:
             self.messages[ticket_id] = []
         self.messages[ticket_id].append(msg_doc)
+        self.actions[key] = dict(msg_doc)
 
         if ticket_id in self.tickets:
             self.tickets[ticket_id]["updatedAt"] = iso_str
@@ -185,7 +189,11 @@ class InMemoryCustomerBackend(CustomerBackend):
         rating: int,
         comments: str,
         created_at: datetime,
+        action_id: str,
     ) -> dict[str, Any]:
+        key = (ticket_id, f"feedback:{action_id}")
+        if key in self.actions:
+            return dict(self.actions[key])
         fb_id = f"fb_{ticket_id}"
         iso_str = created_at.isoformat()
         doc = {
@@ -197,6 +205,7 @@ class InMemoryCustomerBackend(CustomerBackend):
             "createdAt": iso_str,
         }
         self.feedbacks[fb_id] = doc
+        self.actions[key] = dict(doc)
         if ticket_id in self.tickets:
             self.tickets[ticket_id]["feedback"] = {
                 "rating": rating,
@@ -224,12 +233,15 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
                 self.db = firestore.client()
             except Exception as exc:
                 from app.ticketing import PersistenceError
+
                 raise PersistenceError("Firebase Admin is not configured") from exc
 
     def list_customer_tickets(self, customer_id: str) -> list[dict[str, Any]]:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
         query = (
-            self.db.collection("complaints")
-            .where("customerId", "==", customer_id)
+            self.db.collection("tickets")
+            .where(filter=FieldFilter("customerId", "==", customer_id))
             .order_by("createdAt", direction="DESCENDING")
         )
         docs = query.stream()
@@ -240,8 +252,10 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
             results.append(data)
         return results
 
-    def get_customer_ticket(self, customer_id: str, ticket_id: str) -> dict[str, Any] | None:
-        doc_ref = self.db.collection("complaints").document(ticket_id)
+    def get_customer_ticket(
+        self, customer_id: str, ticket_id: str
+    ) -> dict[str, Any] | None:
+        doc_ref = self.db.collection("tickets").document(ticket_id)
         snapshot = doc_ref.get()
         if not snapshot.exists:
             return None
@@ -251,18 +265,9 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         data["id"] = snapshot.id
         return data
 
-    def get_ticket_raw(self, ticket_id: str) -> dict[str, Any] | None:
-        doc_ref = self.db.collection("complaints").document(ticket_id)
-        snapshot = doc_ref.get()
-        if not snapshot.exists:
-            return None
-        data = snapshot.to_dict()
-        data["id"] = snapshot.id
-        return data
-
     def get_ticket_messages(self, ticket_id: str) -> list[dict[str, Any]]:
         msgs_ref = (
-            self.db.collection("complaints")
+            self.db.collection("tickets")
             .document(ticket_id)
             .collection("messages")
             .order_by("createdAt", direction="ASCENDING")
@@ -280,20 +285,36 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         ticket_id: str,
         message_text: str,
         created_at: datetime,
+        action_id: str,
     ) -> dict[str, Any]:
-        doc_ref = self.db.collection("complaints").document(ticket_id)
-        msg_ref = doc_ref.collection("messages").document()
+        from app.ticketing import PersistenceError, run_firestore_transaction
+
+        doc_ref = self.db.collection("tickets").document(ticket_id)
+        msg_ref = doc_ref.collection("messages").document(action_id)
+        action_ref = doc_ref.collection("actions").document(f"message_{action_id}")
         msg_data = {
             "senderId": customer_id,
             "senderRole": "customer",
             "text": message_text,
             "createdAt": created_at,
         }
-        msg_ref.set(msg_data)
-        doc_ref.update({"updatedAt": created_at})
-        msg_data["id"] = msg_ref.id
-        msg_data["createdAt"] = created_at.isoformat()
-        return msg_data
+        result = {**msg_data, "id": action_id, "createdAt": created_at.isoformat()}
+        try:
+
+            def operation(transaction: Any) -> dict[str, Any]:
+                action_snapshot = next(transaction.get(action_ref))
+                if action_snapshot.exists:
+                    return action_snapshot.to_dict()["result"]
+                transaction.set(msg_ref, msg_data)
+                transaction.update(doc_ref, {"updatedAt": created_at})
+                transaction.set(
+                    action_ref, {"type": "customer_message", "result": result}
+                )
+                return result
+
+            return run_firestore_transaction(self.db, operation)
+        except Exception as exc:
+            raise PersistenceError("customer message transaction failed") from exc
 
     def save_ticket_feedback(
         self,
@@ -302,8 +323,13 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         rating: int,
         comments: str,
         created_at: datetime,
+        action_id: str,
     ) -> dict[str, Any]:
+        from app.ticketing import PersistenceError, run_firestore_transaction
+
+        ticket_ref = self.db.collection("tickets").document(ticket_id)
         fb_ref = self.db.collection("feedback").document(f"fb_{ticket_id}")
+        action_ref = ticket_ref.collection("actions").document(f"feedback_{action_id}")
         fb_data = {
             "ticketId": ticket_id,
             "customerId": customer_id,
@@ -311,19 +337,32 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
             "comments": comments,
             "createdAt": created_at,
         }
-        fb_ref.set(fb_data)
-        self.db.collection("complaints").document(ticket_id).update(
-            {
-                "feedback": {
-                    "rating": rating,
-                    "comments": comments,
-                    "submittedAt": created_at.isoformat(),
-                }
-            }
-        )
-        fb_data["id"] = fb_ref.id
-        fb_data["createdAt"] = created_at.isoformat()
-        return fb_data
+        result = {**fb_data, "id": fb_ref.id, "createdAt": created_at.isoformat()}
+        try:
+
+            def operation(transaction: Any) -> dict[str, Any]:
+                action_snapshot = next(transaction.get(action_ref))
+                if action_snapshot.exists:
+                    return action_snapshot.to_dict()["result"]
+                transaction.set(fb_ref, fb_data)
+                transaction.update(
+                    ticket_ref,
+                    {
+                        "feedback": {
+                            "rating": rating,
+                            "comments": comments,
+                            "submittedAt": created_at,
+                        }
+                    },
+                )
+                transaction.set(
+                    action_ref, {"type": "customer_feedback", "result": result}
+                )
+                return result
+
+            return run_firestore_transaction(self.db, operation)
+        except Exception as exc:
+            raise PersistenceError("customer feedback transaction failed") from exc
 
 
 class CustomerWorkflowService:
@@ -341,8 +380,9 @@ class CustomerWorkflowService:
                 CustomerTicketSummary(
                     id=t["id"],
                     status=t.get("status", "submitted"),
-                    predictedDepartmentId=t.get("predictedDepartmentId") or t.get("departmentId"),
-                    assignedDepartmentId=t.get("assignedDepartmentId") or t.get("departmentId"),
+                    predictedDepartmentId=t.get("predictedDepartmentId")
+                    or t.get("departmentId"),
+                    assignedDepartmentId=t.get("departmentId"),
                     createdAt=str(t.get("createdAt", "")),
                     updatedAt=str(t.get("updatedAt", t.get("createdAt", ""))),
                     summaryText=summary_text,
@@ -350,12 +390,11 @@ class CustomerWorkflowService:
             )
         return summaries
 
-    def get_ticket_detail(self, customer_id: str, ticket_id: str) -> CustomerTicketDetail:
+    def get_ticket_detail(
+        self, customer_id: str, ticket_id: str
+    ) -> CustomerTicketDetail:
         raw_ticket = self.backend.get_customer_ticket(customer_id, ticket_id)
         if not raw_ticket:
-            raw_check = self.backend.get_ticket_raw(ticket_id)
-            if raw_check:
-                raise TicketAccessDenied("Access denied to requested ticket.")
             raise TicketNotFound("Ticket not found.")
 
         messages_raw = self.backend.get_ticket_messages(ticket_id)
@@ -377,14 +416,19 @@ class CustomerWorkflowService:
             id=raw_ticket["id"],
             customerId=raw_ticket.get("customerId", customer_id),
             status=raw_ticket.get("status", "submitted"),
-            complaintText=raw_ticket.get("complaintText", raw_ticket.get("originalText", "")),
+            complaintText=raw_ticket.get(
+                "complaintText", raw_ticket.get("originalText", "")
+            ),
             inputLocale=raw_ticket.get("inputLocale", "en"),
-            predictedDepartmentId=raw_ticket.get("predictedDepartmentId") or raw_ticket.get("departmentId"),
-            assignedDepartmentId=raw_ticket.get("assignedDepartmentId") or raw_ticket.get("departmentId"),
+            predictedDepartmentId=raw_ticket.get("predictedDepartmentId")
+            or raw_ticket.get("departmentId"),
+            assignedDepartmentId=raw_ticket.get("departmentId"),
             priority=raw_ticket.get("priority", "medium"),
             createdAt=str(raw_ticket.get("createdAt", "")),
             updatedAt=str(raw_ticket.get("updatedAt", raw_ticket.get("createdAt", ""))),
-            resolvedAt=str(raw_ticket["resolvedAt"]) if raw_ticket.get("resolvedAt") else None,
+            resolvedAt=str(raw_ticket["resolvedAt"])
+            if raw_ticket.get("resolvedAt")
+            else None,
             messages=messages_formatted,
             feedback=feedback_dict,
         )
@@ -411,6 +455,7 @@ class CustomerWorkflowService:
             ticket_id=ticket_id,
             message_text=clean_text,
             created_at=now_dt,
+            action_id=req.action_id,
         )
 
     def submit_feedback(
@@ -422,7 +467,9 @@ class CustomerWorkflowService:
     ) -> CustomerFeedbackResponse:
         detail = self.get_ticket_detail(customer_id, ticket_id)
         if detail.status not in ("resolved", "closed"):
-            raise InvalidTicketState("Feedback can only be submitted for resolved or closed tickets.")
+            raise InvalidTicketState(
+                "Feedback can only be submitted for resolved or closed tickets."
+            )
 
         if req.rating < 1 or req.rating > 5:
             raise ValueError("Rating must be between 1 and 5.")
@@ -436,6 +483,7 @@ class CustomerWorkflowService:
             rating=req.rating,
             comments=clean_comments,
             created_at=now_dt,
+            action_id=req.action_id,
         )
 
         return CustomerFeedbackResponse(

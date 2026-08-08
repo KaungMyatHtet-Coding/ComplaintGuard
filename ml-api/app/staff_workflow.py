@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal, Protocol
 
 from app.schemas import DepartmentId
@@ -14,6 +14,7 @@ from app.ticketing import (
     PermissionError,
     PersistenceError,
     redact_sensitive_data,
+    run_firestore_transaction,
 )
 
 StaffStatus = Literal[
@@ -242,6 +243,15 @@ def _bearer_token(authorization: str | None) -> str:
 class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
     """Admin-SDK adapter. All mutations recheck department inside transactions."""
 
+    def __init__(self, db: Any = None) -> None:
+        if db is None:
+            super().__init__()
+            return
+        self._db = db
+        from firebase_admin import firestore
+
+        self.server_timestamp = firestore.SERVER_TIMESTAMP
+
     def _summary(self, snapshot: Any) -> dict[str, Any]:
         data = snapshot.to_dict()
         return {"ticketId": snapshot.id, **data}
@@ -255,11 +265,13 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
         created_from: datetime | None,
         created_to: datetime | None,
     ) -> list[dict[str, Any]]:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
         # Authorization is the only Firestore predicate. Optional UI filters are
         # applied to the already department-scoped demo result set, avoiding a
         # combinatorial set of guessed composite indexes on the Spark plan.
         query = self._db.collection("tickets").where(
-            "departmentId", "==", department_id
+            filter=FieldFilter("departmentId", "==", department_id)
         )
         values = [self._summary(item) for item in query.stream()]
         if status:
@@ -310,36 +322,39 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
     def add_reply(
         self, *, ticket_id: str, actor: StaffActor, body: str, action_id: str
     ) -> MutationResult:
-        transaction = self._db.transaction()
-        ticket_ref, ticket = self._ticket_for_mutation(transaction, ticket_id, actor)
-        message_ref = ticket_ref.collection("messages").document(action_id)
-        event_ref = ticket_ref.collection("events").document(f"reply_{action_id}")
-        if next(transaction.get(event_ref)).exists:
-            return MutationResult(ticket_id, action_id, ticket["status"], True)
-        transaction.set(
-            message_ref,
-            {
-                "authorId": actor.uid,
-                "authorRole": "staff",
-                "body": body,
-                "visibility": "participants",
-                "createdAt": self.server_timestamp,
-            },
-        )
-        transaction.set(
-            event_ref,
-            {
-                "type": "staff_reply",
-                "actorId": actor.uid,
-                "actorRole": "staff",
-                "fromValue": None,
-                "toValue": action_id,
-                "createdAt": self.server_timestamp,
-            },
-        )
-        transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
-        transaction.commit()
-        return MutationResult(ticket_id, action_id, ticket["status"], False)
+        def operation(transaction: Any) -> MutationResult:
+            ticket_ref, ticket = self._ticket_for_mutation(
+                transaction, ticket_id, actor
+            )
+            message_ref = ticket_ref.collection("messages").document(action_id)
+            event_ref = ticket_ref.collection("events").document(f"reply_{action_id}")
+            if next(transaction.get(event_ref)).exists:
+                return MutationResult(ticket_id, action_id, ticket["status"], True)
+            transaction.set(
+                message_ref,
+                {
+                    "authorId": actor.uid,
+                    "authorRole": "staff",
+                    "body": body,
+                    "visibility": "participants",
+                    "createdAt": self.server_timestamp,
+                },
+            )
+            transaction.set(
+                event_ref,
+                {
+                    "type": "staff_reply",
+                    "actorId": actor.uid,
+                    "actorRole": "staff",
+                    "fromValue": None,
+                    "toValue": action_id,
+                    "createdAt": self.server_timestamp,
+                },
+            )
+            transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
+            return MutationResult(ticket_id, action_id, ticket["status"], False)
+
+        return run_firestore_transaction(self._db, operation)
 
     def transition_ticket(
         self,
@@ -350,40 +365,43 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
         resolution_summary: str | None,
         action_id: str,
     ) -> MutationResult:
-        transaction = self._db.transaction()
-        ticket_ref, ticket = self._ticket_for_mutation(transaction, ticket_id, actor)
-        event_ref = ticket_ref.collection("events").document(action_id)
-        if next(transaction.get(event_ref)).exists:
-            return MutationResult(ticket_id, action_id, ticket["status"], True)
-        from_status = ticket["status"]
-        validate_staff_transition(from_status, to_status)
-        if to_status == "resolved" and not resolution_summary:
-            raise InvalidTransition("resolution summary is required")
-        changes: dict[str, Any] = {
-            "status": to_status,
-            "updatedAt": self.server_timestamp,
-        }
-        if to_status == "resolved":
-            changes.update(
-                {
-                    "resolutionSummary": resolution_summary,
-                    "resolvedAt": self.server_timestamp,
-                }
+        def operation(transaction: Any) -> MutationResult:
+            ticket_ref, ticket = self._ticket_for_mutation(
+                transaction, ticket_id, actor
             )
-        transaction.update(ticket_ref, changes)
-        transaction.set(
-            event_ref,
-            {
-                "type": "status_transition",
-                "actorId": actor.uid,
-                "actorRole": "staff",
-                "fromValue": from_status,
-                "toValue": to_status,
-                "createdAt": self.server_timestamp,
-            },
-        )
-        transaction.commit()
-        return MutationResult(ticket_id, action_id, to_status, False)
+            event_ref = ticket_ref.collection("events").document(action_id)
+            if next(transaction.get(event_ref)).exists:
+                return MutationResult(ticket_id, action_id, ticket["status"], True)
+            from_status = ticket["status"]
+            validate_staff_transition(from_status, to_status)
+            if to_status == "resolved" and not resolution_summary:
+                raise InvalidTransition("resolution summary is required")
+            changes: dict[str, Any] = {
+                "status": to_status,
+                "updatedAt": self.server_timestamp,
+            }
+            if to_status == "resolved":
+                changes.update(
+                    {
+                        "resolutionSummary": resolution_summary,
+                        "resolvedAt": self.server_timestamp,
+                    }
+                )
+            transaction.update(ticket_ref, changes)
+            transaction.set(
+                event_ref,
+                {
+                    "type": "status_transition",
+                    "actorId": actor.uid,
+                    "actorRole": "staff",
+                    "fromValue": from_status,
+                    "toValue": to_status,
+                    "createdAt": self.server_timestamp,
+                },
+            )
+            return MutationResult(ticket_id, action_id, to_status, False)
+
+        return run_firestore_transaction(self._db, operation)
 
     def request_action(
         self,
@@ -394,29 +412,32 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
         reason: str,
         action_id: str,
     ) -> MutationResult:
-        transaction = self._db.transaction()
-        ticket_ref, ticket = self._ticket_for_mutation(transaction, ticket_id, actor)
-        event_ref = ticket_ref.collection("events").document(action_id)
-        if next(transaction.get(event_ref)).exists:
-            return MutationResult(ticket_id, action_id, ticket["status"], True)
-        transaction.set(
-            event_ref,
-            {
-                "type": request_type,
-                "actorId": actor.uid,
-                "actorRole": "staff",
-                "fromValue": None,
-                "toValue": reason,
-                "createdAt": self.server_timestamp,
-            },
-        )
-        transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
-        transaction.commit()
-        return MutationResult(ticket_id, action_id, ticket["status"], False)
+        def operation(transaction: Any) -> MutationResult:
+            ticket_ref, ticket = self._ticket_for_mutation(
+                transaction, ticket_id, actor
+            )
+            event_ref = ticket_ref.collection("events").document(action_id)
+            if next(transaction.get(event_ref)).exists:
+                return MutationResult(ticket_id, action_id, ticket["status"], True)
+            transaction.set(
+                event_ref,
+                {
+                    "type": request_type,
+                    "actorId": actor.uid,
+                    "actorRole": "staff",
+                    "fromValue": None,
+                    "toValue": reason,
+                    "createdAt": self.server_timestamp,
+                },
+            )
+            transaction.update(ticket_ref, {"updatedAt": self.server_timestamp})
+            return MutationResult(ticket_id, action_id, ticket["status"], False)
+
+        return run_firestore_transaction(self._db, operation)
 
 
 def _sample_dev_staff_tickets() -> list[dict[str, Any]]:
-    now = datetime.now().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     return [
         {
             "ticketId": "cg_ticket_cust1",
@@ -464,7 +485,9 @@ def _sample_dev_staff_tickets() -> list[dict[str, Any]]:
 class InMemoryStaffBackend:
     def __init__(self, tickets: list[dict[str, Any]] | None = None) -> None:
         raw_tickets = tickets if tickets is not None else _sample_dev_staff_tickets()
-        self._tickets: dict[str, dict[str, Any]] = {t["id"]: dict(t) for t in raw_tickets}
+        self._tickets: dict[str, dict[str, Any]] = {
+            ticket["id"]: dict(ticket) for ticket in raw_tickets
+        }
         self._messages: dict[str, list[dict[str, Any]]] = {}
         self._events: dict[str, list[dict[str, Any]]] = {}
 
@@ -488,12 +511,15 @@ class InMemoryStaffBackend:
         created_to: datetime | None,
     ) -> list[dict[str, Any]]:
         results = []
-        for t in self._tickets.values():
+        target = self._tickets
+        for t in target.values():
+            if t.get("departmentId") != department_id:
+                continue
             if status and t.get("status") != status:
                 continue
             if priority and t.get("priority") != priority:
                 continue
-            results.append(dict(t))
+            results.append({"ticketId": t["id"], **t})
         return results
 
     def get_department_ticket(
@@ -515,16 +541,23 @@ class InMemoryStaffBackend:
     ) -> MutationResult:
         if ticket_id not in self._tickets:
             raise StaffTicketNotFound("ticket not found")
-        now = datetime.now().isoformat() + "Z"
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         msg = {
+            "messageId": action_id,
+            "id": action_id,
             "authorId": actor.uid,
+            "senderId": actor.uid,
             "authorRole": "staff",
+            "senderRole": "staff",
             "body": body,
+            "text": body,
             "visibility": "participants",
             "createdAt": now,
         }
         self._messages.setdefault(ticket_id, []).append(msg)
-        return MutationResult(ticket_id, action_id, self._tickets[ticket_id]["status"], False)
+        return MutationResult(
+            ticket_id, action_id, self._tickets[ticket_id]["status"], False
+        )
 
     def transition_ticket(
         self,
@@ -543,7 +576,7 @@ class InMemoryStaffBackend:
         if to_status == "resolved" and not resolution_summary:
             raise InvalidTransition("resolution summary is required")
         t["status"] = to_status
-        now = datetime.now().isoformat() + "Z"
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         t["updatedAt"] = now
         if to_status == "resolved":
             t["resolutionSummary"] = resolution_summary
@@ -561,5 +594,6 @@ class InMemoryStaffBackend:
     ) -> MutationResult:
         if ticket_id not in self._tickets:
             raise StaffTicketNotFound("ticket not found")
-        return MutationResult(ticket_id, action_id, self._tickets[ticket_id]["status"], False)
-
+        return MutationResult(
+            ticket_id, action_id, self._tickets[ticket_id]["status"], False
+        )

@@ -43,7 +43,7 @@ describe("manager-workflow API client", () => {
         inputLocale: "en",
         predictedDepartmentId: "account_support",
         predictionConfidence: 0.45,
-        assignedDepartmentId: "account_support",
+        departmentId: "account_support",
         status: "triaged",
         priority: "normal",
         routingSource: "manual_review",
@@ -63,7 +63,7 @@ describe("manager-workflow API client", () => {
   it("posts department override successfully", async () => {
     const mockResponse = {
       ticketId: "ticket_01",
-      assignedDepartmentId: "fraud_security",
+      departmentId: "fraud_security",
       routingSource: "manager_override",
       updatedAt: "2026-08-03T12:00:00Z",
     };
@@ -79,7 +79,7 @@ describe("manager-workflow API client", () => {
       "Manual review override",
       mockFetcher,
     );
-    expect(result.assignedDepartmentId).toBe("fraud_security");
+    expect(result.departmentId).toBe("fraud_security");
     expect(result.routingSource).toBe("manager_override");
   });
 

@@ -1,8 +1,9 @@
 """Unit tests for Day 16 Manager Workflow Service & API endpoints."""
 
 from typing import Any
-from fastapi.testclient import TestClient
+
 import pytest
+from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.manager_workflow import (
@@ -76,9 +77,10 @@ def test_manager_override_success(manager_backend):
         new_department_id="fraud_security",
         manager_id="mgr_01",
         reason="Security concern identified",
+        action_id="manager-action-001",
     )
 
-    assert doc["assignedDepartmentId"] == "fraud_security"
+    assert doc["departmentId"] == "fraud_security"
     assert doc["routingSource"] == "manager_override"
     assert len(manager_backend.overrides) == 1
     assert manager_backend.overrides[0]["newDepartmentId"] == "fraud_security"
@@ -91,6 +93,7 @@ def test_manager_override_invalid_ticket(manager_backend):
             ticket_id="non_existent",
             new_department_id="fraud_security",
             manager_id="mgr_01",
+            action_id="manager-action-002",
         )
 
 
@@ -101,6 +104,7 @@ def test_manager_override_invalid_department(manager_backend):
             ticket_id="cg_ticket_lc01",
             new_department_id="invalid_dept",
             manager_id="mgr_01",
+            action_id="manager-action-003",
         )
 
 
@@ -127,12 +131,16 @@ def test_api_manager_override_endpoint(client):
     response = client.post(
         "/manager/tickets/cg_ticket_lc01/override",
         headers=headers,
-        json={"newDepartmentId": "fraud_security", "reason": "High risk pattern"},
+        json={
+            "newDepartmentId": "fraud_security",
+            "reason": "High risk pattern",
+            "actionId": "manager-action-004",
+        },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["ticketId"] == "cg_ticket_lc01"
-    assert data["assignedDepartmentId"] == "fraud_security"
+    assert data["departmentId"] == "fraud_security"
     assert data["routingSource"] == "manager_override"
 
 
@@ -141,3 +149,39 @@ def test_api_manager_access_denied_for_customer(client):
     response = client.get("/manager/analytics", headers=headers)
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "manager_role_required"
+
+
+def test_manager_override_retry_is_idempotent(manager_backend):
+    service = ManagerWorkflowService(manager_backend)
+    kwargs = {
+        "ticket_id": "cg_ticket_lc01",
+        "new_department_id": "fraud_security",
+        "manager_id": "mgr_01",
+        "reason": "reviewed",
+        "action_id": "manager-retry-001",
+    }
+    assert service.override_department(**kwargs) == service.override_department(
+        **kwargs
+    )
+    assert len(manager_backend.overrides) == 1
+
+
+def test_manager_missing_invalid_and_inactive_auth_are_denied(client, ticket_backend):
+    assert client.get("/manager/analytics").status_code == 401
+    assert (
+        client.get(
+            "/manager/analytics", headers={"Authorization": "Bearer invalid"}
+        ).status_code
+        == 401
+    )
+    ticket_backend.user_profiles["inactive_mgr"] = {
+        "role": "manager",
+        "active": False,
+    }
+    assert (
+        client.get(
+            "/manager/analytics",
+            headers={"Authorization": "Bearer inactive_mgr"},
+        ).status_code
+        == 403
+    )

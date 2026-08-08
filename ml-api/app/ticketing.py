@@ -41,6 +41,14 @@ class TicketBackend(Protocol):
     def create_ticket(self, document: dict[str, Any]) -> str: ...
 
 
+def run_firestore_transaction(db: Any, operation: Any) -> Any:
+    """Run a callable in a real Firestore transaction with SDK retries."""
+
+    from google.cloud import firestore
+
+    return firestore.transactional(operation)(db.transaction())
+
+
 @dataclass(frozen=True)
 class SubmissionResult:
     complaint_id: str

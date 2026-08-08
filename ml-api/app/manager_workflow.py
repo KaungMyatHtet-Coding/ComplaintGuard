@@ -37,7 +37,7 @@ def _sample_dev_manager_data() -> tuple[list[dict[str, Any]], list[dict[str, Any
             "inputLocale": "en",
             "predictedDepartmentId": "transfer_payment",
             "predictionConfidence": 0.92,
-            "assignedDepartmentId": "transfer_payment",
+            "departmentId": "transfer_payment",
             "status": "in_progress",
             "priority": "normal",
             "routingSource": "model",
@@ -52,7 +52,7 @@ def _sample_dev_manager_data() -> tuple[list[dict[str, Any]], list[dict[str, Any
             "inputLocale": "en",
             "predictedDepartmentId": "card_atm",
             "predictionConfidence": 0.88,
-            "assignedDepartmentId": "card_atm",
+            "departmentId": "card_atm",
             "status": "resolved",
             "priority": "high",
             "routingSource": "model",
@@ -67,7 +67,7 @@ def _sample_dev_manager_data() -> tuple[list[dict[str, Any]], list[dict[str, Any
             "inputLocale": "en",
             "predictedDepartmentId": "account_support",
             "predictionConfidence": 0.48,
-            "assignedDepartmentId": "account_support",
+            "departmentId": "account_support",
             "status": "triaged",
             "priority": "high",
             "routingSource": "manual_review",
@@ -82,7 +82,7 @@ def _sample_dev_manager_data() -> tuple[list[dict[str, Any]], list[dict[str, Any
             "inputLocale": "en",
             "predictedDepartmentId": "loan_credit",
             "predictionConfidence": 0.52,
-            "assignedDepartmentId": "loan_credit",
+            "departmentId": "loan_credit",
             "status": "triaged",
             "priority": "normal",
             "routingSource": "model",
@@ -103,7 +103,9 @@ class ManagerBackend(ABC):
         """Fetch all tickets for analytics aggregation."""
 
     @abstractmethod
-    def get_low_confidence_tickets(self, threshold: float = 0.60) -> list[dict[str, Any]]:
+    def get_low_confidence_tickets(
+        self, threshold: float = 0.60
+    ) -> list[dict[str, Any]]:
         """Fetch tickets with low prediction confidence or manual triage flags."""
 
     @abstractmethod
@@ -113,6 +115,7 @@ class ManagerBackend(ABC):
         new_department_id: str,
         manager_id: str,
         reason: str | None,
+        action_id: str,
     ) -> dict[str, Any]:
         """Override ticket department assignment."""
 
@@ -122,15 +125,17 @@ class InMemoryManagerBackend(ManagerBackend):
 
     def __init__(self, tickets: list[dict[str, Any]] | None = None) -> None:
         if tickets is None:
-            dev_tickets, _ = _sample_dev_manager_data()
-            tickets = dev_tickets
-        self.tickets: dict[str, dict[str, Any]] = {t["id"]: dict(t) for t in tickets}
+            tickets, _ = _sample_dev_manager_data()
+        self.tickets = {ticket["id"]: dict(ticket) for ticket in tickets}
         self.overrides: list[dict[str, Any]] = []
+        self.actions: dict[str, dict[str, Any]] = {}
 
     def get_all_tickets(self) -> list[dict[str, Any]]:
         return [dict(t) for t in self.tickets.values()]
 
-    def get_low_confidence_tickets(self, threshold: float = 0.60) -> list[dict[str, Any]]:
+    def get_low_confidence_tickets(
+        self, threshold: float = 0.60
+    ) -> list[dict[str, Any]]:
         results = []
         for t in self.tickets.values():
             conf = t.get("predictionConfidence")
@@ -145,7 +150,10 @@ class InMemoryManagerBackend(ManagerBackend):
         new_department_id: str,
         manager_id: str,
         reason: str | None,
+        action_id: str,
     ) -> dict[str, Any]:
+        if action_id in self.actions:
+            return dict(self.actions[action_id])
         if ticket_id not in self.tickets:
             raise TicketNotFound("target ticket not found")
 
@@ -153,19 +161,21 @@ class InMemoryManagerBackend(ManagerBackend):
             raise InvalidDepartmentError("invalid department ID")
 
         doc = self.tickets[ticket_id]
-        doc["assignedDepartmentId"] = new_department_id
+        previous_department_id = doc.get("departmentId")
+        doc["departmentId"] = new_department_id
         doc["routingSource"] = "manager_override"
         doc["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         override_record = {
             "ticketId": ticket_id,
-            "previousDepartmentId": doc.get("assignedDepartmentId"),
+            "previousDepartmentId": previous_department_id,
             "newDepartmentId": new_department_id,
             "managerId": manager_id,
             "reason": reason,
             "timestamp": doc["updatedAt"],
         }
         self.overrides.append(override_record)
+        self.actions[action_id] = dict(doc)
         return doc
 
 
@@ -191,7 +201,7 @@ class FirebaseAdminManagerBackend(ManagerBackend):
                 raise PersistenceError("Firebase Admin is not configured") from exc
 
     def get_all_tickets(self) -> list[dict[str, Any]]:
-        docs = self.db.collection("complaints").stream()
+        docs = self.db.collection("tickets").stream()
         results = []
         for doc in docs:
             data = doc.to_dict()
@@ -199,8 +209,10 @@ class FirebaseAdminManagerBackend(ManagerBackend):
             results.append(data)
         return results
 
-    def get_low_confidence_tickets(self, threshold: float = 0.60) -> list[dict[str, Any]]:
-        docs = self.db.collection("complaints").stream()
+    def get_low_confidence_tickets(
+        self, threshold: float = 0.60
+    ) -> list[dict[str, Any]]:
+        docs = self.db.collection("tickets").stream()
         results = []
         for doc in docs:
             data = doc.to_dict()
@@ -217,41 +229,59 @@ class FirebaseAdminManagerBackend(ManagerBackend):
         new_department_id: str,
         manager_id: str,
         reason: str | None,
+        action_id: str,
     ) -> dict[str, Any]:
         if new_department_id not in LABELS:
             raise InvalidDepartmentError("invalid department ID")
 
-        doc_ref = self.db.collection("complaints").document(ticket_id)
-        snapshot = doc_ref.get()
-        if not snapshot.exists:
-            raise TicketNotFound("target ticket not found")
-
+        doc_ref = self.db.collection("tickets").document(ticket_id)
         now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        doc_data = snapshot.to_dict()
-        prev_dept = doc_data.get("assignedDepartmentId")
-
+        action_ref = doc_ref.collection("actions").document(action_id)
+        audit_ref = doc_ref.collection("events").document(action_id)
         updates = {
-            "assignedDepartmentId": new_department_id,
+            "departmentId": new_department_id,
             "routingSource": "manager_override",
             "updatedAt": now_str,
         }
-        doc_ref.update(updates)
+        try:
+            from app.ticketing import run_firestore_transaction
 
-        self.db.collection("audit_logs").add(
-            {
-                "ticketId": ticket_id,
-                "action": "manager_override",
-                "managerId": manager_id,
-                "previousDepartmentId": prev_dept,
-                "newDepartmentId": new_department_id,
-                "reason": reason,
-                "timestamp": now_str,
-            }
-        )
+            def operation(transaction: Any) -> dict[str, Any]:
+                action_snapshot = next(transaction.get(action_ref))
+                if action_snapshot.exists:
+                    return action_snapshot.to_dict()["result"]
+                snapshot = next(transaction.get(doc_ref))
+                if not snapshot.exists:
+                    raise TicketNotFound("target ticket not found")
+                doc_data = snapshot.to_dict()
+                previous_department_id = doc_data.get("departmentId")
+                result = {**doc_data, **updates, "id": ticket_id}
+                transaction.update(doc_ref, updates)
+                transaction.set(
+                    audit_ref,
+                    {
+                        "ticketId": ticket_id,
+                        "type": "manager_override",
+                        "actorId": manager_id,
+                        "actorRole": "manager",
+                        "fromValue": previous_department_id,
+                        "toValue": new_department_id,
+                        "reason": reason,
+                        "createdAt": now_str,
+                    },
+                )
+                transaction.set(
+                    action_ref, {"type": "manager_override", "result": result}
+                )
+                return result
 
-        doc_data.update(updates)
-        doc_data["id"] = ticket_id
-        return doc_data
+            return run_firestore_transaction(self.db, operation)
+        except TicketNotFound:
+            raise
+        except Exception as exc:
+            from app.ticketing import PersistenceError
+
+            raise PersistenceError("manager override transaction failed") from exc
 
 
 class ManagerWorkflowService:
@@ -263,23 +293,40 @@ class ManagerWorkflowService:
     def get_analytics(self) -> dict[str, Any]:
         tickets = self.backend.get_all_tickets()
         total_tickets = len(tickets)
-        active_tickets = sum(1 for t in tickets if t.get("status") in ("triaged", "in_progress", "awaiting_customer"))
+        active_tickets = sum(
+            1
+            for t in tickets
+            if t.get("status")
+            in ("submitted", "triaged", "in_progress", "awaiting_customer")
+        )
         resolved_count = sum(1 for t in tickets if t.get("status") == "resolved")
         low_confidence_count = len(self.backend.get_low_confidence_tickets(0.60))
 
         resolution_hours: list[float] = []
         for t in tickets:
-            if t.get("status") == "resolved" and t.get("createdAt") and t.get("resolvedAt"):
+            if (
+                t.get("status") == "resolved"
+                and t.get("createdAt")
+                and t.get("resolvedAt")
+            ):
                 try:
-                    c_dt = datetime.fromisoformat(str(t["createdAt"]).replace("Z", "+00:00"))
-                    r_dt = datetime.fromisoformat(str(t["resolvedAt"]).replace("Z", "+00:00"))
+                    c_dt = datetime.fromisoformat(
+                        str(t["createdAt"]).replace("Z", "+00:00")
+                    )
+                    r_dt = datetime.fromisoformat(
+                        str(t["resolvedAt"]).replace("Z", "+00:00")
+                    )
                     diff = (r_dt - c_dt).total_seconds() / 3600.0
                     if diff >= 0:
                         resolution_hours.append(diff)
-                except Exception:
-                    pass
+                except (TypeError, ValueError):
+                    continue
 
-        avg_resolution_hours = round(sum(resolution_hours) / len(resolution_hours), 1) if resolution_hours else 0.0
+        avg_resolution_hours = (
+            round(sum(resolution_hours) / len(resolution_hours), 1)
+            if resolution_hours
+            else 0.0
+        )
 
         dept_stats: dict[str, dict[str, Any]] = {
             dept_id: {
@@ -294,22 +341,31 @@ class ManagerWorkflowService:
         }
 
         for t in tickets:
-            dept = t.get("assignedDepartmentId") or t.get("predictedDepartmentId")
+            dept = t.get("departmentId")
             if dept in dept_stats:
                 dept_stats[dept]["total"] += 1
-                if t.get("status") in ("triaged", "in_progress", "awaiting_customer"):
+                if t.get("status") in (
+                    "submitted",
+                    "triaged",
+                    "in_progress",
+                    "awaiting_customer",
+                ):
                     dept_stats[dept]["inProgress"] += 1
                 elif t.get("status") == "resolved":
                     dept_stats[dept]["resolved"] += 1
                     if t.get("createdAt") and t.get("resolvedAt"):
                         try:
-                            c_dt = datetime.fromisoformat(str(t["createdAt"]).replace("Z", "+00:00"))
-                            r_dt = datetime.fromisoformat(str(t["resolvedAt"]).replace("Z", "+00:00"))
+                            c_dt = datetime.fromisoformat(
+                                str(t["createdAt"]).replace("Z", "+00:00")
+                            )
+                            r_dt = datetime.fromisoformat(
+                                str(t["resolvedAt"]).replace("Z", "+00:00")
+                            )
                             diff = (r_dt - c_dt).total_seconds() / 3600.0
                             if diff >= 0:
                                 dept_stats[dept]["resolutionHours"].append(diff)
-                        except Exception:
-                            pass
+                        except (TypeError, ValueError):
+                            continue
 
         department_metrics = []
         for dept_id, data in dept_stats.items():
@@ -344,10 +400,12 @@ class ManagerWorkflowService:
         new_department_id: str,
         manager_id: str,
         reason: str | None = None,
+        action_id: str = "",
     ) -> dict[str, Any]:
         return self.backend.override_department(
             ticket_id=ticket_id,
             new_department_id=new_department_id,
             manager_id=manager_id,
             reason=reason,
+            action_id=action_id,
         )
