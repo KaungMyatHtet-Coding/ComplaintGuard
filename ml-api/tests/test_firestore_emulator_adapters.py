@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,6 +14,7 @@ from google.cloud import firestore
 from app.config import MODEL_SHA256
 from app.customer_workflow import (
     CustomerWorkflowService,
+    FeedbackAlreadySubmitted,
     FirebaseAdminCustomerBackend,
     TicketNotFound,
 )
@@ -28,6 +29,7 @@ from app.routing import RoutingPrediction, TrustedRoutingInference
 from app.schemas import (
     CustomerFeedbackRequest,
     CustomerMessageRequest,
+    StaffTicketDetail,
     SubmitComplaintRequest,
 )
 from app.staff_workflow import (
@@ -35,6 +37,7 @@ from app.staff_workflow import (
     InvalidTransition,
     StaffActor,
     StaffTicketNotFound,
+    StaffWorkflowService,
 )
 from app.ticketing import (
     ComplaintSubmissionService,
@@ -157,12 +160,118 @@ def test_customer_feedback_transaction_and_retry_are_emulator_backed(emulator_db
     first = service.submit_feedback("customer-a", resolved_id, request)
     second = service.submit_feedback("customer-a", resolved_id, request)
     assert first == second
+    with pytest.raises(FeedbackAlreadySubmitted):
+        service.submit_feedback(
+            "customer-a",
+            resolved_id,
+            CustomerFeedbackRequest(
+                rating=1,
+                comments="Must not overwrite",
+                actionId="different-feedback-action",
+            ),
+        )
     feedback = emulator_db.collection("feedback").document(f"fb_{resolved_id}").get()
     ticket = emulator_db.collection("tickets").document(resolved_id).get()
     assert feedback.exists and feedback.get("rating") == 5
+    assert feedback.get("comments") == "Synthetic feedback"
     assert ticket.get("feedback.rating") == 5
+    assert ticket.get("feedback.comments") == "Synthetic feedback"
     actions = list(ticket.reference.collection("actions").stream())
     assert [item.id for item in actions] == ["feedback_customer-feedback-action"]
+
+
+def test_cross_role_message_schema_and_retry_are_emulator_backed(emulator_db):
+    current_id = ticket_id("cross-role-messages")
+    ticket_ref = emulator_db.collection("tickets").document(current_id)
+    ticket_ref.set(
+        base_ticket(
+            customer_id="customer-messages",
+            department_id="card_atm",
+            status="in_progress",
+        )
+    )
+    staff_backend = FirebaseAdminStaffBackend(db=emulator_db)
+    staff_actor = StaffActor(uid="staff-card", department_id="card_atm")
+    staff_backend.add_reply(
+        ticket_id=current_id,
+        actor=staff_actor,
+        body="Complete staff reply.",
+        action_id="cross-role-staff-reply",
+    )
+    duplicate_staff = staff_backend.add_reply(
+        ticket_id=current_id,
+        actor=staff_actor,
+        body="Complete staff reply.",
+        action_id="cross-role-staff-reply",
+    )
+    assert duplicate_staff.duplicate is True
+
+    customer_service = CustomerWorkflowService(
+        FirebaseAdminCustomerBackend(db=emulator_db)
+    )
+    customer_detail = customer_service.get_ticket_detail(
+        "customer-messages", current_id
+    )
+    assert [message.text for message in customer_detail.messages] == [
+        "Complete staff reply."
+    ]
+
+    customer_time = datetime.now(timezone.utc) + timedelta(seconds=1)
+    customer_request = CustomerMessageRequest(
+        messageText="Complete customer reply.",
+        actionId="cross-role-customer-reply",
+    )
+    first_customer = customer_service.send_message(
+        "customer-messages", current_id, customer_request, now=customer_time
+    )
+    duplicate_customer = customer_service.send_message(
+        "customer-messages", current_id, customer_request, now=customer_time
+    )
+    assert first_customer == duplicate_customer
+
+    staff_detail = StaffTicketDetail.model_validate(
+        StaffWorkflowService(staff_backend).detail(staff_actor, current_id)
+    )
+    assert [message.body for message in staff_detail.messages] == [
+        "Complete staff reply.",
+        "Complete customer reply.",
+    ]
+
+    staff_doc = (
+        ticket_ref.collection("messages").document("cross-role-staff-reply").get()
+    )
+    customer_doc = (
+        ticket_ref.collection("messages").document("cross-role-customer-reply").get()
+    )
+    for snapshot, role, body in (
+        (staff_doc, "staff", "Complete staff reply."),
+        (customer_doc, "customer", "Complete customer reply."),
+    ):
+        value = snapshot.to_dict()
+        assert value["authorRole"] == role
+        assert value["body"] == body
+        assert value["visibility"] == "participants"
+        assert "authorId" in value
+        assert not ({"senderId", "senderRole", "text"} & value.keys())
+
+    assert len(list(ticket_ref.collection("messages").stream())) == 2
+
+    ticket_ref.collection("messages").document("legacy-customer-reply").set(
+        {
+            "senderId": "customer-messages",
+            "senderRole": "customer",
+            "text": "Existing legacy customer reply.",
+            "createdAt": customer_time + timedelta(seconds=1),
+        }
+    )
+    compatible_staff_detail = StaffTicketDetail.model_validate(
+        StaffWorkflowService(staff_backend).detail(staff_actor, current_id)
+    )
+    assert [message.body for message in compatible_staff_detail.messages] == [
+        "Complete staff reply.",
+        "Complete customer reply.",
+        "Existing legacy customer reply.",
+    ]
 
 
 def test_staff_mutations_audit_retry_and_rollback_are_emulator_backed(emulator_db):

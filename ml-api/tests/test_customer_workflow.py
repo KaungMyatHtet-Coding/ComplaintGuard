@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
-from app.customer_workflow import InMemoryCustomerBackend
+from app.customer_workflow import CustomerWorkflowService, InMemoryCustomerBackend
 from app.main import create_app
 
 
@@ -121,6 +122,40 @@ def test_customer_ticket_detail_success():
     assert len(detail["messages"]) == 2
 
 
+def test_customer_detail_maps_complete_canonical_staff_message_body():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.messages["t1"] = [
+        {
+            "id": "canonical-staff-message",
+            "authorId": "staff_999",
+            "authorRole": "staff",
+            "body": "Complete canonical staff reply.",
+            "visibility": "participants",
+            "createdAt": "2026-08-01T10:15:00Z",
+        }
+    ]
+
+    detail = CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
+
+    assert detail.messages[0].sender_id == "staff_999"
+    assert detail.messages[0].sender_role == "staff"
+    assert detail.messages[0].text == "Complete canonical staff reply."
+
+
+def test_customer_detail_rejects_incomplete_message_instead_of_blank_body():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.messages["t1"] = [
+        {
+            "id": "malformed-message",
+            "senderRole": "staff",
+            "createdAt": "2026-08-01T10:15:00Z",
+        }
+    ]
+
+    with pytest.raises(ValueError, match="no recognized complete schema"):
+        CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
+
+
 def test_cross_customer_ticket_does_not_leak_existence():
     backend = InMemoryCustomerBackend(_sample_tickets())
     app = create_app(
@@ -160,6 +195,12 @@ def test_customer_send_message_pii_redacted():
     assert body["senderRole"] == "customer"
     assert "[REDACTED]" in body["text"]
     assert "MyPassword123" not in body["text"]
+    stored = backend.messages["t1"][-1]
+    assert stored["authorId"] == "cust_123"
+    assert stored["authorRole"] == "customer"
+    assert stored["body"] == body["text"]
+    assert stored["visibility"] == "participants"
+    assert not ({"senderId", "senderRole", "text"} & stored.keys())
 
 
 def test_customer_submit_feedback_resolved_ticket():
@@ -184,6 +225,73 @@ def test_customer_submit_feedback_resolved_ticket():
     body = res.json()
     assert body["status"] == "feedback_submitted"
     assert body["ticketId"] == "t2"
+
+    detail = client.get(
+        "/customer/tickets/t2",
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+    assert detail.status_code == 200
+    assert detail.json()["feedback"] == {
+        "rating": 5,
+        "comments": "Great service, resolved quickly!",
+        "submittedAt": backend.tickets["t2"]["feedback"]["submittedAt"],
+    }
+
+
+def test_customer_feedback_retry_is_idempotent_and_new_action_conflicts():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+    headers = {"Authorization": "Bearer valid_customer_token"}
+    first_payload = {
+        "rating": 5,
+        "comments": "Original feedback.",
+        "actionId": "feedback-retry-001",
+    }
+
+    first = client.post(
+        "/customer/tickets/t2/feedback", json=first_payload, headers=headers
+    )
+    retry = client.post(
+        "/customer/tickets/t2/feedback", json=first_payload, headers=headers
+    )
+    original_feedback = dict(backend.tickets["t2"]["feedback"])
+    duplicate = client.post(
+        "/customer/tickets/t2/feedback",
+        json={
+            "rating": 1,
+            "comments": "Must not overwrite.",
+            "actionId": "feedback-new-action-002",
+        },
+        headers=headers,
+    )
+
+    assert first.status_code == retry.status_code == 200
+    assert retry.json() == first.json()
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "feedback_already_submitted"
+    assert backend.tickets["t2"]["feedback"] == original_feedback
+    assert backend.feedbacks["fb_t2"]["rating"] == 5
+    assert backend.feedbacks["fb_t2"]["comments"] == "Original feedback."
+    assert list(backend.actions) == [("t2", "feedback:feedback-retry-001")]
+
+
+def test_cross_customer_cannot_submit_feedback():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+
+    response = client.post(
+        "/customer/tickets/t2/feedback",
+        json={"rating": 5, "comments": "Forbidden", "actionId": "feedback-owner"},
+        headers={"Authorization": "Bearer customer_2_token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "ticket_not_found"
+    assert backend.feedbacks == {}
 
 
 def test_customer_submit_feedback_unresolved_ticket_fails():

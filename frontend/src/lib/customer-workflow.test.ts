@@ -105,4 +105,22 @@ describe("Customer Workflow Client Library", () => {
     const res = await submitCustomerFeedback("t1", 5, "Great job", "test_token", mockFetcher as unknown as typeof fetch);
     expect(res.feedbackId).toBe("fb_t1");
   });
+
+  it("maps duplicate-feedback conflict without returning success", async () => {
+    const mockFetcher = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: { code: "feedback_already_submitted" } }),
+    });
+
+    await expect(
+      submitCustomerFeedback(
+        "t1",
+        5,
+        "Must not overwrite",
+        "test_token",
+        mockFetcher as unknown as typeof fetch,
+      ),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
 });

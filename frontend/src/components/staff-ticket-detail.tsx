@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { useApp } from "@/components/app-provider";
+import { StaffResolutionDetails } from "@/components/staff-resolution-details";
 import { createSubmissionGuard } from "@/lib/complaint-submission";
 import {
   StaffWorkflowError,
@@ -74,6 +75,13 @@ export function StaffTicketDetail({ ticketId, getToken, onChanged }: { ticketId:
         <div><dt>{t("staffCreated")}</dt><dd>{date.format(new Date(detail.createdAt))}</dd></div>
       </dl>
       <p className="complaint-body">{detail.complaintText}</p>
+      <StaffResolutionDetails
+        resolutionSummary={detail.resolutionSummary}
+        resolvedAt={detail.resolvedAt}
+        resolutionLabel={t("staffResolution")}
+        resolvedAtLabel={t("staffResolvedAt")}
+        formatDate={(value) => date.format(value)}
+      />
       {error ? <div className="error-panel" role="alert">{t("staffActionError")}</div> : null}
       <div className="staff-actions">
         {detail.status === "triaged" ? <button disabled={pending} onClick={() => void mutate((token) => transitionTicket(token, ticketId, "in_progress", actionId("transition")), () => undefined)}>{t("staffBegin")}</button> : null}

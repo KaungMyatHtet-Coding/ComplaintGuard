@@ -105,9 +105,19 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   await page.getByRole("button", { name: new RegExp(highId, "u") }).click();
   await page.getByRole("button", { name: "Begin work" }).click();
   await expect(page.getByRole("button", { name: "Await customer" })).toBeVisible();
+  await page.getByLabel("Participant reply").fill("Complete staff E2E reply.");
+  await page.getByRole("button", { name: "Send reply" }).click();
+  await expect(page.getByText("Complete staff E2E reply.")).toBeVisible();
   await signOut(page);
 
   await signIn(page, users.customer, "Customer dashboard");
+  await refreshAndOpen(page, highId);
+  await expect(page.getByText("Complete staff E2E reply.")).toBeVisible();
+  await page
+    .getByPlaceholder("Send message to department staff")
+    .fill("Complete customer E2E reply.");
+  await page.getByRole("button", { name: "Send message" }).click();
+  await expect(page.getByText("Complete customer E2E reply.")).toBeVisible();
   const lowId = await submitAndReplay(page, "I cannot understand this fee.");
   await refreshAndOpen(page, lowId);
   await expect(page.getByText("manual_review", { exact: true })).toBeVisible();
@@ -129,6 +139,11 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
 
   await signIn(page, users.staffCard, "Department staff dashboard");
   await expect(page.getByText(lowId)).toBeVisible();
+  await signOut(page);
+
+  await signIn(page, users.staffFraud, "Department staff dashboard");
+  await page.getByRole("button", { name: new RegExp(highId, "u") }).click();
+  await expect(page.getByText("Complete customer E2E reply.")).toBeVisible();
   await signOut(page);
 
   await signIn(page, users.customer, "Customer dashboard");

@@ -11,6 +11,7 @@ import {
   fetchCustomerTicketDetail,
   sendCustomerMessage,
   submitCustomerFeedback,
+  CustomerWorkflowError,
   type CustomerTicketDetail,
   type CustomerTicketSummary,
 } from "@/lib/customer-workflow";
@@ -90,8 +91,15 @@ export function CustomerDashboardWorkflow() {
     if (!selectedTicketId) return;
     const idToken = await currentToken();
     if (!idToken) return;
-    await submitCustomerFeedback(selectedTicketId, rating, comments, idToken);
-    await loadTicketDetail(selectedTicketId);
+    try {
+      await submitCustomerFeedback(selectedTicketId, rating, comments, idToken);
+      await loadTicketDetail(selectedTicketId);
+    } catch (error) {
+      if (error instanceof CustomerWorkflowError && error.code === "conflict") {
+        await loadTicketDetail(selectedTicketId);
+      }
+      throw error;
+    }
   };
 
   return (

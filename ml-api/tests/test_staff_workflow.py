@@ -327,6 +327,28 @@ def test_same_department_detail_includes_messages_and_events(
     assert response.json()["messages"] == [] and response.json()["events"] == []
 
 
+def test_staff_detail_accepts_complete_canonical_customer_message(
+    client: TestClient, backend: FakeStaffBackend
+) -> None:
+    backend.messages["same"] = [
+        {
+            "messageId": "canonical-customer-message",
+            "authorId": "synthetic-customer",
+            "authorRole": "customer",
+            "body": "Complete canonical customer reply.",
+            "visibility": "participants",
+            "createdAt": NOW,
+        }
+    ]
+
+    response = client.get("/staff/tickets/same", headers=headers())
+
+    assert response.status_code == 200
+    assert response.json()["messages"][0]["body"] == (
+        "Complete canonical customer reply."
+    )
+
+
 @pytest.mark.parametrize(
     ("from_status", "to_status"),
     [

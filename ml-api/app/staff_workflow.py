@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, Protocol
 
+from app.message_schema import normalize_message_document
 from app.schemas import DepartmentId
 from app.ticketing import (
     DEPARTMENT_IDS,
@@ -299,7 +300,10 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
             .collection("messages")
             .order_by("createdAt")
         )
-        return [{"messageId": item.id, **item.to_dict()} for item in query.stream()]
+        return [
+            {"messageId": item.id, **normalize_message_document(item.to_dict())}
+            for item in query.stream()
+        ]
 
     def list_events(self, ticket_id: str) -> list[dict[str, Any]]:
         query = (

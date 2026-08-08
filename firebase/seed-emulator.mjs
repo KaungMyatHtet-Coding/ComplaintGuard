@@ -16,6 +16,10 @@ const identities = [
   { key: "customer", email: "customer@complaintguard.test", role: "customer", locale: "en" },
   { key: "staffFraud", email: "staff.fraud@complaintguard.test", role: "staff", departmentId: "fraud_security", locale: "en" },
   { key: "staffCard", email: "staff.card@complaintguard.test", role: "staff", departmentId: "card_atm", locale: "en" },
+  { key: "staffTransfer", email: "staff.transfer@complaintguard.test", role: "staff", departmentId: "transfer_payment", locale: "en" },
+  { key: "staffAccount", email: "staff.account@complaintguard.test", role: "staff", departmentId: "account_support", locale: "en" },
+  { key: "staffLoan", email: "staff.loan@complaintguard.test", role: "staff", departmentId: "loan_credit", locale: "en" },
+  { key: "staffGeneral", email: "staff.general@complaintguard.test", role: "staff", departmentId: "general_support", locale: "en" },
   { key: "manager", email: "manager@complaintguard.test", role: "manager", locale: "en" },
 ];
 

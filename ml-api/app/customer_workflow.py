@@ -6,9 +6,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
 
+from app.message_schema import normalize_message_document
 from app.schemas import (
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
+    CustomerMessageItem,
     CustomerMessageRequest,
     CustomerTicketDetail,
     CustomerTicketSummary,
@@ -30,6 +32,10 @@ class TicketNotFound(CustomerWorkflowError):
 
 class InvalidTicketState(CustomerWorkflowError):
     """Raised when operation is invalid for current ticket state."""
+
+
+class FeedbackAlreadySubmitted(CustomerWorkflowError):
+    """Raised when a ticket already has feedback from a prior action."""
 
 
 def _sample_dev_tickets() -> list[dict[str, Any]]:
@@ -167,20 +173,28 @@ class InMemoryCustomerBackend(CustomerBackend):
         iso_str = created_at.isoformat()
         msg_doc = {
             "id": msg_id,
-            "senderId": customer_id,
-            "senderRole": "customer",
-            "text": message_text,
+            "authorId": customer_id,
+            "authorRole": "customer",
+            "body": message_text,
+            "visibility": "participants",
             "createdAt": iso_str,
         }
         if ticket_id not in self.messages:
             self.messages[ticket_id] = []
         self.messages[ticket_id].append(msg_doc)
-        self.actions[key] = dict(msg_doc)
+        result = {
+            "id": msg_id,
+            "senderId": customer_id,
+            "senderRole": "customer",
+            "text": message_text,
+            "createdAt": iso_str,
+        }
+        self.actions[key] = dict(result)
 
         if ticket_id in self.tickets:
             self.tickets[ticket_id]["updatedAt"] = iso_str
 
-        return msg_doc
+        return result
 
     def save_ticket_feedback(
         self,
@@ -195,6 +209,8 @@ class InMemoryCustomerBackend(CustomerBackend):
         if key in self.actions:
             return dict(self.actions[key])
         fb_id = f"fb_{ticket_id}"
+        if fb_id in self.feedbacks or self.tickets.get(ticket_id, {}).get("feedback"):
+            raise FeedbackAlreadySubmitted("Feedback has already been submitted.")
         iso_str = created_at.isoformat()
         doc = {
             "id": fb_id,
@@ -288,12 +304,19 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         msg_ref = doc_ref.collection("messages").document(action_id)
         action_ref = doc_ref.collection("actions").document(f"message_{action_id}")
         msg_data = {
+            "authorId": customer_id,
+            "authorRole": "customer",
+            "body": message_text,
+            "visibility": "participants",
+            "createdAt": created_at,
+        }
+        result = {
+            "id": action_id,
             "senderId": customer_id,
             "senderRole": "customer",
             "text": message_text,
-            "createdAt": created_at,
+            "createdAt": created_at.isoformat(),
         }
-        result = {**msg_data, "id": action_id, "createdAt": created_at.isoformat()}
         try:
 
             def operation(transaction: Any) -> dict[str, Any]:
@@ -339,6 +362,12 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
                 action_snapshot = next(transaction.get(action_ref))
                 if action_snapshot.exists:
                     return action_snapshot.to_dict()["result"]
+                feedback_snapshot = next(transaction.get(fb_ref))
+                ticket_snapshot = next(transaction.get(ticket_ref))
+                if feedback_snapshot.exists or ticket_snapshot.get("feedback"):
+                    raise FeedbackAlreadySubmitted(
+                        "Feedback has already been submitted."
+                    )
                 transaction.set(fb_ref, fb_data)
                 transaction.update(
                     ticket_ref,
@@ -356,6 +385,8 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
                 return result
 
             return run_firestore_transaction(self.db, operation)
+        except FeedbackAlreadySubmitted:
+            raise
         except Exception as exc:
             raise PersistenceError("customer feedback transaction failed") from exc
 
@@ -394,19 +425,23 @@ class CustomerWorkflowService:
             raise TicketNotFound("Ticket not found.")
 
         messages_raw = self.backend.get_ticket_messages(ticket_id)
-        messages_formatted = []
+        messages_formatted: list[CustomerMessageItem] = []
         for m in messages_raw:
+            canonical = normalize_message_document(m)
             messages_formatted.append(
-                {
-                    "id": m.get("id", ""),
-                    "senderId": m.get("senderId", ""),
-                    "senderRole": m.get("senderRole", "staff"),
-                    "text": m.get("text", ""),
-                    "createdAt": str(m.get("createdAt", "")),
-                }
+                CustomerMessageItem(
+                    id=m.get("id") or m.get("messageId"),
+                    senderId=canonical["authorId"],
+                    senderRole=canonical["authorRole"],
+                    text=canonical["body"],
+                    createdAt=str(canonical["createdAt"]),
+                )
             )
 
         feedback_dict = raw_ticket.get("feedback")
+        if feedback_dict:
+            feedback_dict = dict(feedback_dict)
+            feedback_dict["submittedAt"] = str(feedback_dict["submittedAt"])
 
         return CustomerTicketDetail(
             id=raw_ticket["id"],

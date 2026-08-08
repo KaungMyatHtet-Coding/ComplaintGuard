@@ -255,6 +255,14 @@ class CustomerMessageItem(BaseModel):
         return data
 
 
+class CustomerTicketFeedback(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rating: Annotated[int, Field(ge=1, le=5)]
+    comments: str | None = None
+    submitted_at: str = Field(alias="submittedAt")
+
+
 class CustomerTicketDetail(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -279,8 +287,7 @@ class CustomerTicketDetail(BaseModel):
     updated_at: str = Field(alias="updatedAt")
     resolved_at: str | None = Field(default=None, alias="resolvedAt")
     messages: list[CustomerMessageItem] = Field(default_factory=list)
-    rating: int | None = None
-    feedback_comments: str | None = Field(default=None, alias="feedbackComments")
+    feedback: CustomerTicketFeedback | None = None
 
 
 class CustomerMessageRequest(BaseModel):

@@ -10,6 +10,14 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 
 const projectId = "demo-complaintguard";
+const staffDepartments = [
+  { uid: "staff-fraud", departmentId: "fraud_security" },
+  { uid: "staff-card", departmentId: "card_atm" },
+  { uid: "staff-transfer", departmentId: "transfer_payment" },
+  { uid: "staff-account", departmentId: "account_support" },
+  { uid: "staff-loan", departmentId: "loan_credit" },
+  { uid: "staff-general", departmentId: "general_support" },
+];
 let testEnvironment;
 
 beforeAll(async () => {
@@ -27,16 +35,17 @@ beforeEach(async () => {
     const db = context.firestore();
     await setDoc(doc(db, "users/customer-a"), { role: "customer", active: true });
     await setDoc(doc(db, "users/customer-b"), { role: "customer", active: true });
-    await setDoc(doc(db, "users/staff-card"), {
-      role: "staff",
-      active: true,
-      departmentId: "card_atm",
-    });
-    await setDoc(doc(db, "users/staff-loan"), {
-      role: "staff",
-      active: true,
-      departmentId: "loan_credit",
-    });
+    for (const staff of staffDepartments) {
+      await setDoc(doc(db, `users/${staff.uid}`), {
+        role: "staff",
+        active: true,
+        departmentId: staff.departmentId,
+      });
+      await setDoc(doc(db, `tickets/${staff.departmentId}-ticket`), {
+        customerId: "customer-a",
+        departmentId: staff.departmentId,
+      });
+    }
     await setDoc(doc(db, "users/manager-a"), { role: "manager", active: true });
     await setDoc(doc(db, "tickets/card-ticket"), {
       customerId: "customer-a",
@@ -69,11 +78,17 @@ describe("ComplaintGuard Firestore rules", () => {
   });
 
   it("requires exact staff department and denies null-department tickets", async () => {
-    const cardDb = testEnvironment.authenticatedContext("staff-card").firestore();
-    const loanDb = testEnvironment.authenticatedContext("staff-loan").firestore();
-    await assertSucceeds(getDoc(doc(cardDb, "tickets/card-ticket")));
-    await assertFails(getDoc(doc(loanDb, "tickets/card-ticket")));
-    await assertFails(getDoc(doc(cardDb, "tickets/pending-ticket")));
+    for (const [index, staff] of staffDepartments.entries()) {
+      const db = testEnvironment.authenticatedContext(staff.uid).firestore();
+      const otherDepartment = staffDepartments[(index + 1) % staffDepartments.length];
+      await assertSucceeds(
+        getDoc(doc(db, `tickets/${staff.departmentId}-ticket`)),
+      );
+      await assertFails(
+        getDoc(doc(db, `tickets/${otherDepartment.departmentId}-ticket`)),
+      );
+      await assertFails(getDoc(doc(db, "tickets/pending-ticket")));
+    }
   });
 
   it("allows active managers to read tickets", async () => {

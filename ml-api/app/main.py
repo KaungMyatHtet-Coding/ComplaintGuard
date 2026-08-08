@@ -16,6 +16,7 @@ from app.config import MODEL_VERSION, Settings
 from app.customer_workflow import (
     CustomerBackend,
     CustomerWorkflowService,
+    FeedbackAlreadySubmitted,
     FirebaseAdminCustomerBackend,
     InvalidTicketState,
     TicketNotFound,
@@ -37,6 +38,7 @@ from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
+    CustomerMessageItem,
     CustomerMessageRequest,
     CustomerTicketDetail,
     CustomerTicketListResponse,
@@ -604,17 +606,20 @@ def create_app(
 
     @api.post(
         "/customer/tickets/{ticket_id}/messages",
+        response_model=CustomerMessageItem,
         response_model_by_alias=True,
     )
     async def add_customer_message(
         ticket_id: str,
         payload: CustomerMessageRequest,
         authorization: str | None = Header(default=None),
-    ) -> dict[str, Any]:
+    ) -> CustomerMessageItem:
         cust_id = customer_actor(authorization)
         svc = customer_svc()
         try:
-            return svc.send_message(cust_id, ticket_id, payload)
+            return CustomerMessageItem.model_validate(
+                svc.send_message(cust_id, ticket_id, payload)
+            )
         except TicketNotFound:
             raise ApiError(
                 status_code=404,
@@ -664,6 +669,12 @@ def create_app(
             raise ApiError(
                 status_code=409,
                 code="invalid_ticket_state",
+                message=str(exc),
+            ) from None
+        except FeedbackAlreadySubmitted as exc:
+            raise ApiError(
+                status_code=409,
+                code="feedback_already_submitted",
                 message=str(exc),
             ) from None
         except ValueError as exc:
