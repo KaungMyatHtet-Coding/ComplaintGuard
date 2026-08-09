@@ -94,11 +94,24 @@ try {
     try {
         & (Get-Command node.exe).Source (Join-Path $firebaseDirectory "seed-emulator.mjs")
         if ($LASTEXITCODE -ne 0) { throw "Emulator seeding failed." }
+        $firstSeedUids = @(
+            (Get-Content (Join-Path $localState "seeded-identities.json") -Raw |
+                ConvertFrom-Json).identities.uid
+        )
         & $vitestCli run "firestore.rules.test.js" --reporter verbose
         $testExitCode = $LASTEXITCODE
         if ($testExitCode -eq 0) {
-            & (Get-Command node.exe).Source (Join-Path $firebaseDirectory "seed-emulator.mjs")
+            & (Get-Command node.exe).Source `
+                (Join-Path $firebaseDirectory "seed-emulator.mjs") `
+                "--reset-firestore"
             if ($LASTEXITCODE -ne 0) { throw "Emulator reseeding failed." }
+            $secondSeedUids = @(
+                (Get-Content (Join-Path $localState "seeded-identities.json") -Raw |
+                    ConvertFrom-Json).identities.uid
+            )
+            if (Compare-Object $firstSeedUids $secondSeedUids) {
+                throw "Emulator reseeding changed stable demo Auth UIDs."
+            }
             & $vitestCli run "auth-emulator.test.js" --reporter verbose
             $testExitCode = $LASTEXITCODE
         }
