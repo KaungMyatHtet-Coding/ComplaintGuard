@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useApp } from "@/components/app-provider";
+import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
 import type { LowConfidenceTicket } from "@/lib/manager-workflow";
+import { modelEvaluation } from "@/lib/model-evaluation";
 
 const DEPARTMENTS = [
-  { id: "transfer_payment", label: "Transfer & Payments" },
-  { id: "account_support", label: "Account Support" },
-  { id: "card_atm", label: "Card & ATM" },
-  { id: "fraud_security", label: "Fraud & Security" },
-  { id: "loan_credit", label: "Loan & Credit" },
-  { id: "general_support", label: "General Support" },
-];
+  { id: "transfer_payment", labelKey: "departmentTransferPayment" },
+  { id: "account_support", labelKey: "departmentAccountSupport" },
+  { id: "card_atm", labelKey: "departmentCardAtm" },
+  { id: "fraud_security", labelKey: "departmentFraudSecurity" },
+  { id: "loan_credit", labelKey: "departmentLoanCredit" },
+  { id: "general_support", labelKey: "departmentGeneralSupport" },
+] as const;
 
 type ManagerLowConfidenceReviewProps = {
   tickets: LowConfidenceTicket[];
@@ -58,43 +60,46 @@ export function ManagerLowConfidenceReview({
           <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
             <thead className="bg-gray-50 text-gray-700 font-semibold uppercase">
               <tr>
-                <th className="px-4 py-3">Ticket ID</th>
-                <th className="px-4 py-3">Complaint Snippet</th>
-                <th className="px-4 py-3">Predicted Dept</th>
-                <th className="px-4 py-3">Confidence</th>
-                <th className="px-4 py-3">Current Dept</th>
-                <th className="px-4 py-3">Action</th>
+                <th className="px-4 py-3">{t("managerTicketId")}</th>
+                <th className="px-4 py-3">{t("managerComplaintSnippet")}</th>
+                <th className="px-4 py-3">{t("managerPredictedDepartment")}</th>
+                <th className="px-4 py-3">{t("managerConfidence")}</th>
+                <th className="px-4 py-3">{t("managerCurrentDepartment")}</th>
+                <th className="px-4 py-3">{t("managerAction")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-gray-800 font-medium">
-              {tickets.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-gray-900 font-bold">{t.id}</td>
-                  <td className="px-4 py-3 max-w-xs truncate" title={t.complaintText}>
-                    {t.complaintText}
+              {tickets.map((ticket) => (
+                <tr key={ticket.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-mono text-gray-900 font-bold">{ticket.id}</td>
+                  <td className="px-4 py-3 max-w-xs truncate" title={ticket.complaintText}>
+                    {ticket.complaintText}
                   </td>
-                  <td className="px-4 py-3">{t.predictedDepartmentId || "N/A"}</td>
+                  <td className="px-4 py-3">
+                    {ticket.predictedDepartmentId || t("managerNotAvailable")}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        (t.predictionConfidence ?? 0) < 0.6
+                        ticket.predictionConfidence !== null &&
+                        ticket.predictionConfidence < modelEvaluation.confidence.threshold
                           ? "bg-amber-100 text-amber-800"
                           : "bg-emerald-100 text-emerald-800"
                       }`}
                     >
-                      {t.predictionConfidence !== null
-                        ? `${Math.round(t.predictionConfidence * 100)}%`
-                        : "Manual"}
+                      {ticket.predictionConfidence !== null
+                        ? `${Math.round(ticket.predictionConfidence * 100)}%`
+                        : t("managerManualRouting")}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{t.departmentId}</td>
+                  <td className="px-4 py-3">{ticket.departmentId}</td>
                   <td className="px-4 py-3">
                     <button
                       type="button"
-                      onClick={() => handleOpenModal(t)}
+                      onClick={() => handleOpenModal(ticket)}
                       className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition"
                     >
-                      Reassign
+                      {t("managerReassignBtn")}
                     </button>
                   </td>
                 </tr>
@@ -107,9 +112,18 @@ export function ManagerLowConfidenceReview({
       {/* Override Modal */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
             <h4 className="text-lg font-bold text-gray-900">{t("managerOverrideModalTitle")}</h4>
-            <p className="text-xs text-gray-500 font-mono">Ticket: {selectedTicket.id}</p>
+            <p className="text-xs text-gray-500 font-mono">
+              {t("managerTicketLabel")}: {selectedTicket.id}
+            </p>
+
+            <DatasetEvidencePanel
+              predictedDepartmentId={selectedTicket.predictedDepartmentId}
+              predictionConfidence={selectedTicket.predictionConfidence}
+              routingSource={selectedTicket.routingSource}
+              assignedDepartmentId={selectedTicket.departmentId}
+            />
 
             <div className="space-y-1">
               <label htmlFor="dept-select" className="text-xs font-semibold text-gray-700">
@@ -123,7 +137,7 @@ export function ManagerLowConfidenceReview({
               >
                 {DEPARTMENTS.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.label}
+                    {t(d.labelKey)}
                   </option>
                 ))}
               </select>
@@ -138,7 +152,7 @@ export function ManagerLowConfidenceReview({
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Reason for manual reassignment..."
+                placeholder={t("managerReasonPlaceholder")}
                 className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
@@ -150,7 +164,7 @@ export function ManagerLowConfidenceReview({
                 disabled={submitting}
                 className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
               >
-                Cancel
+                {t("managerCancel")}
               </button>
               <button
                 type="button"
@@ -158,7 +172,7 @@ export function ManagerLowConfidenceReview({
                 disabled={submitting}
                 className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
               >
-                {submitting ? "Saving..." : t("managerConfirmOverride")}
+                {submitting ? t("managerSaving") : t("managerConfirmOverride")}
               </button>
             </div>
           </div>

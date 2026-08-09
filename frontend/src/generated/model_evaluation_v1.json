@@ -1,0 +1,550 @@
+{
+  "schema_version": 1,
+  "status": "completed",
+  "metadata": {
+    "created_at_utc": "2026-08-09T07:06:29.152545+00:00",
+    "model_version": "v1",
+    "dataset_version": "v1",
+    "mapping_version": "v1",
+    "model_sha256": "bafc086fe5b11bdcc5cbc4f04f3f3f222de8cbad27fe66d62a6685cc30f953d5",
+    "random_seed": 20260727,
+    "evaluation_partition": "held-out test",
+    "model_retrained": false,
+    "locked_metrics_reconciled": true,
+    "python": "3.12.0",
+    "pandas": "2.3.3",
+    "numpy": "2.5.1",
+    "scikit_learn": "1.9.0",
+    "joblib": "1.5.3",
+    "runtime_seconds": 79.88021079999999
+  },
+  "dataset_pipeline": {
+    "raw_records": 17034951,
+    "raw_records_with_non_null_narrative": 3823413,
+    "usable_narrative_records": 3822576,
+    "successfully_mapped_records": 3822576,
+    "selected_modeling_records": 200000,
+    "filters": {
+      "invalid_complaint_id": 2135,
+      "invalid_date_received": 0,
+      "missing_product": 0,
+      "missing_issue": 7,
+      "missing_or_unusable_narrative": 13210233,
+      "duplicate_identical": 0
+    },
+    "mapped_label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    }
+  },
+  "partitions": {
+    "natural_training": {
+      "rows": 140781,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 102747,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "training_used_for_fit": {
+      "rows": 68034,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 30000,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "validation": {
+      "rows": 29277,
+      "label_counts": {
+        "transfer_payment": 692,
+        "account_support": 1533,
+        "card_atm": 1872,
+        "fraud_security": 21233,
+        "loan_credit": 2405,
+        "general_support": 1542
+      }
+    },
+    "test": {
+      "rows": 29942,
+      "label_counts": {
+        "transfer_payment": 563,
+        "account_support": 1622,
+        "card_atm": 1959,
+        "fraud_security": 21736,
+        "loan_credit": 2375,
+        "general_support": 1687
+      }
+    },
+    "chunks_processed": 39,
+    "split_method": "SHA-256 assignment by seed and exact normalized narrative",
+    "exact_normalized_duplicates_cross_partitions": false
+  },
+  "class_distribution": {
+    "mapped_corpus": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    },
+    "held_out_test_true": {
+      "transfer_payment": 563,
+      "account_support": 1622,
+      "card_atm": 1959,
+      "fraud_security": 21736,
+      "loan_credit": 2375,
+      "general_support": 1687
+    },
+    "held_out_test_predicted": {
+      "transfer_payment": 250,
+      "account_support": 2040,
+      "card_atm": 2730,
+      "fraud_security": 19140,
+      "loan_credit": 3619,
+      "general_support": 2163
+    }
+  },
+  "metrics": {
+    "accuracy": 0.8279340057444392,
+    "balanced_accuracy": 0.7362042813472147,
+    "macro": {
+      "precision": 0.7075147719152342,
+      "recall": 0.7362042813472148,
+      "f1": 0.6923453806041904
+    },
+    "weighted": {
+      "precision": 0.866300153735708,
+      "recall": 0.8279340057444392,
+      "f1": 0.8377641720784692
+    },
+    "per_department": {
+      "transfer_payment": {
+        "precision": 0.984,
+        "recall": 0.4369449378330373,
+        "f1": 0.6051660516605166,
+        "support": 563
+      },
+      "account_support": {
+        "precision": 0.6583333333333333,
+        "recall": 0.8279901356350184,
+        "f1": 0.7334789732386674,
+        "support": 1622
+      },
+      "card_atm": {
+        "precision": 0.5472527472527473,
+        "recall": 0.7626339969372129,
+        "f1": 0.6372360844529751,
+        "support": 1959
+      },
+      "fraud_security": {
+        "precision": 0.9662486938349008,
+        "recall": 0.8508465218991534,
+        "f1": 0.9048830609648694,
+        "support": 21736
+      },
+      "loan_credit": {
+        "precision": 0.5885603757944183,
+        "recall": 0.8968421052631579,
+        "f1": 0.7107107107107107,
+        "support": 2375
+      },
+      "general_support": {
+        "precision": 0.5006934812760055,
+        "recall": 0.6419679905157084,
+        "f1": 0.5625974025974027,
+        "support": 1687
+      }
+    },
+    "confusion_matrix": {
+      "label_order": [
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support"
+      ],
+      "values": [
+        [
+          246,
+          252,
+          35,
+          12,
+          17,
+          1
+        ],
+        [
+          1,
+          1343,
+          179,
+          39,
+          56,
+          4
+        ],
+        [
+          0,
+          140,
+          1494,
+          198,
+          102,
+          25
+        ],
+        [
+          2,
+          255,
+          890,
+          18494,
+          1080,
+          1015
+        ],
+        [
+          0,
+          30,
+          67,
+          113,
+          2130,
+          35
+        ],
+        [
+          1,
+          20,
+          65,
+          284,
+          234,
+          1083
+        ]
+      ]
+    }
+  },
+  "confidence_analysis": {
+    "definition": "maximum MultinomialNB class probability; not calibrated reliability",
+    "operational_analysis_threshold": 0.6,
+    "threshold_origin": "Day 17 routing policy; not selected by held-out test performance",
+    "minimum": 0.2317004044607354,
+    "median": 0.9913285282783303,
+    "mean": 0.8912565339311636,
+    "maximum": 1.0,
+    "below_operational_threshold": {
+      "count": 3235,
+      "percentage": 0.1080422149489012,
+      "correct": 1249,
+      "incorrect": 1986
+    },
+    "at_or_above_operational_threshold": {
+      "count": 26707,
+      "percentage": 0.8919577850510988,
+      "correct": 23541,
+      "incorrect": 3166
+    },
+    "bins": [
+      {
+        "lower_inclusive": 0.0,
+        "upper": 0.4,
+        "upper_inclusive": false,
+        "count": 559,
+        "percentage": 0.018669427559949235,
+        "correct": 151,
+        "incorrect": 408,
+        "empirical_accuracy": 0.2701252236135957
+      },
+      {
+        "lower_inclusive": 0.4,
+        "upper": 0.5,
+        "upper_inclusive": false,
+        "count": 1119,
+        "percentage": 0.03737225302251019,
+        "correct": 428,
+        "incorrect": 691,
+        "empirical_accuracy": 0.38248436103663985
+      },
+      {
+        "lower_inclusive": 0.5,
+        "upper": 0.6,
+        "upper_inclusive": false,
+        "count": 1557,
+        "percentage": 0.05200053436644179,
+        "correct": 670,
+        "incorrect": 887,
+        "empirical_accuracy": 0.43031470777135516
+      },
+      {
+        "lower_inclusive": 0.6,
+        "upper": 0.7,
+        "upper_inclusive": false,
+        "count": 1534,
+        "percentage": 0.05123238260637232,
+        "correct": 784,
+        "incorrect": 750,
+        "empirical_accuracy": 0.5110821382007823
+      },
+      {
+        "lower_inclusive": 0.7,
+        "upper": 0.8,
+        "upper_inclusive": false,
+        "count": 1894,
+        "percentage": 0.06325562754659007,
+        "correct": 1222,
+        "incorrect": 672,
+        "empirical_accuracy": 0.6451953537486801
+      },
+      {
+        "lower_inclusive": 0.8,
+        "upper": 0.9,
+        "upper_inclusive": false,
+        "count": 2284,
+        "percentage": 0.07628080956515931,
+        "correct": 1669,
+        "incorrect": 615,
+        "empirical_accuracy": 0.7307355516637478
+      },
+      {
+        "lower_inclusive": 0.9,
+        "upper": 1.0,
+        "upper_inclusive": true,
+        "count": 20995,
+        "percentage": 0.7011889653329771,
+        "correct": 19866,
+        "incorrect": 1129,
+        "empirical_accuracy": 0.9462252917361277
+      }
+    ]
+  },
+  "examples": {
+    "correct": [
+      {
+        "example_id": "00001dad4a7c95ce",
+        "true_department": "general_support",
+        "predicted_department": "general_support",
+        "confidence": 0.9014042739397163,
+        "normalized_character_count": 560,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0002a5661a4debeb",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.9999999998457838,
+        "normalized_character_count": 1619,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0007e8370d83af17",
+        "true_department": "card_atm",
+        "predicted_department": "card_atm",
+        "confidence": 0.471393543346491,
+        "normalized_character_count": 3331,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0009fd9cac568a34",
+        "true_department": "loan_credit",
+        "predicted_department": "loan_credit",
+        "confidence": 0.9200763053138693,
+        "normalized_character_count": 368,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "000d32b6038d92a5",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.7044174479015481,
+        "normalized_character_count": 545,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "000de0c5d85a5779",
+        "true_department": "general_support",
+        "predicted_department": "general_support",
+        "confidence": 0.9109863331012126,
+        "normalized_character_count": 652,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0019eb6a333ed15a",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.9367491191367525,
+        "normalized_character_count": 57,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "001b0a76845b3f6e",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.999861716554826,
+        "normalized_character_count": 865,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "001ecbb5fc457558",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.9999998317286725,
+        "normalized_character_count": 609,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "001ecbb5fc457558",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.9999998317286725,
+        "normalized_character_count": 609,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "00213d99e2813e2e",
+        "true_department": "loan_credit",
+        "predicted_department": "loan_credit",
+        "confidence": 0.918922087865231,
+        "normalized_character_count": 266,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "00259d1f05c9d7e5",
+        "true_department": "fraud_security",
+        "predicted_department": "fraud_security",
+        "confidence": 0.999999724958793,
+        "normalized_character_count": 1495,
+        "contains_narrative": false
+      }
+    ],
+    "misclassified": [
+      {
+        "example_id": "00009e9967534377",
+        "true_department": "account_support",
+        "predicted_department": "card_atm",
+        "confidence": 0.4110356761477888,
+        "normalized_character_count": 144,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0014413d8c62c4a4",
+        "true_department": "fraud_security",
+        "predicted_department": "general_support",
+        "confidence": 0.902186985909273,
+        "normalized_character_count": 1949,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "00376dfa217ba7a5",
+        "true_department": "general_support",
+        "predicted_department": "fraud_security",
+        "confidence": 0.5151905865397028,
+        "normalized_character_count": 111,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0047c275e577ee79",
+        "true_department": "loan_credit",
+        "predicted_department": "general_support",
+        "confidence": 0.43772325042707094,
+        "normalized_character_count": 521,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0048b3d1d6762784",
+        "true_department": "general_support",
+        "predicted_department": "fraud_security",
+        "confidence": 0.684621448965193,
+        "normalized_character_count": 217,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0049974fd3a9c74c",
+        "true_department": "general_support",
+        "predicted_department": "loan_credit",
+        "confidence": 0.48686396416017863,
+        "normalized_character_count": 3244,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "005ce2e1683a4f4a",
+        "true_department": "fraud_security",
+        "predicted_department": "card_atm",
+        "confidence": 0.5841018017712453,
+        "normalized_character_count": 1816,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "00687e61662735c9",
+        "true_department": "fraud_security",
+        "predicted_department": "general_support",
+        "confidence": 0.8882895524165463,
+        "normalized_character_count": 1063,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "006ab9247b81a8a5",
+        "true_department": "fraud_security",
+        "predicted_department": "general_support",
+        "confidence": 0.97293973858049,
+        "normalized_character_count": 128,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0079508f11656286",
+        "true_department": "card_atm",
+        "predicted_department": "account_support",
+        "confidence": 0.5103084064554718,
+        "normalized_character_count": 1018,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "0080e697c8317cb3",
+        "true_department": "general_support",
+        "predicted_department": "card_atm",
+        "confidence": 0.42738617506092363,
+        "normalized_character_count": 721,
+        "contains_narrative": false
+      },
+      {
+        "example_id": "00ae371db74f9aad",
+        "true_department": "general_support",
+        "predicted_department": "fraud_security",
+        "confidence": 0.7842041029664268,
+        "normalized_character_count": 458,
+        "contains_narrative": false
+      }
+    ]
+  },
+  "historical_similarity": {
+    "status": "built_local_ignored_index",
+    "method": "cosine similarity over frozen model-v1 TF-IDF vectors",
+    "reference_partition": "held-out test",
+    "reference_records": 29942,
+    "covers_all_raw_records": false,
+    "separate_from_prediction_confidence": true,
+    "contains_narratives": false,
+    "index_file_name": "cfpb_similarity_test_v1.joblib",
+    "index_size_bytes": 30729474,
+    "index_sha256": "9da4320600965c40fa8420e56b67fbbeb1ee8b93a0d285a3fa93ff7936b377c2",
+    "feature_count": 100000
+  },
+  "privacy": {
+    "aggregate_outputs": true,
+    "contains_narratives": false,
+    "contains_complaint_ids": false,
+    "example_records_are_non_text_metadata": true
+  },
+  "limitations": [
+    "Labels are Product/Issue policy proxies rather than verified institutional ground truth.",
+    "The 200,000-record reservoir is a bounded sample of the mapped corpus.",
+    "The source and held-out test distributions are strongly imbalanced.",
+    "Exact normalized duplicates are grouped, but near-duplicates are not detected.",
+    "MultinomialNB maximum probabilities are not calibrated reliability estimates.",
+    "Real CFPB narratives are omitted from public examples because PII reduction is not anonymization.",
+    "Historical similarity covers only the explicitly recorded local reference partition."
+  ]
+}

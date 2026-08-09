@@ -8,6 +8,7 @@ import { useApp } from "@/components/app-provider";
 import { CustomerDashboardWorkflow } from "@/components/customer-dashboard-workflow";
 import { ManagerDashboardWorkflow } from "@/components/manager-dashboard-workflow";
 import { StaffTicketQueue } from "@/components/staff-ticket-queue";
+import { canViewManagerAnalytics } from "@/lib/auth-policy";
 
 const shellKeys = {
   customer: "customerShell",
@@ -53,7 +54,7 @@ export function ProtectedDashboard() {
           <div className="security-note mb-6">{t("securityBoundary")}</div>
           {profile.role === "customer" ? <CustomerDashboardWorkflow /> : null}
           {profile.role === "staff" ? <StaffTicketQueue /> : null}
-          {profile.role === "manager" ? <ManagerDashboardWorkflow /> : null}
+          {canViewManagerAnalytics(profile.role) ? <ManagerDashboardWorkflow /> : null}
         </section>
       </main>
     </>

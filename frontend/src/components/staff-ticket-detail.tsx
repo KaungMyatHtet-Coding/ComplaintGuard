@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { useApp } from "@/components/app-provider";
+import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
 import { StaffResolutionDetails } from "@/components/staff-resolution-details";
 import { createSubmissionGuard } from "@/lib/complaint-submission";
 import {
@@ -75,6 +76,12 @@ export function StaffTicketDetail({ ticketId, getToken, onChanged }: { ticketId:
         <div><dt>{t("staffCreated")}</dt><dd>{date.format(new Date(detail.createdAt))}</dd></div>
       </dl>
       <p className="complaint-body">{detail.complaintText}</p>
+      <DatasetEvidencePanel
+        predictedDepartmentId={detail.predictedDepartmentId}
+        predictionConfidence={detail.predictionConfidence}
+        routingSource={detail.routingSource}
+        assignedDepartmentId={detail.departmentId}
+      />
       <StaffResolutionDetails
         resolutionSummary={detail.resolutionSummary}
         resolvedAt={detail.resolvedAt}
