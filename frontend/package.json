@@ -3,11 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sync:evaluation": "node scripts/sync-model-evaluation.mjs",
+    "predev": "npm run sync:evaluation",
     "dev": "next dev",
+    "prebuild": "npm run sync:evaluation",
     "build": "next build",
     "start": "next start",
+    "prelint": "npm run sync:evaluation",
     "lint": "eslint",
+    "pretypecheck": "npm run sync:evaluation",
     "typecheck": "tsc --noEmit --incremental false",
+    "pretest": "npm run sync:evaluation",
     "test": "vitest run",
     "test:e2e": "playwright test --config playwright.config.ts"
   },

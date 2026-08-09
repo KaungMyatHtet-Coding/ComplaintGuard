@@ -30,6 +30,10 @@ export function isAppRole(value: unknown): value is AppRole {
   return typeof value === "string" && roles.includes(value as AppRole);
 }
 
+export function canViewManagerAnalytics(role: AppRole): boolean {
+  return role === "manager";
+}
+
 export function validateCredentials(email: string, password: string) {
   const normalizedEmail = email.trim();
   if (!normalizedEmail || !normalizedEmail.includes("@")) {

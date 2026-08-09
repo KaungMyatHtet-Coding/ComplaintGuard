@@ -213,6 +213,17 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Add focused evaluation/schema/similarity tests and document methodology, metric meanings, leakage controls and limitations.
 - Day 18 status: implementation and local evidence complete; 229 data/ML script tests, 102 backend tests, 44 frontend tests, scoped Ruff/format, TypeScript, ESLint, artifact validation and diff checks passed. Seven emulator-dependent backend tests were skipped; broad historical Ruff findings are documented without modifying unrelated files.
 
+### Day 19
+
+- [x] Add a manager-dashboard model and dataset analytics section sourced from the committed Day 18 evaluation evidence.
+- [x] Validate schema, metrics, six-department ordering, partitions, supports, confidence bins, privacy flags and similarity metadata in TypeScript.
+- [x] Visualize model metrics, pipeline counts, department performance, held-out distribution, confidence bins and the full confusion matrix without a chart dependency.
+- [x] Add bilingual, privacy-safe Dataset Evidence panels to customer, staff and manager review details.
+- [x] Keep similarity honest as a local-only, undeployed 29,942-record TF-IDF foundation with no neighbor results or narratives.
+- [x] Preserve the existing manager-only dashboard role boundary and distinguish it from bundled non-sensitive aggregate evidence.
+- [x] Add focused parser, reconciliation, rendering, authorization, localization, privacy and accessibility tests.
+- Day 19 status: implementation complete on the feature branch; final verification evidence is recorded in the review handoff before commit.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

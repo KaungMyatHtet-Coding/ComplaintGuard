@@ -560,6 +560,13 @@ completion of the original deployment checklist below.
 
 ### Day 19 — Friday, 7 August: System testing and bug fixing
 
+**Owner-authorized revised Day 19 scope completed 9 August 2026:** Day 19 added
+the authenticated manager Model & Dataset Analytics experience and reusable
+privacy-safe Dataset Evidence panels. The UI consumes only validated aggregate
+Day 18 evidence, does not expose narratives or complaint IDs, and reports the
+historical-similarity index as local-only and undeployed. The existing
+operational analytics and role boundaries remain unchanged.
+
 - [ ] Functional test cases အားလုံး run ရန်
 - [ ] English and Myanmar input test ရန်
 - [ ] Role/permission test ရန်

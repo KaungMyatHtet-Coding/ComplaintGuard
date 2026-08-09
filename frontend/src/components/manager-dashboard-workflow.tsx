@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useApp } from "@/components/app-provider";
 import { ManagerAnalyticsOverview } from "@/components/manager-analytics-overview";
 import { ManagerLowConfidenceReview } from "@/components/manager-low-confidence-review";
+import { ModelAnalyticsDashboard } from "@/components/model-analytics-dashboard";
 import { getFirebaseServices } from "@/lib/firebase";
 import {
   type LowConfidenceTicket,
@@ -19,6 +21,7 @@ async function currentToken() {
 }
 
 export function ManagerDashboardWorkflow() {
+  const { t } = useApp();
   const [analytics, setAnalytics] = useState<ManagerAnalytics | null>(null);
   const [tickets, setTickets] = useState<LowConfidenceTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,11 +41,11 @@ export function ManagerDashboardWorkflow() {
       setAnalytics(anData);
       setTickets(lcTickets);
     } catch {
-      setError("Failed to load manager dashboard data.");
+      setError(t("managerDashboardLoadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -61,10 +64,10 @@ export function ManagerDashboardWorkflow() {
       const token = await currentToken();
       if (!token) throw new Error("No token");
       await overrideTicketDepartment(token, ticketId, newDeptId, reason);
-      setSuccessMsg(`Ticket ${ticketId} reassigned to ${newDeptId}.`);
+      setSuccessMsg(t("managerOverrideSuccess"));
       await loadData();
     } catch {
-      setError("Failed to override department assignment.");
+      setError(t("managerOverrideError"));
     }
   };
 
@@ -72,7 +75,7 @@ export function ManagerDashboardWorkflow() {
     return (
       <div className="p-8 text-center space-y-3">
         <div className="spinner mx-auto" />
-        <p className="text-sm text-gray-500 font-medium">Loading manager dashboard...</p>
+        <p className="text-sm text-gray-500 font-medium">{t("managerDashboardLoading")}</p>
       </div>
     );
   }
@@ -94,6 +97,8 @@ export function ManagerDashboardWorkflow() {
       {analytics && <ManagerAnalyticsOverview analytics={analytics} />}
 
       <ManagerLowConfidenceReview tickets={tickets} onOverride={handleOverride} />
+
+      <ModelAnalyticsDashboard />
     </div>
   );
 }

@@ -22,10 +22,17 @@ describe("localization foundation", () => {
       "staffRequestEscalation",
       "status_triaged",
       "priority_urgent",
+      "modelAnalyticsTitle",
+      "confidenceNotAccuracy",
+      "evidenceTitle",
+      "evidenceSimilarityLocalOnly",
+      "managerDashboardLoading",
     ] as const) {
       expect(translate("en", key)).not.toMatch(/^\[/u);
       expect(translate("my", key)).not.toMatch(/^\[/u);
     }
+    expect(translate("my", "modelAnalyticsTitle")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "evidenceTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "loginTitle")).toContain("အကောင့်");
   });
 

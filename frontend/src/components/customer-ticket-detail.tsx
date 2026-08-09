@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { CustomerFeedbackPanel } from "@/components/customer-feedback-panel";
+import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
 import type { Locale } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
 import type { CustomerTicketDetail } from "@/lib/customer-workflow";
@@ -139,33 +140,12 @@ export function CustomerTicketDetailView({
         </div>
       </div>
 
-      {/* Original Complaint Box */}
-      <div className="grid gap-3 sm:grid-cols-3 text-sm">
-        <div className="rounded-lg border border-gray-200 p-3">
-          <div className="text-xs text-gray-500">
-            {translate(locale, "customerPredictedDepartment")}
-          </div>
-          <div className="font-semibold">
-            {ticket.predictedDepartmentId ?? translate(locale, "customerPredictionPending")}
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 p-3">
-          <div className="text-xs text-gray-500">
-            {translate(locale, "customerPredictionConfidence")}
-          </div>
-          <div className="font-semibold">
-            {ticket.predictionConfidence == null
-              ? translate(locale, "customerPredictionPending")
-              : `${Math.round(ticket.predictionConfidence * 100)}%`}
-          </div>
-        </div>
-        <div className="rounded-lg border border-gray-200 p-3">
-          <div className="text-xs text-gray-500">
-            {translate(locale, "customerRoutingState")}
-          </div>
-          <div className="font-semibold">{ticket.routingSource ?? "pending"}</div>
-        </div>
-      </div>
+      <DatasetEvidencePanel
+        predictedDepartmentId={ticket.predictedDepartmentId}
+        predictionConfidence={ticket.predictionConfidence}
+        routingSource={ticket.routingSource}
+        assignedDepartmentId={ticket.assignedDepartmentId}
+      />
 
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">

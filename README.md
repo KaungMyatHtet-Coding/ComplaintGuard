@@ -2,11 +2,14 @@
 
 ComplaintGuard is a planned bilingual web system that accepts financial-service complaints in English or Myanmar, classifies them with TF-IDF and Multinomial Naive Bayes, and routes them to an appropriate support department. Customers track tickets, department staff process assigned complaints, and managers view a small operational dashboard.
 
-The repository has completed **Day 18: real ML evaluation and dataset evidence**.
+The repository has completed **Day 19: manager model analytics and privacy-safe
+complaint evidence UI**.
 The frozen Day 9 classifier was reproduced on its unchanged 29,942-record
 held-out test set without retraining. Stable JSON/CSV evidence, confidence
 analysis, and a privacy-preserving local historical-similarity foundation are
 documented in [`docs/model_evaluation.md`](docs/model_evaluation.md). See
+[`docs/day19_manager_analytics.md`](docs/day19_manager_analytics.md) for the
+validated frontend delivery architecture and UI boundaries. See
 [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the schedule and `docs/` for the
 approved architecture, schema, and access boundaries.
 
@@ -76,7 +79,8 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-The lint and build commands are Day 2 verification gates. There is no frontend test script yet.
+The frontend now includes Vitest coverage; run `npm.cmd test`,
+`npm.cmd run typecheck`, `npm.cmd run lint`, and `npm.cmd run build`.
 
 Create and activate the single root Python environment with:
 

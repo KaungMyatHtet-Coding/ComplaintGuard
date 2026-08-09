@@ -14,7 +14,7 @@ export function ManagerAnalyticsOverview({ analytics }: ManagerAnalyticsOverview
     <div className="space-y-6">
       <header>
         <p className="text-xs font-semibold tracking-wider text-blue-600 uppercase">
-          Executive Operations
+          {t("managerExecutiveOperations")}
         </p>
         <h2 className="text-2xl font-bold text-gray-900">{t("managerAnalyticsTitle")}</h2>
       </header>
@@ -43,7 +43,9 @@ export function ManagerAnalyticsOverview({ analytics }: ManagerAnalyticsOverview
 
         <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
           <p className="text-xs font-medium text-gray-500">{t("managerAvgSla")}</p>
-          <p className="mt-2 text-3xl font-extrabold text-purple-600">{analytics.avgResolutionHours}h</p>
+          <p className="mt-2 text-3xl font-extrabold text-purple-600">
+            {analytics.avgResolutionHours} {t("managerHoursShort")}
+          </p>
         </div>
       </div>
 
@@ -56,22 +58,24 @@ export function ManagerAnalyticsOverview({ analytics }: ManagerAnalyticsOverview
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-gray-900 text-sm">{dept.label}</span>
                 <span className="px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full">
-                  {dept.total} total
+                  {dept.total} {t("managerTotalShort")}
                 </span>
               </div>
 
               <div className="space-y-1 text-xs text-gray-600">
                 <div className="flex justify-between">
-                  <span>In progress:</span>
+                  <span>{t("managerInProgress")}:</span>
                   <span className="font-semibold text-blue-700">{dept.inProgress}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Resolved:</span>
+                  <span>{t("managerResolvedShort")}:</span>
                   <span className="font-semibold text-emerald-700">{dept.resolved}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Avg SLA:</span>
-                  <span className="font-semibold text-purple-700">{dept.avgResolutionHours}h</span>
+                  <span>{t("managerAvgSlaShort")}:</span>
+                  <span className="font-semibold text-purple-700">
+                    {dept.avgResolutionHours} {t("managerHoursShort")}
+                  </span>
                 </div>
               </div>
             </div>

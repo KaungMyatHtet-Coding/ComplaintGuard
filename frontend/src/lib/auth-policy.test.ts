@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isAppRole,
+  canViewManagerAnalytics,
   parseUserProfile,
   roleNavigation,
   roles,
@@ -12,6 +13,13 @@ describe("authentication policy", () => {
   it("keeps the four approved roles stable", () => {
     expect(roles).toEqual(["customer", "staff", "manager", "admin"]);
     for (const role of roles) expect(roleNavigation[role]).toEqual(["dashboard"]);
+  });
+
+  it("keeps manager analytics exclusive to the manager role", () => {
+    expect(canViewManagerAnalytics("manager")).toBe(true);
+    expect(canViewManagerAnalytics("admin")).toBe(false);
+    expect(canViewManagerAnalytics("staff")).toBe(false);
+    expect(canViewManagerAnalytics("customer")).toBe(false);
   });
 
   it("validates credentials without retaining the password", () => {
