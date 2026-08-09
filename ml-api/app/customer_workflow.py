@@ -364,7 +364,8 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
                     return action_snapshot.to_dict()["result"]
                 feedback_snapshot = next(transaction.get(fb_ref))
                 ticket_snapshot = next(transaction.get(ticket_ref))
-                if feedback_snapshot.exists or ticket_snapshot.get("feedback"):
+                ticket_data = ticket_snapshot.to_dict() or {}
+                if feedback_snapshot.exists or ticket_data.get("feedback"):
                     raise FeedbackAlreadySubmitted(
                         "Feedback has already been submitted."
                     )

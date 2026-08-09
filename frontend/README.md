@@ -1,43 +1,53 @@
 # ComplaintGuard frontend
 
-This directory contains the ComplaintGuard Next.js frontend. It uses TypeScript,
-the App Router, Tailwind CSS, ESLint, a `src` directory, and npm.
+The frontend is a Next.js 16 TypeScript application with English/Myanmar
+localization and authenticated role shells.
 
-Day 12 adds responsive home, login and role-specific dashboard shells,
-English/Myanmar UI localization, and a configuration-gated Firebase
-email/password authentication boundary. Complaint submission and other Day 13+
-workflows are not included.
+## Implemented role experiences
 
-## Firebase configuration
+- Customer: complaint submission, history/detail, participant messages,
+  resolution/feedback, and Dataset Evidence.
+- Staff: exact-department queue, filters, details, messages, approved lifecycle
+  actions, resolution, audit requests/events, and Dataset Evidence.
+- Manager: operational analytics, low-confidence department override, and
+  aggregate Model & Dataset Analytics.
+- Admin: authenticated shell only; no operational or administration UI.
 
-Copy the safe placeholder file and replace values only in the ignored local
-file:
+Frontend visibility is not an authorization boundary. FastAPI independently
+verifies Firebase ID tokens and roles, and Firestore rules govern permitted
+client reads while denying protected client writes.
+
+## Evaluation evidence
+
+`evaluation/day18/model_evaluation_v1.json` is the source of truth. Turbopack
+cannot import outside this directory in the production client graph, so
+`scripts/sync-model-evaluation.mjs` creates an exact frontend-local build input.
+It runs before dev/test/typecheck/lint/build and fails if the source is missing,
+invalid at its top-level boundary, or cannot be synchronized. The TypeScript
+parser then performs strict schema and reconciliation validation with no fallback
+metrics.
+
+The bundled file is non-sensitive aggregate academic evidence. Manager-only UI
+visibility does not make the bundled JSON a backend-protected resource.
+
+## Configuration
+
+Copy `.env.example` to ignored `.env.local` for local use. Never store Admin
+credentials, ID tokens, seeded passwords, or service-account JSON in public
+variables. Emulator connections require both explicit local flags and a
+non-production Next.js runtime.
+
+See `../docs/demo_guide.md` for the supported emulator configuration.
+
+## Commands
 
 ```powershell
-Copy-Item .env.example .env.local
-```
-
-Enable Firebase email/password authentication and create matching active
-`users/{uid}` Firestore profiles. Valid roles are `customer`, `staff`,
-`manager`, and `admin`; staff profiles also require a valid `departmentId`.
-Demo credentials belong in the owner/password manager, never in Git.
-
-When configuration is absent, the login screen shows an explicit setup state
-and does not pretend authentication succeeded. Client navigation is not an
-authorization boundary: `firebase/firestore.rules` and trusted backend checks
-remain authoritative. Live Firebase authentication has not yet been verified.
-
-## Verified commands
-
-From this directory on Windows PowerShell:
-
-```powershell
-npm.cmd install
-npm.cmd run dev
-npm.cmd run lint
-npm.cmd run typecheck
 npm.cmd test
+npm.cmd run typecheck
+npm.cmd run lint
 npm.cmd run build
+npm.cmd run dev -- -H 127.0.0.1 -p 3000
 ```
 
-Open `http://localhost:3000` after starting the development server. Use `npm.cmd` if PowerShell blocks the `npm.ps1` launcher.
+The supported evidence is local/emulator-based. No public frontend URL or QR
+code is currently verified.

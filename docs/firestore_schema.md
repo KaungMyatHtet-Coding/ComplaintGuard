@@ -2,7 +2,11 @@
 
 ## Status and boundaries
 
-This Day 4 design was owner-approved on 21 July 2026. It defines the minimum Cloud Firestore Spark schema for ComplaintGuard operational demo data. It is not a production approval, Firebase integration, or authorization-test result.
+This schema was designed on Day 4 and subsequently implemented for the local
+demo workflows. Auth/Firestore Emulator tests now cover ownership, exact staff
+department scope, manager reads, trusted workflow adapters, and denied direct
+client writes. This is emulator evidence, not production rules-deployment
+verification or an independent security audit.
 
 Firestore is the source of truth for live application tickets and their workflow. It must never contain the historical CFPB dataset, historical narratives, training or evaluation data, model-normalized text, translated text, prompts, feature data, or model artifacts. Dashboard summaries, if later needed, are derived operational data and are never authoritative.
 
@@ -169,4 +173,9 @@ No other transitions are allowed. Customers cannot directly change status. Admin
 - Rules document reads used for authorization consume quota and require the referenced profile to exist. Query and index design must be measured when implementation begins.
 - The Admin SDK bypasses Firestore rules. Every trusted-backend endpoint must repeat authentication, role, ownership, department, transition, validation, redaction, and audit checks.
 - Cross-document assignment validity, redaction, retention deletion, immutable audit creation, and atomic lifecycle/event writes require trusted backend transactions or jobs.
-- `firebase/firestore.rules` is a deny-by-default Day 4 development draft. Firebase CLI and emulator tooling are unavailable, so it has not been compiled or emulator-tested and is not production-approved.
+- `firebase/firestore.rules` is deny-by-default and is compiled/exercised by the
+  local emulator harness. It is not verified as deployed to production.
+- Redaction reduces obvious sensitive patterns but does not guarantee
+  anonymization; stored operational complaint text remains sensitive.
+- No approved retention/deletion workflow, rate limiting, production monitoring,
+  disaster recovery, penetration test, or independent audit exists.

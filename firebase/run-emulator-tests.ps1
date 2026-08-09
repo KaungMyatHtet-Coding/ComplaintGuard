@@ -16,8 +16,6 @@ $emulatorCache = Join-Path $localState "emulators"
 $firebaseCli = Join-Path $firebaseDirectory "node_modules\firebase-tools\lib\bin\firebase.js"
 $vitestCli = Join-Path $firebaseDirectory "node_modules\.bin\vitest.cmd"
 $python = Join-Path $repositoryRoot ".venv\Scripts\python.exe"
-$stdoutLog = Join-Path $localState "firebase-cli.stdout.log"
-$stderrLog = Join-Path $localState "firebase-cli.stderr.log"
 $apiStdoutLog = Join-Path $localState "api.stdout.log"
 $apiStderrLog = Join-Path $localState "api.stderr.log"
 $frontendStdoutLog = Join-Path $localState "frontend.stdout.log"
@@ -45,13 +43,14 @@ try {
         ) `
         -WorkingDirectory $repositoryRoot `
         -WindowStyle Hidden `
-        -RedirectStandardOutput $stdoutLog `
-        -RedirectStandardError $stderrLog `
         -PassThru
 
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
     $ready = $false
     while ([DateTime]::UtcNow -lt $deadline) {
+        if ($launcher.HasExited) {
+            throw "Firebase Emulator launcher exited with code $($launcher.ExitCode) before Firestore became ready."
+        }
         $client = [System.Net.Sockets.TcpClient]::new()
         try {
             $client.Connect("127.0.0.1", $emulatorPort)
@@ -64,13 +63,15 @@ try {
         }
     }
     if (-not $ready) {
-        $details = if (Test-Path $stderrLog) { Get-Content $stderrLog -Raw } else { "" }
-        throw "Firestore Emulator did not listen on 127.0.0.1:$emulatorPort. $details"
+        throw "Firestore Emulator did not listen on 127.0.0.1:$emulatorPort."
     }
 
     $authDeadline = [DateTime]::UtcNow.AddSeconds(30)
     $authReady = $false
     while ([DateTime]::UtcNow -lt $authDeadline) {
+        if ($launcher.HasExited) {
+            throw "Firebase Emulator launcher exited with code $($launcher.ExitCode) before Auth became ready."
+        }
         $client = [System.Net.Sockets.TcpClient]::new()
         try {
             $client.Connect("127.0.0.1", $authPort)

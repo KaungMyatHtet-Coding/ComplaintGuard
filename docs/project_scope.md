@@ -80,3 +80,13 @@ The MVP is done only when all of the following have reproducible evidence:
 ## Day 1 approval record
 
 This document freezes the project title, problem, users, departments, must-have features, exclusions, and completion criteria from `PROJECT_PLAN.md`. It is optimized for one active developer by reducing parallel coordination and UI breadth, not by removing required academic or security outcomes. Stretch goals remain deferred until the end-to-end MVP is stable.
+
+## Day 20 completion interpretation
+
+The implemented and locally verified MVP covers customer, department staff, and
+manager workflows. The admin role is an authenticated shell only. Myanmar/mixed
+submissions require manager review, historical similarity is local-only, and
+macro-F1 remains below target. Public deployment, QR code, production Firebase,
+retention/deletion, and admin operations remain incomplete; therefore the
+original definition-of-done items that require those capabilities must remain
+unchecked. The supported operating mode is a local emulator-based academic demo.

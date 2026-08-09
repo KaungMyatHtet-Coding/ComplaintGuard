@@ -21,7 +21,6 @@ from typing import Final
 
 import pandas as pd
 
-
 CLEANED_COLUMNS: Final[tuple[str, ...]] = (
     "Complaint ID",
     "Date received",
@@ -209,9 +208,7 @@ def classify_and_parse_dates(
     null_date = date_text.isna()
     exact_empty_date = date_text.notna() & date_text.eq("")
     whitespace_bearing_date = (
-        date_text.notna()
-        & ~exact_empty_date
-        & date_text.ne(date_text.str.strip())
+        date_text.notna() & ~exact_empty_date & date_text.ne(date_text.str.strip())
     )
     eligible_shape = ~(null_date | exact_empty_date | whitespace_bearing_date)
 
@@ -291,7 +288,10 @@ def classify_and_parse_dates(
 
 
 def _canonical_digest(row: pd.Series) -> str:
-    canonical = [None if pd.isna(row[column]) else str(row[column]) for column in CLEANED_COLUMNS[1:]]
+    canonical = [
+        None if pd.isna(row[column]) else str(row[column])
+        for column in CLEANED_COLUMNS[1:]
+    ]
     payload = json.dumps(canonical, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -302,11 +302,15 @@ def _temporary_path(final_path: Path, run_id: str) -> Path:
 
 def _input_metadata(input_path: Path, source_columns: list[str]) -> dict[str, object]:
     stat = input_path.stat()
-    header_payload = json.dumps(source_columns, ensure_ascii=False, separators=(",", ":"))
+    header_payload = json.dumps(
+        source_columns, ensure_ascii=False, separators=(",", ":")
+    )
     return {
         "file_name": input_path.name,
         "size_bytes": stat.st_size,
-        "modified_at_utc": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        "modified_at_utc": datetime.fromtimestamp(
+            stat.st_mtime, timezone.utc
+        ).isoformat(),
         "header_sha256": hashlib.sha256(header_payload.encode("utf-8")).hexdigest(),
     }
 
@@ -376,8 +380,7 @@ def _validate_version_2_date_counts(
         values[key] = value
     category_total = sum(values[key] for key in DATE_DIAGNOSTIC_CATEGORIES)
     accepted_total = (
-        values["accepted_millisecond_utc_timestamp"]
-        + values["accepted_plain_iso_date"]
+        values["accepted_millisecond_utc_timestamp"] + values["accepted_plain_iso_date"]
     )
     if (
         values["total_classified_dates"] != category_total
@@ -385,7 +388,9 @@ def _validate_version_2_date_counts(
         or type(counts.get("input_rows")) is not int
         or values["total_classified_dates"] != counts["input_rows"]
     ):
-        raise PairValidationError("Version-2 report has inconsistent date-format counts")
+        raise PairValidationError(
+            "Version-2 report has inconsistent date-format counts"
+        )
 
 
 def _is_approved_legacy_pair(
@@ -413,7 +418,11 @@ def _pair_identity(report: dict[str, object]) -> tuple[object, ...]:
     completion = report["completion"]
     counts = report["counts"]
     schema = report["schema"]
-    if not isinstance(completion, dict) or not isinstance(counts, dict) or not isinstance(schema, dict):
+    if (
+        not isinstance(completion, dict)
+        or not isinstance(counts, dict)
+        or not isinstance(schema, dict)
+    ):
         raise PairValidationError("Completed-pair metadata has invalid structure")
     cleaned_columns = schema.get("cleaned_columns")
     return (
@@ -450,7 +459,9 @@ def validate_completed_pair(output_path: Path, report_path: Path) -> dict[str, o
         or counts.get("retained_rows") != retained_rows
         or cleaned_columns != list(CLEANED_COLUMNS)
     ):
-        raise PairValidationError("Completion metadata does not match the completed run")
+        raise PairValidationError(
+            "Completion metadata does not match the completed run"
+        )
 
     integrity = stream_file_integrity(output_path)
     if (
@@ -460,7 +471,10 @@ def validate_completed_pair(output_path: Path, report_path: Path) -> dict[str, o
     ):
         raise PairValidationError("Completed CSV integrity does not match its report")
     report_schema_version = report.get("report_schema_version")
-    if type(report_schema_version) is int and report_schema_version == CURRENT_REPORT_SCHEMA_VERSION:
+    if (
+        type(report_schema_version) is int
+        and report_schema_version == CURRENT_REPORT_SCHEMA_VERSION
+    ):
         _validate_version_2_date_counts(report, counts)
     elif (
         report_schema_version is None
@@ -592,7 +606,10 @@ def _remove_current_csv(
     output_path: Path,
     expected_integrity: dict[str, object],
 ) -> None:
-    if output_path.is_file() and stream_file_integrity(output_path) == expected_integrity:
+    if (
+        output_path.is_file()
+        and stream_file_integrity(output_path) == expected_integrity
+    ):
         output_path.unlink()
 
 
@@ -609,7 +626,9 @@ def _copy_previous_artifacts_for_recovery(
 
 
 def _remove_backups_after_valid_pair(backups: tuple[Path, ...], state: str) -> None:
-    for backup in sorted(backups, key=lambda path: os.path.normcase(str(path.resolve()))):
+    for backup in sorted(
+        backups, key=lambda path: os.path.normcase(str(path.resolve()))
+    ):
         try:
             backup.unlink(missing_ok=True)
         except OSError as error:
@@ -660,7 +679,9 @@ def _publish_completed_pair(
     previous_pair: PreviousPair | None,
 ) -> None:
     if previous_pair is not None and not overwrite:
-        raise FileExistsError("Refusing to overwrite an existing CSV or completion report")
+        raise FileExistsError(
+            "Refusing to overwrite an existing CSV or completion report"
+        )
 
     output_backup = _backup_path(output_path, run_id)
     report_backup = _backup_path(report_path, run_id)
@@ -729,7 +750,9 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
     lock_paths = _publication_lock_paths(config.output_path, config.report_path)
     temporary_output = _temporary_path(config.output_path, run_id)
     temporary_report = _temporary_path(config.report_path, run_id)
-    sqlite_path = config.output_path.with_name(f".{config.output_path.name}.{run_id}.sqlite.tmp")
+    sqlite_path = config.output_path.with_name(
+        f".{config.output_path.name}.{run_id}.sqlite.tmp"
+    )
     created_paths = (temporary_output, temporary_report, sqlite_path)
     started_at = datetime.now(timezone.utc)
     timer = perf_counter()
@@ -777,13 +800,19 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
             on_bad_lines="error",
         )
         wrote_header = False
-        chunks = reader if config.max_chunks is None else islice(reader, config.max_chunks)
+        chunks = (
+            reader if config.max_chunks is None else islice(reader, config.max_chunks)
+        )
         for chunk_number, chunk in enumerate(chunks, start=1):
             chunks_processed += 1
             input_rows += len(chunk)
 
             for column in (*LABEL_COLUMNS, *OPTIONAL_TEXT_COLUMNS):
-                chunk[column] = chunk[column].map(normalize_boundary, na_action=None).astype("string")
+                chunk[column] = (
+                    chunk[column]
+                    .map(normalize_boundary, na_action=None)
+                    .astype("string")
+                )
 
             ids = chunk["Complaint ID"].str.strip()
             valid_id = ids.str.fullmatch(r"[1-9]\d*", na=False)
@@ -800,12 +829,16 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
                 normalized, applied = normalize_and_redact_narrative(narrative)
                 normalized_narratives.append(normalized)
                 redactions.update(applied)
-            chunk["Consumer complaint narrative"] = pd.array(normalized_narratives, dtype="string")
+            chunk["Consumer complaint narrative"] = pd.array(
+                normalized_narratives, dtype="string"
+            )
             valid_narrative = chunk["Consumer complaint narrative"].notna()
 
             reason = pd.Series(pd.NA, index=chunk.index, dtype="string")
             reason.mask(~valid_id & reason.isna(), "invalid_complaint_id", inplace=True)
-            reason.mask(~valid_date & reason.isna(), "invalid_date_received", inplace=True)
+            reason.mask(
+                ~valid_date & reason.isna(), "invalid_date_received", inplace=True
+            )
             reason.mask(~valid_product & reason.isna(), "missing_product", inplace=True)
             reason.mask(~valid_issue & reason.isna(), "missing_issue", inplace=True)
             reason.mask(
@@ -817,7 +850,9 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
 
             candidates = chunk.loc[reason.isna(), list(CLEANED_COLUMNS)].copy()
             candidates["Complaint ID"] = ids.loc[candidates.index]
-            candidates["Date received"] = dates.loc[candidates.index].dt.strftime("%Y-%m-%d")
+            candidates["Date received"] = dates.loc[candidates.index].dt.strftime(
+                "%Y-%m-%d"
+            )
 
             retained_indices: list[int] = []
             for index, row in candidates.iterrows():
@@ -911,7 +946,9 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
                 "chunks_processed": chunks_processed,
                 "reconciliation_valid": True,
             },
-            "rejection_reasons": {reason: int(rejected[reason]) for reason in REJECTION_REASONS},
+            "rejection_reasons": {
+                reason: int(rejected[reason]) for reason in REJECTION_REASONS
+            },
             "date_format_counts": {
                 **{
                     category: int(date_diagnostics[category])
@@ -928,7 +965,8 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
                 for reason in ("email", "url", "phone", "long_number")
             },
             "label_distributions": {
-                column: dict(sorted(distributions[column].items())) for column in LABEL_COLUMNS
+                column: dict(sorted(distributions[column].items()))
+                for column in LABEL_COLUMNS
             },
             "timing": {
                 "started_at_utc": started_at.isoformat(),
@@ -940,7 +978,9 @@ def clean_cfpb(config: CleaningConfig) -> dict[str, object]:
                 "row_level_values_in_report": False,
             },
         }
-        temporary_report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        temporary_report.write_text(
+            json.dumps(report, indent=2) + "\n", encoding="utf-8"
+        )
         if connection is not None:
             connection.close()
             connection = None

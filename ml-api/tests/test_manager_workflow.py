@@ -3,8 +3,6 @@
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import create_app
 from app.manager_workflow import (
     InMemoryManagerBackend,
@@ -12,6 +10,7 @@ from app.manager_workflow import (
     ManagerWorkflowService,
     TicketNotFound,
 )
+from fastapi.testclient import TestClient
 
 
 class FakeAuthTicketBackend:

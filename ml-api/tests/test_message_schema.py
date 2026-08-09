@@ -1,7 +1,6 @@
 """Canonical and legacy Firestore message-schema compatibility tests."""
 
 import pytest
-
 from app.message_schema import normalize_message_document
 
 

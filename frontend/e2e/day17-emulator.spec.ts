@@ -93,8 +93,12 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   );
   expect(highId).not.toBe("");
   await refreshAndOpen(page, highId);
-  await expect(page.getByText("fraud_security", { exact: true })).toBeVisible();
-  await expect(page.getByText("model", { exact: true })).toBeVisible();
+  const predictedDepartment = page
+    .getByText("Predicted department", { exact: true })
+    .locator("..")
+    .getByRole("definition");
+  await expect(predictedDepartment).toHaveText("Fraud & Security");
+  await expect(page.getByText("Model routing evidence", { exact: true })).toBeVisible();
   await signOut(page);
 
   await signIn(page, users.staffCard, "Department staff dashboard");
@@ -120,7 +124,7 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   await expect(page.getByText("Complete customer E2E reply.")).toBeVisible();
   const lowId = await submitAndReplay(page, "I cannot understand this fee.");
   await refreshAndOpen(page, lowId);
-  await expect(page.getByText("manual_review", { exact: true })).toBeVisible();
+  await expect(page.getByText("Manual review", { exact: true })).toBeVisible();
   await signOut(page);
 
   await signIn(page, users.staffCard, "Department staff dashboard");

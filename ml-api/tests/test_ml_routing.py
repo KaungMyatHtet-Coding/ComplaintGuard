@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from app.config import MODEL_SHA256
 from app.model import FrozenDepartmentClassifier, Prediction
 from app.routing import (

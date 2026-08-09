@@ -8,9 +8,6 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from google.auth.credentials import AnonymousCredentials
-from google.cloud import firestore
-
 from app.config import MODEL_SHA256
 from app.customer_workflow import (
     CustomerWorkflowService,
@@ -44,6 +41,8 @@ from app.ticketing import (
     FirebaseAdminTicketBackend,
     PersistenceError,
 )
+from google.auth.credentials import AnonymousCredentials
+from google.cloud import firestore
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("FIRESTORE_EMULATOR_HOST"),

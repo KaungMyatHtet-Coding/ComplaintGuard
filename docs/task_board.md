@@ -190,6 +190,21 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - Day 14 status: Done in automated/synthetic scope on 2 August 2026.
 - Firebase Emulator rules evidence and live Firebase workflow verification remain outstanding; neither is claimed as passed.
 
+### Day 15
+
+- [x] Add customer-owned complaint history and ticket detail.
+- [x] Add participant-safe customer/staff messaging and customer-visible status.
+- [x] Add resolved-ticket feedback with duplicate prevention.
+- [x] Enforce customer ownership in trusted backend queries and transactions.
+- Day 15 status: Done; later emulator verification confirmed the integrated customer/staff conversation flow.
+
+### Day 16
+
+- [x] Add manager operational totals, active/resolved counts, low-confidence count, department workload, and average resolution time.
+- [x] Add manager-only low-confidence review and transactional department override without rewriting the original prediction.
+- [x] Enforce active-manager API authorization.
+- Day 16 status: Done for implemented operational analytics and department override. Broader priority/reopen/close manager operations were not implemented.
+
 ### Day 17
 
 - [x] Integrate the frozen TF-IDF/Multinomial Naive Bayes classifier with trusted ticket submission and routing.
@@ -222,7 +237,16 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Keep similarity honest as a local-only, undeployed 29,942-record TF-IDF foundation with no neighbor results or narratives.
 - [x] Preserve the existing manager-only dashboard role boundary and distinguish it from bundled non-sensitive aggregate evidence.
 - [x] Add focused parser, reconciliation, rendering, authorization, localization, privacy and accessibility tests.
-- Day 19 status: implementation complete on the feature branch; final verification evidence is recorded in the review handoff before commit.
+- Day 19 status: Done and merged through `629fc5d`; 64 frontend tests, TypeScript, ESLint, production build, focused ML evaluation tests, backend preservation tests, artifact/hash reconciliation, and Git integrity passed before merge.
+
+### Day 20
+
+- [x] Reconcile current setup, architecture, security, milestone, and operating-mode documentation.
+- [x] Publish demo, claim-evidence, release, final-report, presentation-outline, and final-test sources.
+- [x] Add a safe repository-relative final verification wrapper.
+- [x] Run frontend, ML/evaluation, backend, Firebase rules/adapters/E2E, Ruff, artifact, UTF-8, secret, privacy, size, and Git checks.
+- [x] Record actual results and mark completion only after mandatory acceptance checks pass.
+- Day 20 status: Complete in the supported local/emulator scope. All available mandatory gates pass, including repository-wide Ruff check/format and the final wrapper. The complete scripts suite remains unavailable because `.venv` lacks Matplotlib. Public deployment, QR code, production Firebase, retention/deletion, and admin operations remain incomplete.
 
 ## Day 2 completion rule
 
