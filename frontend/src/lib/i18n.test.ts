@@ -33,6 +33,13 @@ describe("localization foundation", () => {
     }
     expect(translate("my", "modelAnalyticsTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "evidenceTitle")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("en", "evidencePredictionConfidence")).toBe("Model confidence");
+    expect(translate("my", "evidencePredictionConfidence")).toBe(
+      "မော်ဒယ် ယုံကြည်မှု",
+    );
+    expect(translate("en", "evidenceConfidenceExplanation")).toContain(
+      "does not guarantee correctness",
+    );
     expect(translate("my", "loginTitle")).toContain("အကောင့်");
   });
 

@@ -172,6 +172,51 @@ committed Day 10 evidence rather than claiming a live translation result.
 
 ## Failure and recovery
 
+### Preserve emulator data across a restart
+
+Normal `emulators:start` without `--import` starts an empty Auth/Firestore
+session. The normal seed recreates synthetic identities and matching profiles,
+but it does not restore tickets, messages, events, actions, or feedback.
+
+Export only to a new ignored directory and fail if it already exists:
+
+```powershell
+Set-Location D:\ComplaintGuard
+$demoExport = "D:\ComplaintGuard\firebase\.firebase\restart-persistence-audit"
+if (Test-Path $demoExport) {
+    throw "Export destination already exists; choose a new path."
+}
+
+node.exe firebase\node_modules\firebase-tools\lib\bin\firebase.js `
+  emulators:export $demoExport `
+  --project demo-complaintguard
+```
+
+After a clean emulator shutdown, import that exact directory:
+
+```powershell
+Set-Location D:\ComplaintGuard
+$env:FIREBASE_CLI_DISABLE_UPDATE_CHECK = "true"
+$env:FIREBASE_EMULATORS_PATH = "D:\ComplaintGuard\firebase\.firebase\emulators"
+$env:XDG_CONFIG_HOME = "D:\ComplaintGuard\firebase\.firebase\config"
+
+node.exe firebase\node_modules\firebase-tools\lib\bin\firebase.js `
+  emulators:start `
+  --project demo-complaintguard `
+  --only auth,firestore `
+  --import "D:\ComplaintGuard\firebase\.firebase\restart-persistence-audit"
+```
+
+Verify the same synthetic accounts, ticket IDs, messages, events, and feedback
+after import. Keep the export local and ignored. Never:
+
+- use `--reset-firestore` with valued demo data;
+- run `firebase\run-emulator-tests.ps1` or `cd firebase; npm test` against the
+  valued emulator ports, because test setup clears Firestore;
+- add `--force` to overwrite an existing export;
+- treat reseeding as a ticket/history restore; or
+- export real complaint or credential data.
+
 - Port unavailable: identify the owning process before stopping anything. Never
   use broad process-kill commands.
 - Bad seed/browser role: reseed, then sign out or use a private browser window.

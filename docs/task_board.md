@@ -248,6 +248,31 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Record actual results and mark completion only after mandatory acceptance checks pass.
 - Day 20 status: Complete in the supported local/emulator scope. All available mandatory gates pass, including repository-wide Ruff check/format and the final wrapper. The complete scripts suite remains unavailable because `.venv` lacks Matplotlib. Public deployment, QR code, production Firebase, retention/deletion, and admin operations remain incomplete.
 
+### Maintenance and Validation Phase
+
+- [x] Reconcile the approximately 83.4% Account Support observation to the
+  longer synthetic mobile-banking transfer ticket and reproduce it with the
+  current hash-verified frozen v1 artifact.
+- [x] Protect `Mobile transfer failed` as an authenticated low-confidence,
+  unassigned manual-review regression.
+- [x] Record the clear mobile-transfer high-confidence misroute as a strict
+  expected-failure regression rather than asserting the wrong label is correct.
+- [x] Add initial Account Support and Card & ATM short user-style cases.
+- [ ] Add short user-style cases for all six departments.
+- [ ] Expand Transfer & Payment versus Account Support boundary coverage.
+- [ ] Add accuracy-by-text-length analysis.
+- [ ] Evaluate calibration using validation data only; confidence remains an
+  uncalibrated model output.
+- [x] Verify with a controlled test double that manager override remains
+  available for a wrong-high-confidence prediction without rewriting original
+  prediction evidence.
+- [x] Document non-destructive emulator export/import with new-path protection.
+- [ ] Execute and verify a full emulator export, shutdown, import, and history
+  recovery in a separately approved maintenance window.
+- [x] Keep Myanmar/mixed complaints manual-review-only.
+- [x] Preserve the frozen Day 18 model artifact, metrics, and held-out test set.
+- [ ] Keep production Firebase deployment/rules verification incomplete.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

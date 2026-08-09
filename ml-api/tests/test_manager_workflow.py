@@ -85,6 +85,36 @@ def test_manager_override_success(manager_backend):
     assert manager_backend.overrides[0]["newDepartmentId"] == "fraud_security"
 
 
+def test_wrong_high_confidence_prediction_remains_manager_overridable():
+    ticket = {
+        "id": "wrong-high-confidence",
+        "complaintText": "Synthetic transfer intent",
+        "predictedDepartmentId": "account_support",
+        "predictionConfidence": 0.91,
+        "departmentId": "account_support",
+        "routingSource": "model",
+        "status": "triaged",
+    }
+    backend = InMemoryManagerBackend([ticket])
+    service = ManagerWorkflowService(backend)
+
+    # High confidence is not correctness: it is absent from the low-confidence
+    # queue, but an evidence-based manager correction remains available.
+    assert service.list_low_confidence_tickets() == []
+    corrected = service.override_department(
+        ticket_id=ticket["id"],
+        new_department_id="transfer_payment",
+        manager_id="mgr_01",
+        reason="Human review confirmed transfer intent",
+        action_id="wrong-high-override-001",
+    )
+
+    assert corrected["predictedDepartmentId"] == "account_support"
+    assert corrected["predictionConfidence"] == 0.91
+    assert corrected["departmentId"] == "transfer_payment"
+    assert corrected["routingSource"] == "manager_override"
+
+
 def test_manager_override_invalid_ticket(manager_backend):
     service = ManagerWorkflowService(manager_backend)
     with pytest.raises(TicketNotFound):

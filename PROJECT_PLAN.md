@@ -913,3 +913,28 @@ Today, the team should complete these actions before starting implementation:
 7. July 26 data freeze, August 6 deployment freeze နှင့် August 10 deadline ကို team အားလုံးကအတည်ပြုရန်။
 
 The safest strategy is: **finish a small complete system first, deploy by 6 August, and improve only when the end-to-end workflow is already stable.**
+
+---
+
+## Maintenance and Validation Phase
+
+This post-Day-20 phase preserves all completed historical milestones. It does
+not authorize model retraining, held-out-test tuning, production deployment, or
+automatic Myanmar routing.
+
+- [x] Reconcile the reported Mobile Transfer misclassification against the
+  existing emulator ticket and hash-verified frozen model.
+- [x] Add initial short user-style routing regressions, including the confirmed
+  Transfer & Payment versus Account Support defect.
+- [ ] Complete short user-style regression cases across all six departments.
+- [ ] Expand Transfer & Payment versus Account Support boundary tests.
+- [ ] Add accuracy-by-text-length analysis without tuning on held-out data.
+- [ ] Evaluate probability calibration using validation data only.
+- [x] Define and test that manager override remains available for a controlled
+  wrong-high-confidence prediction.
+- [ ] Perform non-destructive emulator export/import restart verification.
+- [x] Document safe emulator export/import commands and destructive-command
+  warnings.
+- [x] Keep Myanmar and mixed-language automatic routing blocked.
+- [x] Preserve the frozen Day 18 artifact and held-out test set unchanged.
+- [ ] Keep production Firebase deployment verification explicitly incomplete.
