@@ -2,12 +2,13 @@
 
 ComplaintGuard is a planned bilingual web system that accepts financial-service complaints in English or Myanmar, classifies them with TF-IDF and Multinomial Naive Bayes, and routes them to an appropriate support department. Customers track tickets, department staff process assigned complaints, and managers view a small operational dashboard.
 
-The repository has completed the automated/synthetic implementation for **Day
-14: department-scoped staff workflow**. It includes the Next.js authentication
-foundation, trusted customer submission, the FastAPI ML service, and trusted
-staff queue/workflow endpoints. See [`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the
-schedule and `docs/` for the approved architecture, schema, and access
-boundaries.
+The repository has completed **Day 18: real ML evaluation and dataset evidence**.
+The frozen Day 9 classifier was reproduced on its unchanged 29,942-record
+held-out test set without retraining. Stable JSON/CSV evidence, confidence
+analysis, and a privacy-preserving local historical-similarity foundation are
+documented in [`docs/model_evaluation.md`](docs/model_evaluation.md). See
+[`PROJECT_PLAN.md`](PROJECT_PLAN.md) for the schedule and `docs/` for the
+approved architecture, schema, and access boundaries.
 
 ## Core constraints
 

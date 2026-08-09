@@ -203,6 +203,16 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - The `0.60` routing confidence threshold is configurable operational policy, not a statistically calibrated threshold.
 - Frozen-model macro-F1 remains below `0.70`; Myanmar translation quality remains below target, so Myanmar/mixed-language tickets remain manual-review only.
 
+### Day 18
+
+- [x] Reconstruct the seed-`20260727` 200,000-record sample and exact normalized-narrative partitions from the complete mapped corpus.
+- [x] Evaluate the unchanged frozen model on the genuine 29,942-record held-out test partition without retraining.
+- [x] Reconcile accuracy, macro/weighted metrics, per-department metrics and the confusion matrix exactly against locked Day 9 evidence.
+- [x] Publish stable aggregate JSON/CSV artifacts with dataset counts, class distributions, confidence analysis and privacy-safe example metadata.
+- [x] Build a local ignored cosine-similarity index over exactly 29,942 held-out TF-IDF vectors without narrative strings.
+- [x] Add focused evaluation/schema/similarity tests and document methodology, metric meanings, leakage controls and limitations.
+- Day 18 status: implementation and local evidence complete; 229 data/ML script tests, 102 backend tests, 44 frontend tests, scoped Ruff/format, TypeScript, ESLint, artifact validation and diff checks passed. Seven emulator-dependent backend tests were skipped; broad historical Ruff findings are documented without modifying unrelated files.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

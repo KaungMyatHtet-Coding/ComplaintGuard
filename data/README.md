@@ -128,6 +128,20 @@ The production experiment selected 200,000 of 3,822,576 rows, kept validation an
 Day 9 preserves the Day 8 baseline and uses validation only to select among four declared TF-IDF/MultinomialNB candidates and five confidence thresholds. The selected `lower_alpha` candidate uses `MultinomialNB(alpha=0.5)` and threshold `0.0`; it was evaluated on the unchanged 29,942-row test partition exactly once.
 
 The ignored final artifact is `models/generated/cfpb_department_model_v1.joblib`. Aggregate-only final evidence is tracked at `data/processed/cfpb_model_v1_metrics.json` and documented in `docs/model_finalization.md`. Final test macro-F1 is 0.692345, a 0.003861 improvement over Day 8 but still below the 0.70 target.
+
+## Day 18 held-out evaluation evidence
+
+Day 18 reconstructs the original seed-`20260727` reservoir and duplicate-safe
+partitions, loads the unchanged frozen model, and evaluates only the 29,942-row
+held-out test set. It does not fit or replace the model. Stable aggregate JSON
+and CSV artifacts are under `evaluation/day18/`; methodology, actual results,
+metric meanings, privacy boundaries, and reproduction are documented in
+`docs/model_evaluation.md`.
+
+The optional ignored local similarity index
+`models/generated/cfpb_similarity_test_v1.joblib` contains TF-IDF vectors,
+proxy labels, and opaque IDs for exactly 29,942 held-out records. It contains no
+narrative strings and does not claim coverage of the full mapped or raw corpus.
 ## Day 10 synthetic Myanmar validation
 
 Day 10 uses `data/mapping/myanmar_test_cases_v1.json`, containing 30

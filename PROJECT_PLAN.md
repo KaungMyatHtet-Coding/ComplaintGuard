@@ -537,6 +537,17 @@ verified milestone.
 
 ### Day 18 — Thursday, 6 August: Deployment deadline
 
+**Owner-authorized revised Day 18 scope completed 9 August 2026:** Before the
+remaining deployment work, Day 18 established reproducible real-model evidence.
+The unchanged frozen model was evaluated on the reconstructed 29,942-record
+held-out test partition with seed `20260727`; no retraining occurred. Accuracy
+was 0.827934 and macro-F1 was 0.692345, so the 0.70 target remains unmet. Stable
+aggregate JSON/CSV artifacts, confidence analysis, non-text correct/error
+examples, and a local privacy-preserving TF-IDF cosine-similarity index covering
+exactly 29,942 historical records are documented in
+`docs/model_evaluation.md`. This evidence work does not claim deployment or
+completion of the original deployment checklist below.
+
 - [ ] ML backend ကို Hugging Face Spaces ပေါ်တင်ရန်
 - [ ] Frontend ကို Vercel ပေါ်တင်ရန်
 - [ ] Production environment variables ထည့်ရန်

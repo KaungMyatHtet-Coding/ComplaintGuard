@@ -1,0 +1,7 @@
+true_department,transfer_payment,account_support,card_atm,fraud_security,loan_credit,general_support
+transfer_payment,246,252,35,12,17,1
+account_support,1,1343,179,39,56,4
+card_atm,0,140,1494,198,102,25
+fraud_security,2,255,890,18494,1080,1015
+loan_credit,0,30,67,113,2130,35
+general_support,1,20,65,284,234,1083

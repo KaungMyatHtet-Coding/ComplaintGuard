@@ -1,0 +1,13 @@
+{
+  "status": "built_local_ignored_index",
+  "method": "cosine similarity over frozen model-v1 TF-IDF vectors",
+  "reference_partition": "held-out test",
+  "reference_records": 29942,
+  "covers_all_raw_records": false,
+  "separate_from_prediction_confidence": true,
+  "contains_narratives": false,
+  "index_file_name": "cfpb_similarity_test_v1.joblib",
+  "index_size_bytes": 30729474,
+  "index_sha256": "9da4320600965c40fa8420e56b67fbbeb1ee8b93a0d285a3fa93ff7936b377c2",
+  "feature_count": 100000
+}
