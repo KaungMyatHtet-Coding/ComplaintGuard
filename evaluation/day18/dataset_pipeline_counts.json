@@ -1,0 +1,23 @@
+{
+  "raw_records": 17034951,
+  "raw_records_with_non_null_narrative": 3823413,
+  "usable_narrative_records": 3822576,
+  "successfully_mapped_records": 3822576,
+  "selected_modeling_records": 200000,
+  "filters": {
+    "invalid_complaint_id": 2135,
+    "invalid_date_received": 0,
+    "missing_product": 0,
+    "missing_issue": 7,
+    "missing_or_unusable_narrative": 13210233,
+    "duplicate_identical": 0
+  },
+  "mapped_label_counts": {
+    "transfer_payment": 85180,
+    "account_support": 198831,
+    "card_atm": 241219,
+    "fraud_security": 2785444,
+    "loan_credit": 305355,
+    "general_support": 206547
+  }
+}
