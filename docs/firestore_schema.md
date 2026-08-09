@@ -34,9 +34,9 @@ Operational profile keyed by the Firebase Authentication UID.
 | Field | Type | Required | Authority | Meaning |
 |---|---|---:|---|---|
 | `displayName` | string | yes | user-controlled through trusted backend; no direct client write | Synthetic/demo display name |
-| `preferredLocale` | string | yes | user-controlled through trusted backend; no direct client write | `en` or `my` |
+| `locale` | string | yes | user-controlled through trusted backend; no direct client write | `en` or `my`; consumed by the current profile loader |
 | `role` | string | yes | admin/trusted backend only | One of the four role IDs |
-| `departmentId` | string or null | yes | admin/trusted backend only | Required for staff; null for customer |
+| `departmentId` | string or null | yes | admin/trusted backend only | Required for staff; null for non-staff roles |
 | `active` | boolean | yes | admin/trusted backend only | Access status |
 | `createdAt` | timestamp | yes | trusted backend | Immutable creation time |
 | `updatedAt` | timestamp | yes | trusted backend | Last trusted update |

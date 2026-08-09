@@ -60,12 +60,38 @@ $env:GCLOUD_PROJECT = "demo-complaintguard"
 node.exe firebase\seed-emulator.mjs
 ```
 
-The seed always creates one customer, six department staff profiles, and one
-manager with stable synthetic email addresses. It generates a new random shared
-password each run and writes it to the ignored
-`firebase/.firebase/seeded-identities.json`. Open that file only locally. Never
-project, record, screenshot, print, paste, or commit it. Reseeding clears the
-emulator data and invalidates the previous generated password.
+The seed creates four customers, six department staff profiles, and one manager
+with stable synthetic email addresses. The first seed generates one random
+demo-only shared password and writes it to the ignored
+`firebase/.firebase/seeded-identities.json`. Later seeds reuse that password and
+the existing Auth UIDs, upsert matching profiles, and preserve emulator tickets.
+If emulator Auth contains one of these emails but the ignored credential file is
+missing or inconsistent, seeding stops instead of deleting or replacing the
+account. Open the credential file only locally. Never project, record,
+screenshot, print, paste, or commit it.
+
+The automated emulator test harness uses the explicit `--reset-firestore` flag
+between isolated test phases. Do not use that flag for an ordinary demo reseed;
+the default command above preserves existing emulator tickets.
+
+## Local demo accounts
+
+All passwords come from the ignored `firebase/.firebase/seeded-identities.json`;
+the table deliberately contains no password value.
+
+| Email | Role | Department | Password source | Intended scenario |
+|---|---|---|---|---|
+| `customer@complaintguard.test` | Customer | — | Ignored shared-password file | Primary end-to-end complaint workflow |
+| `customer.two@complaintguard.test` | Customer | — | Ignored shared-password file | Customer ownership isolation |
+| `customer.three@complaintguard.test` | Customer | — | Ignored shared-password file | Customer ownership isolation |
+| `customer.four@complaintguard.test` | Customer | — | Ignored shared-password file | Customer ownership isolation |
+| `staff.transfer@complaintguard.test` | Staff | `transfer_payment` | Ignored shared-password file | Transfer/payment queue |
+| `staff.account@complaintguard.test` | Staff | `account_support` | Ignored shared-password file | Account-support queue |
+| `staff.card@complaintguard.test` | Staff | `card_atm` | Ignored shared-password file | Card/ATM queue and manager override |
+| `staff.fraud@complaintguard.test` | Staff | `fraud_security` | Ignored shared-password file | High-confidence fraud workflow |
+| `staff.loan@complaintguard.test` | Staff | `loan_credit` | Ignored shared-password file | Loan/credit queue |
+| `staff.general@complaintguard.test` | Staff | `general_support` | Ignored shared-password file | General-support queue |
+| `manager@complaintguard.test` | Manager | — | Ignored shared-password file | Review, override, and analytics |
 
 ### Terminal 3 — FastAPI
 

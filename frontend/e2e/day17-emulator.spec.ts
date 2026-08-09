@@ -154,3 +154,21 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   await refreshAndOpen(page, highId);
   await expect(page.getByText("Investigation in progress", { exact: true })).toBeVisible();
 });
+
+test("additional emulator customers submit and see only their own synthetic tickets", async ({ page }) => {
+  const users = await identities();
+  const priorTicketIds: string[] = [];
+
+  for (const key of ["customerTwo", "customerThree", "customerFour"]) {
+    await signIn(page, users[key], "Customer dashboard");
+    for (const priorTicketId of priorTicketIds) {
+      await expect(page.getByText(priorTicketId)).toHaveCount(0);
+    }
+    const complaint = `Synthetic demo fee question for ${key}.`;
+    const ticketId = await submitAndReplay(page, complaint);
+    await refreshAndOpen(page, ticketId);
+    await expect(page.getByText(complaint, { exact: true }).last()).toBeVisible();
+    priorTicketIds.push(ticketId);
+    await signOut(page);
+  }
+});
