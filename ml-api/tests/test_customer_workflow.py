@@ -5,10 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.customer_workflow import CustomerWorkflowService, InMemoryCustomerBackend
 from app.main import create_app
+from fastapi.testclient import TestClient
 
 
 class FakeTicketBackend:

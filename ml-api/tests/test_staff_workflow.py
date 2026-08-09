@@ -8,8 +8,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.config import Settings
 from app.main import create_app
 from app.model import Prediction
@@ -22,6 +20,7 @@ from app.staff_workflow import (
     validate_staff_transition,
 )
 from app.synthetic_fixture import build_synthetic_triaged_ticket
+from fastapi.testclient import TestClient
 
 NOW = datetime(2026, 8, 2, 8, 0, tzinfo=UTC)
 

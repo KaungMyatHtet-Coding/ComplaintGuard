@@ -2,7 +2,7 @@
 
 ## Source of Truth and Current Phase
 
-`PROJECT_PLAN.md` is the source of truth for scope, architecture, schedule, and success criteria. The project is currently in Day 2 environment and architecture setup. Do not start dataset work, ML implementation/training, Firebase integration, authentication, complaint features, generated notebooks, Firebase rules, or model artifacts until their scheduled day.
+`PROJECT_PLAN.md` is the source of truth for scope, architecture, schedule, and success criteria. The project is currently in Day 20 finalization after Days 1–19 were implemented and merged. Day-specific documents are historical evidence; current operating instructions live in the root README and `docs/local_setup.md`. Preserve the frozen model, Day 18 evidence, Firebase/role boundaries, and completed complaint workflows. Day 20 is documentation, verification, demo-readiness, and academic-delivery work—not authorization for retraining, new infrastructure, deployment, or major features.
 
 One developer is currently active even though the official team has five members. Optimize decisions for a small, demonstrable MVP and a short deadline. The active developer owns each task and performs a documented self-review before marking it done; the other official members may review or present later but are not assumed to be available for implementation.
 
@@ -30,15 +30,16 @@ One developer is currently active even though the official team has five members
 
 Keep tests close to their component (`frontend/**/__tests__/`) or in service-level `tests/` directories.
 
-## Planned Commands
+## Current Commands
 
-The frontend scaffold exists from Day 2. Describe commands as verified only after running them successfully in the current worktree:
+Describe commands as verified only after running them successfully in the current worktree:
 
-- `cd frontend && npm run dev`: planned frontend development server.
-- `cd frontend && npm run lint`: planned frontend lint checks.
-- `cd frontend && npm test`: planned frontend tests; no test script exists on Day 2.
-- `cd ml-api && uvicorn app.main:app --reload`: planned FastAPI service.
-- `cd ml-api && pytest`: planned API and ML tests.
+- `cd frontend && npm run dev`: frontend development server; synchronizes committed aggregate evaluation evidence first.
+- `cd frontend && npm run lint`: frontend lint checks.
+- `cd frontend && npm test`: Vitest frontend tests.
+- `cd ml-api && ..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload`: FastAPI service using the ignored frozen model artifact.
+- `cd ml-api && ..\.venv\Scripts\python.exe -m pytest tests -p no:cacheprovider`: backend tests.
+- `cd firebase && npm test`: isolated Auth/Firestore rules, adapters, and browser E2E verification.
 
 Check the local environment before installing any dependency. Record setup commands in `README.md` when implementation begins.
 

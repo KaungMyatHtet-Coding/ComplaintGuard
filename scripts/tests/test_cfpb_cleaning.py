@@ -10,13 +10,13 @@ import pytest
 
 from scripts.cfpb_cleaning import (
     CLEANED_COLUMNS,
+    TIMESTAMP_DATE_RE,
     CleaningConfig,
     ConflictingDuplicateError,
     PairValidationError,
     PublicationError,
     RecoveryRequiredError,
     RequiredColumnsError,
-    TIMESTAMP_DATE_RE,
     _acquire_publication_locks,
     _backup_path,
     _publication_lock_paths,
@@ -239,8 +239,13 @@ def test_overwrite_is_protected_and_explicit_overwrite_replaces(tmp_path: Path) 
 
     assert report["counts"]["retained_rows"] == 1
     assert report["run_id"] != original["run_id"]
-    assert json.loads(cleaning_config.report_path.read_text(encoding="utf-8"))["status"] == "completed"
-    assert cleaning_config.output_path.read_text(encoding="utf-8").startswith("Complaint ID,")
+    assert (
+        json.loads(cleaning_config.report_path.read_text(encoding="utf-8"))["status"]
+        == "completed"
+    )
+    assert cleaning_config.output_path.read_text(encoding="utf-8").startswith(
+        "Complaint ID,"
+    )
 
 
 @pytest.mark.parametrize(
@@ -261,7 +266,9 @@ def test_complaint_id_positive_decimal_rule(
     complaint_id: str | None,
     accepted: bool,
 ) -> None:
-    case_path = tmp_path / ("accepted" if accepted else f"rejected-{len(list(tmp_path.iterdir()))}")
+    case_path = tmp_path / (
+        "accepted" if accepted else f"rejected-{len(list(tmp_path.iterdir()))}"
+    )
     case_path.mkdir()
     input_path = case_path / "input.csv"
     write_input(input_path, [row(complaint_id)])
@@ -278,7 +285,6 @@ def test_complaint_id_positive_decimal_rule(
         ("2026-07-20T00:00:00.000Z", True, "accepted_millisecond_utc_timestamp"),
         ("2026-07-20", True, "accepted_plain_iso_date"),
         ("2011-12-01", True, "accepted_plain_iso_date"),
-        ("2026-07-20", True, "accepted_plain_iso_date"),
         ("2026-07-20T00:00:00.0Z", False, "invalid_date_shape"),
         ("2026-07-20T00:00:00.000000Z", False, "invalid_date_shape"),
         ("2026-07-20T00:00:00Z", False, "invalid_date_shape"),
@@ -457,7 +463,9 @@ def test_failure_while_publishing_csv_leaves_no_completed_pair(
 
     monkeypatch.setattr("scripts.cfpb_cleaning.os.replace", fail_csv_publish)
 
-    with pytest.raises(PublicationError, match="previous local artifacts were restored"):
+    with pytest.raises(
+        PublicationError, match="previous local artifacts were restored"
+    ):
         clean_cfpb(cleaning_config)
 
     assert not cleaning_config.output_path.exists()
@@ -481,7 +489,9 @@ def test_failure_while_publishing_report_leaves_no_completion_marker(
 
     monkeypatch.setattr("scripts.cfpb_cleaning.os.replace", fail_report_publish)
 
-    with pytest.raises(PublicationError, match="previous local artifacts were restored"):
+    with pytest.raises(
+        PublicationError, match="previous local artifacts were restored"
+    ):
         clean_cfpb(cleaning_config)
 
     assert not cleaning_config.output_path.exists()
@@ -511,7 +521,9 @@ def test_shared_report_lock_blocks_different_output_run(tmp_path: Path) -> None:
             )
         assert_private_error(caught.value)
         assert shared_report.with_name(f".{shared_report.name}.publish.lock").exists()
-        assert not second_output.with_name(f".{second_output.name}.publish.lock").exists()
+        assert not second_output.with_name(
+            f".{second_output.name}.publish.lock"
+        ).exists()
         assert not second_output.exists()
         assert not shared_report.exists()
     finally:
@@ -519,7 +531,9 @@ def test_shared_report_lock_blocks_different_output_run(tmp_path: Path) -> None:
     assert_no_publication_locks(tmp_path)
 
 
-def test_partial_lock_acquisition_releases_only_current_run_lock(tmp_path: Path) -> None:
+def test_partial_lock_acquisition_releases_only_current_run_lock(
+    tmp_path: Path,
+) -> None:
     output = tmp_path / "z-output.csv"
     report = tmp_path / "a-report.json"
     lock_paths = _publication_lock_paths(output, report)
@@ -575,7 +589,9 @@ def test_overwrite_report_failure_restores_previous_matching_pair(
 
     monkeypatch.setattr("scripts.cfpb_cleaning.os.replace", fail_new_report_once)
 
-    with pytest.raises(PublicationError, match="previous local artifacts were restored"):
+    with pytest.raises(
+        PublicationError, match="previous local artifacts were restored"
+    ):
         clean_cfpb(config(tmp_path, input_path, overwrite=True))
 
     restored_report = validate_completed_pair(
@@ -584,7 +600,9 @@ def test_overwrite_report_failure_restores_previous_matching_pair(
     )
     assert restored_report["run_id"] == original_report["run_id"]
     assert original_config.output_path.read_bytes() == original_csv_bytes
-    assert original_config.report_path.read_text(encoding="utf-8") == original_report_text
+    assert (
+        original_config.report_path.read_text(encoding="utf-8") == original_report_text
+    )
     assert list(tmp_path.glob("*.backup")) == []
     assert list(tmp_path.glob(".*.backup")) == []
     assert_no_publication_locks(tmp_path)
@@ -641,7 +659,9 @@ def test_overwrite_filesystem_failures_restore_exact_previous_pair(
     )
     assert restored["run_id"] == original_report["run_id"]
     assert cleaning_config.output_path.read_bytes() == original_csv
-    assert cleaning_config.report_path.read_text(encoding="utf-8") == original_report_text
+    assert (
+        cleaning_config.report_path.read_text(encoding="utf-8") == original_report_text
+    )
     assert sentinel.read_text(encoding="utf-8") == "preserve"
     assert list(tmp_path.glob(".*.backup")) == []
     assert_no_publication_locks(tmp_path)
@@ -695,7 +715,9 @@ def test_production_recovery_validates_restored_pair(
             raise OSError("synthetic report failure")
         real_replace(source, destination)
 
-    monkeypatch.setattr("scripts.cfpb_cleaning.validate_completed_pair", counting_validate)
+    monkeypatch.setattr(
+        "scripts.cfpb_cleaning.validate_completed_pair", counting_validate
+    )
     monkeypatch.setattr("scripts.cfpb_cleaning.os.replace", fail_report_once)
 
     with pytest.raises(PublicationError):
@@ -723,7 +745,9 @@ def test_new_pair_validation_failure_restores_previous_pair(
             raise PairValidationError("synthetic new-pair validation failure")
         return real_validate(output, report)
 
-    monkeypatch.setattr("scripts.cfpb_cleaning.validate_completed_pair", fail_new_validation)
+    monkeypatch.setattr(
+        "scripts.cfpb_cleaning.validate_completed_pair", fail_new_validation
+    )
 
     with pytest.raises(PublicationError):
         clean_cfpb(config(tmp_path, input_path, overwrite=True))
@@ -761,8 +785,7 @@ def test_restore_copy_failure_preserves_recovery_evidence(
     def fail_restore_copy(source: str | Path, destination: str | Path) -> None:
         destination_path = Path(destination)
         if (
-            restore_target == "csv"
-            and destination_path == cleaning_config.output_path
+            restore_target == "csv" and destination_path == cleaning_config.output_path
         ) or (
             restore_target == "report"
             and destination_path == cleaning_config.report_path
@@ -815,7 +838,9 @@ def test_restored_pair_validation_failure_preserves_recovery_evidence(
             raise OSError("synthetic report publication failure")
         real_replace(source, destination)
 
-    monkeypatch.setattr("scripts.cfpb_cleaning.validate_completed_pair", fail_restored_validation)
+    monkeypatch.setattr(
+        "scripts.cfpb_cleaning.validate_completed_pair", fail_restored_validation
+    )
     monkeypatch.setattr("scripts.cfpb_cleaning.os.replace", fail_report_once)
 
     with pytest.raises(RecoveryRequiredError) as caught:
@@ -873,17 +898,14 @@ def test_backup_cleanup_failure_preserves_valid_new_pair_and_evidence(
     ) -> None:
         nonlocal failed
         path_object = Path(path)
-        is_target = (
-            path_object.name.endswith(".backup")
-            and (
-                (
-                    failed_backup_kind == "csv"
-                    and cleaning_config.output_path.name in path_object.name
-                )
-                or (
-                    failed_backup_kind == "report"
-                    and cleaning_config.report_path.name in path_object.name
-                )
+        is_target = path_object.name.endswith(".backup") and (
+            (
+                failed_backup_kind == "csv"
+                and cleaning_config.output_path.name in path_object.name
+            )
+            or (
+                failed_backup_kind == "report"
+                and cleaning_config.report_path.name in path_object.name
             )
         )
         if is_target and not failed:
@@ -968,7 +990,9 @@ def test_startup_refuses_existing_recovery_state(
     assert not cleaning_config.report_path.exists()
 
 
-@pytest.mark.parametrize("invalid_state", ["missing_csv", "missing_report", "malformed", "mismatch"])
+@pytest.mark.parametrize(
+    "invalid_state", ["missing_csv", "missing_report", "malformed", "mismatch"]
+)
 def test_invalid_previous_state_is_rejected_before_backup_moves(
     tmp_path: Path,
     invalid_state: str,
@@ -1037,10 +1061,13 @@ def test_foreign_completion_marker_is_preserved_and_refused(tmp_path: Path) -> N
     assert_private_error(caught.value)
     assert first_config.output_path.read_bytes() == original_csv
     assert first_config.report_path.read_text(encoding="utf-8") == original_report
-    assert validate_completed_pair(
-        first_config.output_path,
-        first_config.report_path,
-    )["run_id"] == first_report["run_id"]
+    assert (
+        validate_completed_pair(
+            first_config.output_path,
+            first_config.report_path,
+        )["run_id"]
+        == first_report["run_id"]
+    )
     assert not second_output.exists()
     assert set(tmp_path.glob(".*.backup")) == set()
     assert_no_publication_locks(tmp_path)
@@ -1086,10 +1113,13 @@ def test_new_reports_use_version_two_and_validate_date_counts(tmp_path: Path) ->
     report = json.loads(cleaning_config.report_path.read_text(encoding="utf-8"))
 
     assert report["report_schema_version"] == 2
-    assert validate_completed_pair(
-        cleaning_config.output_path,
-        cleaning_config.report_path,
-    )["report_schema_version"] == 2
+    assert (
+        validate_completed_pair(
+            cleaning_config.output_path,
+            cleaning_config.report_path,
+        )["report_schema_version"]
+        == 2
+    )
 
 
 @pytest.mark.parametrize(

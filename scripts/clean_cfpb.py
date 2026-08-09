@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import sqlite3
 from pathlib import Path
 
+import pandas as pd
 from cfpb_cleaning import CleaningConfig, CleaningError, clean_cfpb
 
 
@@ -13,8 +15,12 @@ def parse_args() -> argparse.Namespace:
         description="Clean the CFPB complaints CSV in bounded chunks without logging row data."
     )
     parser.add_argument("--input", type=Path, required=True, help="Source CFPB CSV")
-    parser.add_argument("--output", type=Path, required=True, help="Ignored cleaned CSV destination")
-    parser.add_argument("--report", type=Path, required=True, help="Aggregate-only JSON report")
+    parser.add_argument(
+        "--output", type=Path, required=True, help="Ignored cleaned CSV destination"
+    )
+    parser.add_argument(
+        "--report", type=Path, required=True, help="Aggregate-only JSON report"
+    )
     parser.add_argument("--chunk-size", type=int, default=100_000)
     bounds = parser.add_mutually_exclusive_group()
     bounds.add_argument("--max-rows", type=int)
@@ -43,8 +49,10 @@ def main() -> int:
     except (CleaningError, FileExistsError, FileNotFoundError, ValueError) as error:
         print(f"Cleaning failed: {error}")
         return 1
-    except Exception:
-        print("Cleaning failed: unexpected processing error; no row-level details were emitted")
+    except (OSError, sqlite3.Error, UnicodeError, pd.errors.ParserError):
+        print(
+            "Cleaning failed: unexpected processing error; no row-level details were emitted"
+        )
         return 1
     counts = report["counts"]
     print(

@@ -492,6 +492,11 @@ outstanding because the CLI/test setup and runtime credentials are unavailable.
 
 ### Day 15 — Monday, 3 August: Customer tracking and messaging
 
+**Completed implementation evidence:** Customer-owned history/detail, status
+visibility, participant messaging, resolved feedback, and backend ownership
+enforcement are implemented and covered by frontend/backend tests. Later local
+emulator/browser verification exercised the integrated customer/staff flow.
+
 - [ ] Customer complaint history page ပြုလုပ်ရန်
 - [ ] Ticket detail and status timeline ပြုလုပ်ရန်
 - [ ] Customer/staff message thread ပြုလုပ်ရန်
@@ -503,6 +508,11 @@ outstanding because the CLI/test setup and runtime credentials are unavailable.
 ## Phase 3 — Analytics, Integration, Deployment and Submission
 
 ### Day 16 — Tuesday, 4 August: Manager dashboard
+
+**Completed implementation evidence:** Manager-only operational totals,
+department workload, average resolution time, low-confidence review, and
+transactional department override are implemented. Broader designed manager
+priority/reopen/close operations and admin operations are not implemented.
 
 - [ ] Total/open/resolved complaint cards ပြုလုပ်ရန်
 - [ ] Complaints by department chart ပြုလုပ်ရန်
@@ -567,6 +577,10 @@ Day 18 evidence, does not expose narratives or complaint IDs, and reports the
 historical-similarity index as local-only and undeployed. The existing
 operational analytics and role boundaries remain unchanged.
 
+Day 19 was merged to `main` through merge commit `629fc5d` after frontend,
+TypeScript, ESLint, production-build, focused ML/backend preservation,
+artifact-integrity, privacy, and Git checks passed.
+
 - [ ] Functional test cases အားလုံး run ရန်
 - [ ] English and Myanmar input test ရန်
 - [ ] Role/permission test ရန်
@@ -578,13 +592,22 @@ operational analytics and role boundaries remain unchanged.
 
 ### Day 20 — Saturday, 8 August: Final report and documentation
 
-- [ ] Abstract, problem statement and objectives အပြီးသတ်ရန်
-- [ ] Dataset, cleaning and EDA sections အပြီးသတ်ရန်
-- [ ] NoSQL design, architecture and algorithm explanation ရေးရန်
-- [ ] Model evaluation and confusion matrix ထည့်ရန်
+**Owner-authorized revised Day 20 scope completed 9 August 2026:** Reconcile
+current documentation, prepare a local-emulator demo guide, consolidate claims
+and test evidence, create report/presentation sources, and run final verification.
+This does not authorize retraining, deployment, admin features, new
+infrastructure, or changes to Day 17/18 evidence. All available mandatory local
+and emulator checks pass. The full scripts suite remains unavailable in `.venv`
+because Matplotlib is absent. Public deployment, QR code, production Firebase,
+retention/deletion, and admin operations remain incomplete.
+
+- [x] Abstract, problem statement and objectives အပြီးသတ်ရန်
+- [x] Dataset, cleaning and EDA sections အပြီးသတ်ရန်
+- [x] NoSQL design, architecture and algorithm explanation ရေးရန်
+- [x] Model evaluation and confusion matrix ထည့်ရန်
 - [ ] System screenshots and user workflows ထည့်ရန်
-- [ ] Limitations, ethics/privacy and future work ရေးရန်
-- [ ] README setup/deployment instructions အပြီးသတ်ရန်
+- [x] Limitations, ethics/privacy and future work ရေးရန်
+- [x] README setup/deployment instructions အပြီးသတ်ရန်
 
 **End-of-day deliverable:** Complete report draft and technical documentation.
 

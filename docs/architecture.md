@@ -44,9 +44,9 @@ flowchart LR
         Artifacts -. deployed artifact copy .-> Predict
         Predict --> Decision{Confidence threshold}
         Decision -->|High enough| Department[Predicted department]
-        Decision -->|Low or ambiguous| General[General Support / manual review]
+        Decision -->|Low or Myanmar/mixed| Review[Unassigned manual review]
         Department --> Web
-        General --> Web
+        Review --> Web
         Web --> Store[(Cloud Firestore Spark)]
         Store --> Web
     end
@@ -76,7 +76,7 @@ This pipeline runs on a developer machine or another free compute environment. I
 4. Later trusted routing code detects whether the complaint is English or Myanmar.
 5. English text is normalized directly. Myanmar text is Unicode-normalized and translated to English with an open-source model before the same cleaning path.
 6. The frozen TF-IDF vectorizer and Multinomial Naive Bayes model return a department and confidence score.
-7. Trusted routing sets one of the six department IDs and `routingSource: model`; a validation-selected threshold routes uncertain text to `general_support`/manual review before the ticket advances from the pending submitted state.
+7. Trusted routing sets one of the six department IDs and `routingSource: model` only for accepted English predictions. Predictions below the operational threshold, and all Myanmar/mixed predictions, remain unassigned with `routingSource: manual_review` until a manager override. The `0.60` threshold is operational policy, not a calibrated probability or the Day 9 validation-selected threshold.
 
 The live path performs inference only. Translation and prediction failures must produce a useful error state and must not silently claim a successful route.
 
@@ -117,6 +117,30 @@ Historical data stays in ignored local CSV files. It is never imported into Fire
 
 Free-tier quotas and terms may change. Before deployment, verify the current official limits without enabling billing. If a free tier cannot meet the demo, reduce usage or use the documented local/recorded backup; do not silently adopt a paid service.
 
-## Day 2 boundary
+## Current implementation and operating boundary
 
-Day 2 establishes the frontend toolchain, Python virtual environment, and architecture documentation only. It does not implement Firebase, authentication, Firestore rules, data acquisition/cleaning, model training, translation, FastAPI endpoints, or complaint workflows.
+Days 1–19 implement the local system described above. The verified operating
+mode is a local emulator-based demonstration: Next.js calls local FastAPI,
+Firebase Auth/Firestore use the isolated `demo-complaintguard` emulators, and
+the API loads an ignored frozen model artifact. Direct `POST /predict` remains
+English-only. Authenticated `POST /tickets` may run local Myanmar/mixed
+translation and classification, but those results always remain manual-review
+evidence because translation quality was not accepted.
+
+UI visibility, FastAPI role/ownership checks, and Firestore rules are separate
+authorization layers. Emulator tests verify customer ownership, staff department
+scope, manager access, and denied client writes locally. They do not establish
+production deployment or enterprise security.
+
+The build-time Day 18/19 evaluation JSON is non-sensitive aggregate evidence.
+The ignored historical-similarity index is sensitive analytical material and is
+not loaded by the runtime application. No public deployment, production Firebase
+verification, QR code, admin operations, approved retention/deletion workflow,
+rate limiting, monitoring, disaster recovery, or independent security audit is
+implemented.
+
+## Historical Day 2 boundary
+
+The original Day 2 milestone established only the toolchain and architecture.
+That statement is retained as historical context and is superseded for current
+operation by the implementation boundary above.

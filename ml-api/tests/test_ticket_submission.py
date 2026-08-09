@@ -6,13 +6,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.config import Settings
 from app.main import create_app
 from app.model import Prediction
 from app.schemas import DepartmentId
 from app.ticketing import DEPARTMENT_IDS, validate_routing_state
+from fastapi.testclient import TestClient
 
 
 class FakeClassifier:

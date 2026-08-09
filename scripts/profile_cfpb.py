@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 SAFE_DISTRIBUTIONS = (
     "Product",
     "Issue",
@@ -67,20 +66,47 @@ def profile(archive: Path, csv_path: Path, chunk_size: int) -> dict[str, object]
         row_count += len(chunk)
         missing.update(chunk.isna().sum().astype(int).to_dict())
         for column in SAFE_DISTRIBUTIONS:
-            distributions[column].update(chunk[column].dropna().value_counts().to_dict())
+            distributions[column].update(
+                chunk[column].dropna().value_counts().to_dict()
+            )
         for column in DATE_COLUMNS:
-            values = pd.to_datetime(chunk[column], format="mixed", errors="coerce", utc=True)
+            values = pd.to_datetime(
+                chunk[column], format="mixed", errors="coerce", utc=True
+            )
             current_min, current_max = values.min(), values.max()
             if pd.notna(current_min):
-                date_min[column] = current_min if date_min[column] is None else min(date_min[column], current_min)
-                date_max[column] = current_max if date_max[column] is None else max(date_max[column], current_max)
-        ids = pd.to_numeric(chunk["Complaint ID"], errors="coerce").dropna().astype("int64")
+                date_min[column] = (
+                    current_min
+                    if date_min[column] is None
+                    else min(date_min[column], current_min)
+                )
+                date_max[column] = (
+                    current_max
+                    if date_max[column] is None
+                    else max(date_max[column], current_max)
+                )
+        ids = (
+            pd.to_numeric(chunk["Complaint ID"], errors="coerce")
+            .dropna()
+            .astype("int64")
+        )
         if not ids.empty:
-            complaint_id_min = int(ids.min()) if complaint_id_min is None else min(complaint_id_min, int(ids.min()))
-            complaint_id_max = int(ids.max()) if complaint_id_max is None else max(complaint_id_max, int(ids.max()))
+            complaint_id_min = (
+                int(ids.min())
+                if complaint_id_min is None
+                else min(complaint_id_min, int(ids.min()))
+            )
+            complaint_id_max = (
+                int(ids.max())
+                if complaint_id_max is None
+                else max(complaint_id_max, int(ids.max()))
+            )
 
     def top_counts(counter: Counter[str], limit: int = 20) -> list[dict[str, object]]:
-        return [{"value": value, "count": int(count)} for value, count in counter.most_common(limit)]
+        return [
+            {"value": value, "count": int(count)}
+            for value, count in counter.most_common(limit)
+        ]
 
     return {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -113,7 +139,8 @@ def profile(archive: Path, csv_path: Path, chunk_size: int) -> dict[str, object]
                     else "integer identifier"
                     if column == "Complaint ID"
                     else "text"
-                    if column in ("Consumer complaint narrative", "Company public response")
+                    if column
+                    in ("Consumer complaint narrative", "Company public response")
                     else "string identifier"
                     if column == "ZIP code"
                     else "string/categorical"
@@ -129,8 +156,12 @@ def profile(archive: Path, csv_path: Path, chunk_size: int) -> dict[str, object]
             },
             "date_range": {
                 column: {
-                    "min": date_min[column].date().isoformat() if date_min[column] is not None else None,
-                    "max": date_max[column].date().isoformat() if date_max[column] is not None else None,
+                    "min": date_min[column].date().isoformat()
+                    if date_min[column] is not None
+                    else None,
+                    "max": date_max[column].date().isoformat()
+                    if date_max[column] is not None
+                    else None,
                 }
                 for column in DATE_COLUMNS
             },
@@ -153,16 +184,24 @@ def profile(archive: Path, csv_path: Path, chunk_size: int) -> dict[str, object]
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--archive", type=Path, default=Path("data/raw/cfpb/complaints.csv.zip"))
-    parser.add_argument("--csv", type=Path, default=Path("data/raw/cfpb/complaints.csv"))
-    parser.add_argument("--output", type=Path, default=Path("data/cfpb_snapshot_profile.json"))
+    parser.add_argument(
+        "--archive", type=Path, default=Path("data/raw/cfpb/complaints.csv.zip")
+    )
+    parser.add_argument(
+        "--csv", type=Path, default=Path("data/raw/cfpb/complaints.csv")
+    )
+    parser.add_argument(
+        "--output", type=Path, default=Path("data/cfpb_snapshot_profile.json")
+    )
     parser.add_argument("--chunk-size", type=int, default=100_000)
     args = parser.parse_args()
     result = profile(args.archive, args.csv, args.chunk_size)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote aggregate profile to {args.output}")
-    print(f"Rows: {result['csv']['row_count']:,}; chunks: {result['csv']['chunks_processed']}")
+    print(
+        f"Rows: {result['csv']['row_count']:,}; chunks: {result['csv']['chunks_processed']}"
+    )
 
 
 if __name__ == "__main__":

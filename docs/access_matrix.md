@@ -61,3 +61,17 @@ staff rule requires the staff profile's string department to equal the ticket
 department, so it does not grant staff access to a null department.
 
 Managers have broad operational visibility but do not administer identities. Admin manages role and department configuration but is not granted routine complaint-processing power. This separation limits privilege and makes exceptional corrections auditable.
+
+## Current implementation status
+
+The customer, assigned-department staff, and manager boundaries are implemented
+in frontend visibility, trusted FastAPI checks, and Firestore rules, and are
+verified locally with emulator and browser tests. Manager operations currently
+include operational analytics, low-confidence review, and department override;
+the broader designed priority/reopen/close workspace is not implemented.
+
+The `admin` role currently has only authenticated profile resolution and an
+administration dashboard shell. No admin UI, administration endpoint, demo seed
+identity, role management, department management, or emergency correction
+workflow is implemented. Rows above that describe future authority boundaries,
+not delivered admin functionality. Production Firebase deployment is unverified.
