@@ -956,3 +956,24 @@ automatic Myanmar routing.
 
 Phase 2A does not change production model v1, the `0.60` routing policy,
 Myanmar/mixed-language manual review, Day 18 evidence, or Firebase behavior.
+
+### Phase 2B — bounded data-quality and classifier research
+
+- [x] Preserve the Phase 2A original validation and held-out test partitions;
+  evaluate only the fixed fit/calibration/development-validation partitions.
+- [x] Run the predeclared 11-group matrix, including data-quality sensitivity,
+  class/sample weighting, ComplementNB settings, flat Logistic Regression,
+  word-plus-character features, and a Fraud-vs-Others hierarchy.
+- [x] Publish aggregate-only experiment and data-quality evidence, including
+  112 conflicting groups, 31,247 exact-duplicate extra rows, and 870
+  same-label near-duplicate sensitivity collapses.
+- [x] Apply the locked strict gates without relaxing them; no candidate passed
+  short-text, synthetic-safety, and all end-to-end protection requirements.
+- [x] Conclude Phase 2B with no production candidate, no held-out evaluation,
+  and no production-model, threshold, routing, Firebase, or mapping change.
+- [ ] Authorize a separate Phase 3 Dense Embeddings research track, such as
+  FastText or MiniLM, to investigate the unresolved short-text bottleneck.
+
+Phase 2B is a completed negative-result research milestone. Its bounded sparse
+TF-IDF evidence justifies, but does not itself implement, a separately approved
+Dense Embeddings investigation.

@@ -1,0 +1,3328 @@
+{
+  "schema_version": 1,
+  "status": "completed",
+  "research_only": true,
+  "partitions": {
+    "locked_reservoir_rows": 200000,
+    "source_rows": 3822576,
+    "source_chunks": 39,
+    "original_training_rows": 140781,
+    "development_partitions": {
+      "fit": {
+        "rows": 99200,
+        "label_counts": {
+          "transfer_payment": 2353,
+          "account_support": 5158,
+          "card_atm": 6314,
+          "fraud_security": 72525,
+          "loan_credit": 7807,
+          "general_support": 5043
+        }
+      },
+      "calibration": {
+        "rows": 21909,
+        "label_counts": {
+          "transfer_payment": 395,
+          "account_support": 1055,
+          "card_atm": 1274,
+          "fraud_security": 16074,
+          "loan_credit": 1664,
+          "general_support": 1447
+        }
+      },
+      "validation": {
+        "rows": 19672,
+        "label_counts": {
+          "transfer_payment": 361,
+          "account_support": 1066,
+          "card_atm": 1355,
+          "fraud_security": 14148,
+          "loan_credit": 1667,
+          "general_support": 1075
+        }
+      }
+    },
+    "fit_after_fraud_cap": {
+      "rows": 56675
+    },
+    "source_label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    },
+    "locked_original_validation_rows": 29277,
+    "locked_held_out_test_rows": 29942,
+    "development_seed": 20260810,
+    "locked_reservoir_seed": 20260727
+  },
+  "mapping": {
+    "source_rows": 3822576,
+    "chunks": 39,
+    "mapping_version": "v1",
+    "mapping_method_counts": {
+      "exact_product_issue": 275838,
+      "general_support": 206547,
+      "product_fallback": 3340191
+    },
+    "mapping_method_label_counts": {
+      "exact_product_issue": {
+        "transfer_payment": 0,
+        "account_support": 0,
+        "card_atm": 0,
+        "fraud_security": 275838,
+        "loan_credit": 0,
+        "general_support": 0
+      },
+      "general_support": {
+        "transfer_payment": 0,
+        "account_support": 0,
+        "card_atm": 0,
+        "fraud_security": 0,
+        "loan_credit": 0,
+        "general_support": 206547
+      },
+      "product_fallback": {
+        "transfer_payment": 85180,
+        "account_support": 198831,
+        "card_atm": 241219,
+        "fraud_security": 2509606,
+        "loan_credit": 305355,
+        "general_support": 0
+      }
+    },
+    "label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    },
+    "missing_product": 0,
+    "missing_issue": 0,
+    "product_family": {
+      "bank account or service": {
+        "rows": 14883,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 14883,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 14883,
+          "general_support": 0
+        }
+      },
+      "checking or savings account": {
+        "rows": 184162,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 183948,
+          "card_atm": 0,
+          "fraud_security": 214,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 214,
+          "product_fallback": 183948,
+          "general_support": 0
+        }
+      },
+      "consumer loan": {
+        "rows": 9458,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 9458,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 9458,
+          "general_support": 0
+        }
+      },
+      "credit card": {
+        "rows": 124393,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 122170,
+          "fraud_security": 2223,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 2223,
+          "product_fallback": 122170,
+          "general_support": 0
+        }
+      },
+      "credit card or prepaid card": {
+        "rows": 108683,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 108488,
+          "fraud_security": 195,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 195,
+          "product_fallback": 108488,
+          "general_support": 0
+        }
+      },
+      "credit reporting": {
+        "rows": 31587,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 31587,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 31587,
+          "general_support": 0
+        }
+      },
+      "credit reporting or other personal consumer reports": {
+        "rows": 1670638,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1670638,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1670638,
+          "general_support": 0
+        }
+      },
+      "credit reporting, credit repair services, or other personal consumer reports": {
+        "rows": 807381,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 807381,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 807381,
+          "general_support": 0
+        }
+      },
+      "debt collection": {
+        "rows": 436811,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 235896,
+          "loan_credit": 0,
+          "general_support": 200915
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 235896,
+          "product_fallback": 0,
+          "general_support": 200915
+        }
+      },
+      "debt or credit management": {
+        "rows": 5340,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 5340
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 5340
+        }
+      },
+      "money transfer, virtual currency, or money service": {
+        "rows": 119584,
+        "label_counts": {
+          "transfer_payment": 84180,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 35404,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 35404,
+          "product_fallback": 84180,
+          "general_support": 0
+        }
+      },
+      "money transfers": {
+        "rows": 1497,
+        "label_counts": {
+          "transfer_payment": 989,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 508,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 508,
+          "product_fallback": 989,
+          "general_support": 0
+        }
+      },
+      "mortgage": {
+        "rows": 145321,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 96,
+          "loan_credit": 145225,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 96,
+          "product_fallback": 145225,
+          "general_support": 0
+        }
+      },
+      "other financial service": {
+        "rows": 292,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 292
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 292
+        }
+      },
+      "payday loan": {
+        "rows": 1745,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 1745,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1745,
+          "general_support": 0
+        }
+      },
+      "payday loan, title loan, or personal loan": {
+        "rows": 17226,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 17226,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 17226,
+          "general_support": 0
+        }
+      },
+      "payday loan, title loan, personal loan, or advance loan": {
+        "rows": 17662,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 17662,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 17662,
+          "general_support": 0
+        }
+      },
+      "prepaid card": {
+        "rows": 11414,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 10561,
+          "fraud_security": 853,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 853,
+          "product_fallback": 10561,
+          "general_support": 0
+        }
+      },
+      "student loan": {
+        "rows": 62113,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 274,
+          "loan_credit": 61839,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 274,
+          "product_fallback": 61839,
+          "general_support": 0
+        }
+      },
+      "vehicle loan or lease": {
+        "rows": 52370,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 170,
+          "loan_credit": 52200,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 170,
+          "product_fallback": 52200,
+          "general_support": 0
+        }
+      },
+      "virtual currency": {
+        "rows": 16,
+        "label_counts": {
+          "transfer_payment": 11,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 5,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 5,
+          "product_fallback": 11,
+          "general_support": 0
+        }
+      }
+    },
+    "issue_family": {
+      "account opening, closing, or management": {
+        "rows": 6345,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 6345,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 6345,
+          "general_support": 0
+        }
+      },
+      "account terms and changes": {
+        "rows": 17,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 17,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 17,
+          "general_support": 0
+        }
+      },
+      "adding money": {
+        "rows": 92,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 92,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 92,
+          "general_support": 0
+        }
+      },
+      "advertising": {
+        "rows": 359,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 359,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 359,
+          "general_support": 0
+        }
+      },
+      "advertising and marketing": {
+        "rows": 830,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 818,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 12
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 818,
+          "general_support": 12
+        }
+      },
+      "advertising and marketing, including promotional offers": {
+        "rows": 11233,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 11232,
+          "fraud_security": 1,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 11233,
+          "general_support": 0
+        }
+      },
+      "advertising, marketing or disclosures": {
+        "rows": 25,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 25,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 25,
+          "general_support": 0
+        }
+      },
+      "application processing delay": {
+        "rows": 107,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 107,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 107,
+          "general_support": 0
+        }
+      },
+      "application, originator, mortgage broker": {
+        "rows": 3744,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 3744,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3744,
+          "general_support": 0
+        }
+      },
+      "applied for loan/did not receive money": {
+        "rows": 85,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 85,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 85,
+          "general_support": 0
+        }
+      },
+      "applying for a mortgage or refinancing an existing mortgage": {
+        "rows": 14881,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 14881,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 14881,
+          "general_support": 0
+        }
+      },
+      "apr or interest rate": {
+        "rows": 785,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 785,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 785,
+          "general_support": 0
+        }
+      },
+      "arbitration": {
+        "rows": 83,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 83,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 83,
+          "general_support": 0
+        }
+      },
+      "attempts to collect debt not owed": {
+        "rows": 187418,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 187418,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 187418,
+          "product_fallback": 0,
+          "general_support": 0
+        }
+      },
+      "balance transfer": {
+        "rows": 298,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 298,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 298,
+          "general_support": 0
+        }
+      },
+      "balance transfer fee": {
+        "rows": 51,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 51,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 51,
+          "general_support": 0
+        }
+      },
+      "bankruptcy": {
+        "rows": 96,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 96,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 96,
+          "general_support": 0
+        }
+      },
+      "billing disputes": {
+        "rows": 3102,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 3102,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3102,
+          "general_support": 0
+        }
+      },
+      "billing statement": {
+        "rows": 620,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 620,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 620,
+          "general_support": 0
+        }
+      },
+      "can't contact lender": {
+        "rows": 372,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 372,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 372,
+          "general_support": 0
+        }
+      },
+      "can't contact lender or servicer": {
+        "rows": 724,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 724,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 724,
+          "general_support": 0
+        }
+      },
+      "can't repay my loan": {
+        "rows": 3057,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 3057,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3057,
+          "general_support": 0
+        }
+      },
+      "can't stop charges to bank account": {
+        "rows": 166,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 166,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 166,
+          "general_support": 0
+        }
+      },
+      "can't stop withdrawals from your bank account": {
+        "rows": 635,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 635,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 635,
+          "general_support": 0
+        }
+      },
+      "cash advance": {
+        "rows": 44,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 44,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 44,
+          "general_support": 0
+        }
+      },
+      "cash advance fee": {
+        "rows": 41,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 41,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 41,
+          "general_support": 0
+        }
+      },
+      "charged bank acct wrong day or amt": {
+        "rows": 106,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 106,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 106,
+          "general_support": 0
+        }
+      },
+      "charged fees or interest i didn't expect": {
+        "rows": 852,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 852,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 852,
+          "general_support": 0
+        }
+      },
+      "charged fees or interest you didn't expect": {
+        "rows": 8913,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 8913,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 8913,
+          "general_support": 0
+        }
+      },
+      "charged upfront or unexpected fees": {
+        "rows": 873,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 873
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 873
+        }
+      },
+      "closing an account": {
+        "rows": 25474,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 25474,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 25474,
+          "general_support": 0
+        }
+      },
+      "closing on a mortgage": {
+        "rows": 10783,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 2,
+          "loan_credit": 10781,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 10783,
+          "general_support": 0
+        }
+      },
+      "closing your account": {
+        "rows": 15479,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 15478,
+          "fraud_security": 1,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 15479,
+          "general_support": 0
+        }
+      },
+      "closing/cancelling account": {
+        "rows": 1440,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 1440,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1440,
+          "general_support": 0
+        }
+      },
+      "communication tactics": {
+        "rows": 33891,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 33891
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 33891
+        }
+      },
+      "confusing or misleading advertising or marketing": {
+        "rows": 1932,
+        "label_counts": {
+          "transfer_payment": 697,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 493,
+          "loan_credit": 100,
+          "general_support": 642
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1290,
+          "general_support": 642
+        }
+      },
+      "confusing or missing disclosures": {
+        "rows": 4107,
+        "label_counts": {
+          "transfer_payment": 2713,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 322,
+          "loan_credit": 102,
+          "general_support": 970
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3137,
+          "general_support": 970
+        }
+      },
+      "cont'd attempts collect debt not owed": {
+        "rows": 17406,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 17406
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 17406
+        }
+      },
+      "convenience checks": {
+        "rows": 37,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 37,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 37,
+          "general_support": 0
+        }
+      },
+      "credit card protection / debt protection": {
+        "rows": 712,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 712,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 712,
+          "general_support": 0
+        }
+      },
+      "credit decision / underwriting": {
+        "rows": 1288,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 1288,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1288,
+          "general_support": 0
+        }
+      },
+      "credit determination": {
+        "rows": 506,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 506,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 506,
+          "general_support": 0
+        }
+      },
+      "credit limit changed": {
+        "rows": 150,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 150,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 150,
+          "general_support": 0
+        }
+      },
+      "credit line increase/decrease": {
+        "rows": 451,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 451,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 451,
+          "general_support": 0
+        }
+      },
+      "credit monitoring or identity protection": {
+        "rows": 936,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 936,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 936,
+          "general_support": 0
+        }
+      },
+      "credit monitoring or identity theft protection services": {
+        "rows": 14013,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 13876,
+          "loan_credit": 137,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 962,
+          "product_fallback": 13051,
+          "general_support": 0
+        }
+      },
+      "credit reporting company's investigation": {
+        "rows": 5663,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 5663,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 5663,
+          "general_support": 0
+        }
+      },
+      "customer service / customer relations": {
+        "rows": 973,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 973,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 973,
+          "general_support": 0
+        }
+      },
+      "customer service/customer relations": {
+        "rows": 55,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 55
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 55
+        }
+      },
+      "dealing with my lender or servicer": {
+        "rows": 7904,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 7904,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 7904,
+          "general_support": 0
+        }
+      },
+      "dealing with your lender or servicer": {
+        "rows": 34605,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 3,
+          "loan_credit": 34602,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 34605,
+          "general_support": 0
+        }
+      },
+      "delinquent account": {
+        "rows": 834,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 834,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 834,
+          "general_support": 0
+        }
+      },
+      "deposits and withdrawals": {
+        "rows": 3425,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 3425,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3425,
+          "general_support": 0
+        }
+      },
+      "didn't provide services promised": {
+        "rows": 1464,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 1464
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 1464
+        }
+      },
+      "disclosure verification of debt": {
+        "rows": 7587,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 7587
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 7587
+        }
+      },
+      "disclosures": {
+        "rows": 13,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 13
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 13
+        }
+      },
+      "electronic communications": {
+        "rows": 4311,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 4311
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 4311
+        }
+      },
+      "excessive fees": {
+        "rows": 183,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 147,
+          "loan_credit": 0,
+          "general_support": 36
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 147,
+          "general_support": 36
+        }
+      },
+      "false statements or representation": {
+        "rows": 48478,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 48478,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 48478,
+          "product_fallback": 0,
+          "general_support": 0
+        }
+      },
+      "fees": {
+        "rows": 77,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 77,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 77,
+          "general_support": 0
+        }
+      },
+      "fees or interest": {
+        "rows": 22947,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 22947,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 22947,
+          "general_support": 0
+        }
+      },
+      "forbearance / workout plans": {
+        "rows": 85,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 85,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 85,
+          "general_support": 0
+        }
+      },
+      "fraud or scam": {
+        "rows": 27955,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 27829,
+          "loan_credit": 0,
+          "general_support": 126
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 26831,
+          "product_fallback": 998,
+          "general_support": 126
+        }
+      },
+      "getting a credit card": {
+        "rows": 22443,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 22441,
+          "fraud_security": 2,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 22443,
+          "general_support": 0
+        }
+      },
+      "getting a line of credit": {
+        "rows": 1415,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 1,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 1413,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1415,
+          "general_support": 0
+        }
+      },
+      "getting a loan": {
+        "rows": 1319,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 4,
+          "loan_credit": 1315,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1319,
+          "general_support": 0
+        }
+      },
+      "getting a loan or lease": {
+        "rows": 7151,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 7,
+          "loan_credit": 7144,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 7151,
+          "general_support": 0
+        }
+      },
+      "getting the loan": {
+        "rows": 2691,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 2690,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2691,
+          "general_support": 0
+        }
+      },
+      "identity theft / fraud / embezzlement": {
+        "rows": 1722,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1722,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 1722,
+          "product_fallback": 0,
+          "general_support": 0
+        }
+      },
+      "identity theft protection or other monitoring services": {
+        "rows": 1296,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1296,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1296,
+          "general_support": 0
+        }
+      },
+      "improper contact or sharing of info": {
+        "rows": 2908,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 2908
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 2908
+        }
+      },
+      "improper use of my credit report": {
+        "rows": 1520,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1520,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1520,
+          "general_support": 0
+        }
+      },
+      "improper use of your report": {
+        "rows": 663165,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 129,
+          "card_atm": 1559,
+          "fraud_security": 659039,
+          "loan_credit": 2438,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 663165,
+          "general_support": 0
+        }
+      },
+      "incorrect exchange rate": {
+        "rows": 102,
+        "label_counts": {
+          "transfer_payment": 99,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 3
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 99,
+          "general_support": 3
+        }
+      },
+      "incorrect information on credit report": {
+        "rows": 21216,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 21216,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 21216,
+          "general_support": 0
+        }
+      },
+      "incorrect information on your report": {
+        "rows": 1204443,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 353,
+          "card_atm": 9564,
+          "fraud_security": 1184385,
+          "loan_credit": 10141,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1204443,
+          "general_support": 0
+        }
+      },
+      "incorrect/missing disclosures or info": {
+        "rows": 58,
+        "label_counts": {
+          "transfer_payment": 58,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 58,
+          "general_support": 0
+        }
+      },
+      "issue where my lender is my school": {
+        "rows": 114,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 114,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 114,
+          "general_support": 0
+        }
+      },
+      "issue with income share agreement": {
+        "rows": 105,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 105,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 105,
+          "general_support": 0
+        }
+      },
+      "issues with repayment": {
+        "rows": 169,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 169,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 169,
+          "general_support": 0
+        }
+      },
+      "late fee": {
+        "rows": 771,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 771,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 771,
+          "general_support": 0
+        }
+      },
+      "lender damaged or destroyed property": {
+        "rows": 1,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 1,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1,
+          "general_support": 0
+        }
+      },
+      "lender damaged or destroyed vehicle": {
+        "rows": 2,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 2,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2,
+          "general_support": 0
+        }
+      },
+      "lender repossessed or sold the vehicle": {
+        "rows": 31,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 31,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 31,
+          "general_support": 0
+        }
+      },
+      "lender sold the property": {
+        "rows": 3,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 3,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3,
+          "general_support": 0
+        }
+      },
+      "loan modification,collection,foreclosure": {
+        "rows": 10788,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 10788,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 10788,
+          "general_support": 0
+        }
+      },
+      "loan payment wasn't credited to your account": {
+        "rows": 507,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 507,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 507,
+          "general_support": 0
+        }
+      },
+      "loan servicing, payments, escrow account": {
+        "rows": 14720,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 14720,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 14720,
+          "general_support": 0
+        }
+      },
+      "lost or stolen check": {
+        "rows": 260,
+        "label_counts": {
+          "transfer_payment": 246,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 14
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 246,
+          "general_support": 14
+        }
+      },
+      "lost or stolen money order": {
+        "rows": 460,
+        "label_counts": {
+          "transfer_payment": 449,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 11
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 449,
+          "general_support": 11
+        }
+      },
+      "lost or stolen refund": {
+        "rows": 7,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 7,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 7,
+          "general_support": 0
+        }
+      },
+      "making/receiving payments, sending money": {
+        "rows": 1432,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 1432,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1432,
+          "general_support": 0
+        }
+      },
+      "managing an account": {
+        "rows": 100270,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 100270,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 100270,
+          "general_support": 0
+        }
+      },
+      "managing the line of credit": {
+        "rows": 16,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 16,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 16,
+          "general_support": 0
+        }
+      },
+      "managing the loan or lease": {
+        "rows": 21615,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 21615,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 21615,
+          "general_support": 0
+        }
+      },
+      "managing, opening, or closing account": {
+        "rows": 386,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 386,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 386,
+          "general_support": 0
+        }
+      },
+      "managing, opening, or closing your mobile wallet account": {
+        "rows": 5718,
+        "label_counts": {
+          "transfer_payment": 5718,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 5718,
+          "general_support": 0
+        }
+      },
+      "money was not available when promised": {
+        "rows": 7434,
+        "label_counts": {
+          "transfer_payment": 7434,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 7434,
+          "general_support": 0
+        }
+      },
+      "money was taken from your bank account on the wrong day or for the wrong amount": {
+        "rows": 446,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 446,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 446,
+          "general_support": 0
+        }
+      },
+      "opening an account": {
+        "rows": 16132,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 16132,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 16132,
+          "general_support": 0
+        }
+      },
+      "other": {
+        "rows": 1940,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 1940,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1940,
+          "general_support": 0
+        }
+      },
+      "other features, terms, or problems": {
+        "rows": 24916,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 24913,
+          "fraud_security": 3,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 24916,
+          "general_support": 0
+        }
+      },
+      "other fee": {
+        "rows": 502,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 502,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 502,
+          "general_support": 0
+        }
+      },
+      "other service issues": {
+        "rows": 138,
+        "label_counts": {
+          "transfer_payment": 138,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 138,
+          "general_support": 0
+        }
+      },
+      "other service problem": {
+        "rows": 3463,
+        "label_counts": {
+          "transfer_payment": 3463,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3463,
+          "general_support": 0
+        }
+      },
+      "other transaction issues": {
+        "rows": 471,
+        "label_counts": {
+          "transfer_payment": 471,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 471,
+          "general_support": 0
+        }
+      },
+      "other transaction problem": {
+        "rows": 54620,
+        "label_counts": {
+          "transfer_payment": 54620,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 54620,
+          "general_support": 0
+        }
+      },
+      "overdraft, savings or rewards features": {
+        "rows": 17,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 17,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 17,
+          "general_support": 0
+        }
+      },
+      "overdraft, savings, or rewards features": {
+        "rows": 132,
+        "label_counts": {
+          "transfer_payment": 132,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 132,
+          "general_support": 0
+        }
+      },
+      "overlimit fee": {
+        "rows": 31,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 31,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 31,
+          "general_support": 0
+        }
+      },
+      "payment to acct not credited": {
+        "rows": 151,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 151,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 151,
+          "general_support": 0
+        }
+      },
+      "payoff process": {
+        "rows": 513,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 513,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 513,
+          "general_support": 0
+        }
+      },
+      "privacy": {
+        "rows": 105,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 105,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 105,
+          "product_fallback": 0,
+          "general_support": 0
+        }
+      },
+      "problem adding money": {
+        "rows": 641,
+        "label_counts": {
+          "transfer_payment": 641,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 641,
+          "general_support": 0
+        }
+      },
+      "problem caused by your funds being low": {
+        "rows": 18464,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 18464,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 18464,
+          "general_support": 0
+        }
+      },
+      "problem getting a card or closing an account": {
+        "rows": 3113,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 3113,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3113,
+          "general_support": 0
+        }
+      },
+      "problem when making payments": {
+        "rows": 19736,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 15352,
+          "fraud_security": 1,
+          "loan_credit": 4383,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 19736,
+          "general_support": 0
+        }
+      },
+      "problem with a company's investigation into an existing issue": {
+        "rows": 3483,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 3483,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3483,
+          "general_support": 0
+        }
+      },
+      "problem with a company's investigation into an existing problem": {
+        "rows": 348977,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 209,
+          "card_atm": 9025,
+          "fraud_security": 337718,
+          "loan_credit": 2025,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 348977,
+          "general_support": 0
+        }
+      },
+      "problem with a credit reporting company's investigation into an existing problem": {
+        "rows": 250444,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 57,
+          "card_atm": 5718,
+          "fraud_security": 241984,
+          "loan_credit": 2685,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 250444,
+          "general_support": 0
+        }
+      },
+      "problem with a lender or other company charging your account": {
+        "rows": 22838,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 22838,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 22838,
+          "general_support": 0
+        }
+      },
+      "problem with a purchase or transfer": {
+        "rows": 5803,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 5803,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 5803,
+          "general_support": 0
+        }
+      },
+      "problem with a purchase shown on your statement": {
+        "rows": 53687,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 53685,
+          "fraud_security": 2,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 53687,
+          "general_support": 0
+        }
+      },
+      "problem with additional add-on products or services": {
+        "rows": 2110,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 2110,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2110,
+          "general_support": 0
+        }
+      },
+      "problem with an overdraft": {
+        "rows": 4,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 4,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 4,
+          "general_support": 0
+        }
+      },
+      "problem with cash advance": {
+        "rows": 177,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 177,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 177,
+          "general_support": 0
+        }
+      },
+      "problem with customer service": {
+        "rows": 2778,
+        "label_counts": {
+          "transfer_payment": 1480,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 512,
+          "loan_credit": 2,
+          "general_support": 784
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1994,
+          "general_support": 784
+        }
+      },
+      "problem with fraud alerts or security freezes": {
+        "rows": 16011,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 15878,
+          "loan_credit": 133,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 383,
+          "product_fallback": 15628,
+          "general_support": 0
+        }
+      },
+      "problem with overdraft": {
+        "rows": 106,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 106,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 106,
+          "general_support": 0
+        }
+      },
+      "problem with the payoff process at the end of the loan": {
+        "rows": 3186,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 3185,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 3186,
+          "general_support": 0
+        }
+      },
+      "problems at the end of the loan or lease": {
+        "rows": 9038,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 9037,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 9038,
+          "general_support": 0
+        }
+      },
+      "problems caused by my funds being low": {
+        "rows": 2084,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 2084,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2084,
+          "general_support": 0
+        }
+      },
+      "problems receiving the advance": {
+        "rows": 103,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 103,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 103,
+          "general_support": 0
+        }
+      },
+      "problems when you are unable to pay": {
+        "rows": 2451,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 2451,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2451,
+          "general_support": 0
+        }
+      },
+      "property was damaged or destroyed property": {
+        "rows": 9,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 9,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 9,
+          "general_support": 0
+        }
+      },
+      "property was sold": {
+        "rows": 17,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 17,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 17,
+          "general_support": 0
+        }
+      },
+      "received a loan i didn't apply for": {
+        "rows": 209,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 209,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 209,
+          "general_support": 0
+        }
+      },
+      "received a loan you didn't apply for": {
+        "rows": 842,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 842,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 842,
+          "general_support": 0
+        }
+      },
+      "repossession": {
+        "rows": 6805,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 6805,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 6805,
+          "general_support": 0
+        }
+      },
+      "rewards": {
+        "rows": 900,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 900,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 900,
+          "general_support": 0
+        }
+      },
+      "sale of account": {
+        "rows": 98,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 98,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 98,
+          "general_support": 0
+        }
+      },
+      "settlement process and costs": {
+        "rows": 2248,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 2248,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2248,
+          "general_support": 0
+        }
+      },
+      "shopping for a line of credit": {
+        "rows": 10,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 10,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 10,
+          "general_support": 0
+        }
+      },
+      "shopping for a loan or lease": {
+        "rows": 661,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 661,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 661,
+          "general_support": 0
+        }
+      },
+      "struggling to pay mortgage": {
+        "rows": 26859,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 26858,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 26859,
+          "general_support": 0
+        }
+      },
+      "struggling to pay your bill": {
+        "rows": 2981,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 2981,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2981,
+          "general_support": 0
+        }
+      },
+      "struggling to pay your loan": {
+        "rows": 10248,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 10247,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 10248,
+          "general_support": 0
+        }
+      },
+      "struggling to repay your loan": {
+        "rows": 10016,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 1,
+          "loan_credit": 10015,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 10016,
+          "general_support": 0
+        }
+      },
+      "taking out the loan or lease": {
+        "rows": 1559,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 1559,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1559,
+          "general_support": 0
+        }
+      },
+      "taking/threatening an illegal action": {
+        "rows": 2915,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 2915
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 2915
+        }
+      },
+      "threatened to contact someone or share information improperly": {
+        "rows": 7137,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 7137
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 7137
+        }
+      },
+      "took or threatened to take negative or legal action": {
+        "rows": 36940,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 36940
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 36940
+        }
+      },
+      "transaction issue": {
+        "rows": 681,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 681,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 681,
+          "general_support": 0
+        }
+      },
+      "trouble accessing funds in your mobile or digital wallet": {
+        "rows": 4078,
+        "label_counts": {
+          "transfer_payment": 4078,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 4078,
+          "general_support": 0
+        }
+      },
+      "trouble during payment process": {
+        "rows": 55834,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 2,
+          "loan_credit": 55832,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 55834,
+          "general_support": 0
+        }
+      },
+      "trouble using the card": {
+        "rows": 7069,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 7069,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 7069,
+          "general_support": 0
+        }
+      },
+      "trouble using your card": {
+        "rows": 9014,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 9013,
+          "fraud_security": 1,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 9014,
+          "general_support": 0
+        }
+      },
+      "unable to get credit report/credit score": {
+        "rows": 2252,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 2252,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 2252,
+          "general_support": 0
+        }
+      },
+      "unable to get your credit report or credit score": {
+        "rows": 19219,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 21,
+          "card_atm": 101,
+          "fraud_security": 18855,
+          "loan_credit": 242,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 19219,
+          "general_support": 0
+        }
+      },
+      "unauthorized transactions or other transaction problem": {
+        "rows": 9396,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 9396,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 9396,
+          "product_fallback": 0,
+          "general_support": 0
+        }
+      },
+      "unauthorized transactions/trans. issues": {
+        "rows": 543,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 543,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 543,
+          "product_fallback": 0,
+          "general_support": 0
+        }
+      },
+      "unauthorized withdrawals or charges": {
+        "rows": 607,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 607
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 607
+        }
+      },
+      "unexpected fees": {
+        "rows": 92,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 92,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 92,
+          "general_support": 0
+        }
+      },
+      "unexpected or other fees": {
+        "rows": 5133,
+        "label_counts": {
+          "transfer_payment": 1642,
+          "account_support": 0,
+          "card_atm": 3149,
+          "fraud_security": 342,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 5133,
+          "general_support": 0
+        }
+      },
+      "unexpected/other fees": {
+        "rows": 22,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 22
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 22
+        }
+      },
+      "unsolicited issuance of credit card": {
+        "rows": 491,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 491,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 491,
+          "general_support": 0
+        }
+      },
+      "using a debit or atm card": {
+        "rows": 1597,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 1597,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1597,
+          "general_support": 0
+        }
+      },
+      "vehicle was damaged or destroyed the vehicle": {
+        "rows": 123,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 123,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 123,
+          "general_support": 0
+        }
+      },
+      "vehicle was repossessed or sold the vehicle": {
+        "rows": 451,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 451,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 451,
+          "general_support": 0
+        }
+      },
+      "was approved for a loan, but didn't receive money": {
+        "rows": 71,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 71,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 71,
+          "general_support": 0
+        }
+      },
+      "was approved for a loan, but didn't receive the money": {
+        "rows": 341,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 341,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 341,
+          "general_support": 0
+        }
+      },
+      "written notification about debt": {
+        "rows": 87820,
+        "label_counts": {
+          "transfer_payment": 0,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 87820
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 0,
+          "general_support": 87820
+        }
+      },
+      "wrong amount charged or received": {
+        "rows": 1101,
+        "label_counts": {
+          "transfer_payment": 1101,
+          "account_support": 0,
+          "card_atm": 0,
+          "fraud_security": 0,
+          "loan_credit": 0,
+          "general_support": 0
+        },
+        "mapping_method_counts": {
+          "exact_product_issue": 0,
+          "product_fallback": 1101,
+          "general_support": 0
+        }
+      }
+    },
+    "hashes": {
+      "mapped_dataset_sha256": "71a5ffda7914664a2b6803d92a6327bbe8e2438036e4420d3b30b95928241848",
+      "mapping_policy_sha256": "5a09d54b5b5c81286dea24abf519dc479fe29fd4ba813f4375ecf154171475f7",
+      "cleaning_report_sha256": "e923cc07cc72674990a2d40d456ad8814efb985a3fa22c7478e39d35fd88c88e",
+      "cleaned_source_sha256": null
+    },
+    "privacy": {
+      "contains_narratives": false,
+      "contains_complaint_ids": false,
+      "contains_row_level_predictions": false,
+      "contains_raw_duplicate_pairs": false,
+      "aggregate_only": true
+    }
+  },
+  "data_quality": {
+    "original_training": {
+      "rows": 140781,
+      "normalized_groups": 109534,
+      "exact_duplicate_groups": 3732,
+      "exact_duplicate_extra_rows": 31247,
+      "same_label_duplicate_groups": 3620,
+      "conflicting_groups": 112,
+      "conflicting_group_rows": 3658,
+      "maximum_group_size": 1637
+    },
+    "development_fit_before_cap": {
+      "rows": 99200,
+      "normalized_groups": 76736,
+      "exact_duplicate_groups": 2662,
+      "exact_duplicate_extra_rows": 22464,
+      "same_label_duplicate_groups": 2583,
+      "conflicting_groups": 79,
+      "conflicting_group_rows": 2789,
+      "maximum_group_size": 1637
+    },
+    "fit_after_phase2a_cap": {
+      "rows": 56675,
+      "normalized_groups": 45624,
+      "exact_duplicate_groups": 1153,
+      "exact_duplicate_extra_rows": 11051,
+      "same_label_duplicate_groups": 1114,
+      "conflicting_groups": 39,
+      "conflicting_group_rows": 857,
+      "maximum_group_size": 1637
+    },
+    "conflicting_group_count": 79,
+    "exact_duplicate_sensitivity": {
+      "fit_rows_before": 56675,
+      "fit_rows_after": 46442,
+      "rows_collapsed": 10233,
+      "conflicting_groups_retained": 39
+    },
+    "near_duplicate_sensitivity": {
+      "method": "char_wb_tfidf_4_5_mutual_nearest_neighbor",
+      "threshold_cosine_similarity": 0.98,
+      "clustering_rule": "sort by SHA-256(normalized text), use disjoint reciprocal nearest-neighbor pairs, and drop the later hash only for same-label pairs",
+      "fit_rows_before": 56675,
+      "fit_rows_after_exact_collapse": 46442,
+      "candidate_pairs": 886,
+      "same_label_pairs_collapsed": 870,
+      "near_conflicting_pairs_retained": 16,
+      "fit_rows_after_near_collapse": 45572
+    },
+    "cross_partition_near_duplicate_sample": {
+      "method": "deterministic 2,000-by-2,000 char 4-5 gram nearest-neighbor sample",
+      "fit_sample": 2000,
+      "validation_sample": 2000,
+      "maximum_cosine_similarity": 0.9991371830817024,
+      "at_or_above_0_90": 189,
+      "at_or_above_0_95": 127,
+      "limitation": "sampled development-only risk estimate; not exhaustive proof"
+    },
+    "short_text_counts_by_label": {
+      "0_100": {
+        "transfer_payment": 7,
+        "account_support": 29,
+        "card_atm": 25,
+        "fraud_security": 465,
+        "loan_credit": 21,
+        "general_support": 36
+      },
+      "101_300": {
+        "transfer_payment": 32,
+        "account_support": 125,
+        "card_atm": 207,
+        "fraud_security": 2288,
+        "loan_credit": 158,
+        "general_support": 255
+      },
+      "301_1000": {
+        "transfer_payment": 228,
+        "account_support": 439,
+        "card_atm": 533,
+        "fraud_security": 6990,
+        "loan_credit": 618,
+        "general_support": 483
+      },
+      "1001_plus": {
+        "transfer_payment": 94,
+        "account_support": 473,
+        "card_atm": 590,
+        "fraud_security": 4405,
+        "loan_credit": 870,
+        "general_support": 301
+      }
+    }
+  },
+  "privacy": {
+    "contains_narratives": false,
+    "contains_complaint_ids": false,
+    "contains_row_level_predictions": false,
+    "contains_raw_duplicate_pairs": false,
+    "aggregate_or_synthetic_only": true
+  }
+}

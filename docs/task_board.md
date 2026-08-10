@@ -289,6 +289,25 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [ ] Keep held-out evaluation blocked pending explicit Phase 2B approval.
 - [ ] Keep production replacement, deployment, and threshold changes incomplete.
 
+#### Phase 2B — completed bounded research
+
+- [x] Preserve the original validation and held-out test partitions from all
+  Phase 2B candidate development and evaluation.
+- [x] Run the complete predeclared 11-group matrix with 13 expanded candidate
+  runs for the ComplementNB settings probe.
+- [x] Publish aggregate-only experiment and data-quality artifacts with 112
+  conflicting groups, 31,247 exact-duplicate extra rows, and 870 same-label
+  near-duplicate sensitivity collapses.
+- [x] Enforce all strict end-to-end gates; select no finalist and make no
+  production replacement, routing-threshold, Firebase, mapping, or held-out
+  evaluation change.
+- [ ] Obtain separate authorization for a Phase 3 Dense Embeddings study using
+  FastText or MiniLM to investigate the short-text bottleneck.
+
+Phase 2B completed successfully as rigorous bounded research. The result does
+not prove a universal sparse-model limit, but the tested TF-IDF matrix produced
+no safe production candidate under the short-text and synthetic-safety gates.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.
