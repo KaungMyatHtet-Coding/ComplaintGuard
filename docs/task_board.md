@@ -273,6 +273,22 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Preserve the frozen Day 18 model artifact, metrics, and held-out test set.
 - [ ] Keep production Firebase deployment/rules verification incomplete.
 
+#### Phase 2A — controlled classifier-improvement research
+
+- [x] Protect the original validation and held-out test partitions from
+  candidate evaluation.
+- [x] Derive exact-normalized-group development splits from original training
+  only (`99,200` fit, `21,909` calibration, `19,672` validation).
+- [x] Run five declared CPU-friendly candidates and publish aggregate-only
+  validation evidence.
+- [x] Record 112 conflicting-label normalized groups and sampled near-duplicate
+  risk without treating the sample as exhaustive proof.
+- [x] Record `word_complement_nb` as the strongest transfer-boundary candidate,
+  but recommend no finalist because its Loan/Credit F1 regression exceeds the
+  conservative per-class limit.
+- [ ] Keep held-out evaluation blocked pending explicit Phase 2B approval.
+- [ ] Keep production replacement, deployment, and threshold changes incomplete.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

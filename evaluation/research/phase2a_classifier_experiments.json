@@ -1,0 +1,2273 @@
+{
+  "schema_version": 1,
+  "status": "completed",
+  "created_at_utc": "2026-08-10T14:50:20.242723+00:00",
+  "research_only": true,
+  "held_out_test_evaluated": false,
+  "original_validation_evaluated": false,
+  "seeds": {
+    "locked_reservoir": 20260727,
+    "development": 20260810
+  },
+  "environment": {
+    "python": "3.12.0",
+    "scikit_learn": "1.9.0",
+    "joblib": "1.5.3"
+  },
+  "source": {
+    "dataset_file": "cfpb_training_v1.csv",
+    "dataset_sha256": "71a5ffda7914664a2b6803d92a6327bbe8e2438036e4420d3b30b95928241848",
+    "rows": 3822576,
+    "source_label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    },
+    "chunks": 39
+  },
+  "locked_partitions": {
+    "train": {
+      "rows": 140781,
+      "label_counts": {
+        "transfer_payment": 3109,
+        "account_support": 7279,
+        "card_atm": 8943,
+        "fraud_security": 102747,
+        "loan_credit": 11138,
+        "general_support": 7565
+      }
+    },
+    "validation": {
+      "rows": 29277,
+      "label_counts": {
+        "transfer_payment": 692,
+        "account_support": 1533,
+        "card_atm": 1872,
+        "fraud_security": 21233,
+        "loan_credit": 2405,
+        "general_support": 1542
+      }
+    },
+    "test": {
+      "rows": 29942,
+      "label_counts": {
+        "transfer_payment": 563,
+        "account_support": 1622,
+        "card_atm": 1959,
+        "fraud_security": 21736,
+        "loan_credit": 2375,
+        "general_support": 1687
+      }
+    }
+  },
+  "development_partitions": {
+    "fit": {
+      "rows": 99200,
+      "label_counts": {
+        "transfer_payment": 2353,
+        "account_support": 5158,
+        "card_atm": 6314,
+        "fraud_security": 72525,
+        "loan_credit": 7807,
+        "general_support": 5043
+      }
+    },
+    "calibration": {
+      "rows": 21909,
+      "label_counts": {
+        "transfer_payment": 395,
+        "account_support": 1055,
+        "card_atm": 1274,
+        "fraud_security": 16074,
+        "loan_credit": 1664,
+        "general_support": 1447
+      }
+    },
+    "validation": {
+      "rows": 19672,
+      "label_counts": {
+        "transfer_payment": 361,
+        "account_support": 1066,
+        "card_atm": 1355,
+        "fraud_security": 14148,
+        "loan_credit": 1667,
+        "general_support": 1075
+      }
+    },
+    "fit_after_training_only_cap": {
+      "rows": 56675,
+      "label_counts": {
+        "transfer_payment": 2353,
+        "account_support": 5158,
+        "card_atm": 6314,
+        "fraud_security": 30000,
+        "loan_credit": 7807,
+        "general_support": 5043
+      }
+    }
+  },
+  "development_data_audit": {
+    "text_length_characters_by_department": {
+      "transfer_payment": {
+        "count": 2353,
+        "minimum": 25,
+        "p10": 346.40000000000003,
+        "median": 660.0,
+        "p90": 1555.0,
+        "maximum": 10555,
+        "mean": 869.3285167870803
+      },
+      "account_support": {
+        "count": 5158,
+        "minimum": 9,
+        "p10": 242.0,
+        "median": 881.0,
+        "p90": 2561.3,
+        "maximum": 22003,
+        "mean": 1237.4895308259015
+      },
+      "card_atm": {
+        "count": 6314,
+        "minimum": 30,
+        "p10": 215.0,
+        "median": 879.0,
+        "p90": 2450.7,
+        "maximum": 32478,
+        "mean": 1209.6621792841306
+      },
+      "fraud_security": {
+        "count": 72525,
+        "minimum": 12,
+        "p10": 187.0,
+        "median": 629.0,
+        "p90": 1924.0,
+        "maximum": 35581,
+        "mean": 957.843474663909
+      },
+      "loan_credit": {
+        "count": 7807,
+        "minimum": 10,
+        "p10": 298.0,
+        "median": 1022.0,
+        "p90": 3026.600000000002,
+        "maximum": 31404,
+        "mean": 1446.7472780837709
+      },
+      "general_support": {
+        "count": 5043,
+        "minimum": 15,
+        "p10": 163.0,
+        "median": 559.0,
+        "p90": 2061.2000000000016,
+        "maximum": 32460,
+        "mean": 910.7434067023597
+      }
+    },
+    "term_method": "mean fit-only TF-IDF over the fit-only balanced word 1-2 gram matrix",
+    "account_transfer_terms": {
+      "shared": [
+        {
+          "term": "the",
+          "score": 0.030739301815629005
+        },
+        {
+          "term": "to",
+          "score": 0.030008165165781975
+        },
+        {
+          "term": "and",
+          "score": 0.02881508506834507
+        },
+        {
+          "term": "was",
+          "score": 0.0277961865067482
+        },
+        {
+          "term": "account",
+          "score": 0.02646690607070923
+        },
+        {
+          "term": "my",
+          "score": 0.024579348042607307
+        },
+        {
+          "term": "they",
+          "score": 0.024353288114070892
+        },
+        {
+          "term": "my account",
+          "score": 0.02363368310034275
+        },
+        {
+          "term": "for",
+          "score": 0.020534459501504898
+        },
+        {
+          "term": "on",
+          "score": 0.019374608993530273
+        },
+        {
+          "term": "xxxx",
+          "score": 0.0181209035217762
+        },
+        {
+          "term": "with",
+          "score": 0.017885969951748848
+        },
+        {
+          "term": "not",
+          "score": 0.016980942338705063
+        },
+        {
+          "term": "have",
+          "score": 0.0168511513620615
+        },
+        {
+          "term": "funds",
+          "score": 0.01638917252421379
+        },
+        {
+          "term": "money",
+          "score": 0.016043448820710182
+        },
+        {
+          "term": "xx",
+          "score": 0.013204642571508884
+        },
+        {
+          "term": "that",
+          "score": 0.012784124352037907
+        },
+        {
+          "term": "of",
+          "score": 0.012532451190054417
+        },
+        {
+          "term": "me",
+          "score": 0.012297185137867928
+        },
+        {
+          "term": "as",
+          "score": 0.011787489987909794
+        },
+        {
+          "term": "did",
+          "score": 0.010486024431884289
+        },
+        {
+          "term": "bank",
+          "score": 0.010442299768328667
+        },
+        {
+          "term": "in",
+          "score": 0.010306119918823242
+        },
+        {
+          "term": "is",
+          "score": 0.010262923315167427
+        }
+      ],
+      "toward_transfer_payment": [
+        {
+          "term": "cash app",
+          "score": 0.06211785972118378
+        },
+        {
+          "term": "app",
+          "score": 0.056087762117385864
+        },
+        {
+          "term": "cash",
+          "score": 0.052214644849300385
+        },
+        {
+          "term": "resolution",
+          "score": 0.04583665356040001
+        },
+        {
+          "term": "unfair",
+          "score": 0.04500464349985123
+        },
+        {
+          "term": "platform",
+          "score": 0.041830386966466904
+        },
+        {
+          "term": "vulnerable",
+          "score": 0.041153423488140106
+        },
+        {
+          "term": "financial",
+          "score": 0.0393366739153862
+        },
+        {
+          "term": "platform leaving",
+          "score": 0.03739747405052185
+        },
+        {
+          "term": "address fraud",
+          "score": 0.037396982312202454
+        },
+        {
+          "term": "unprotected",
+          "score": 0.03739652782678604
+        },
+        {
+          "term": "inadequate customer",
+          "score": 0.03737825155258179
+        },
+        {
+          "term": "their platform",
+          "score": 0.03734435513615608
+        },
+        {
+          "term": "account vulnerable",
+          "score": 0.03727090358734131
+        },
+        {
+          "term": "vulnerable and",
+          "score": 0.03726703301072121
+        },
+        {
+          "term": "and unprotected",
+          "score": 0.037264060229063034
+        },
+        {
+          "term": "take timely",
+          "score": 0.037223901599645615
+        },
+        {
+          "term": "to inadequate",
+          "score": 0.037144988775253296
+        },
+        {
+          "term": "and effective",
+          "score": 0.03708619996905327
+        },
+        {
+          "term": "block inc",
+          "score": 0.036999430507421494
+        },
+        {
+          "term": "practices which",
+          "score": 0.03695503622293472
+        },
+        {
+          "term": "deceptive as",
+          "score": 0.036947235465049744
+        },
+        {
+          "term": "leaving",
+          "score": 0.03692696988582611
+        },
+        {
+          "term": "resolution requirements",
+          "score": 0.03688855469226837
+        },
+        {
+          "term": "unprotected furthermore",
+          "score": 0.036881059408187866
+        }
+      ],
+      "toward_account_support": [
+        {
+          "term": "bank",
+          "score": 0.02260536141693592
+        },
+        {
+          "term": "xxxx",
+          "score": 0.015221729874610901
+        },
+        {
+          "term": "xx",
+          "score": 0.014168956317007542
+        },
+        {
+          "term": "checking",
+          "score": 0.0136905862018466
+        },
+        {
+          "term": "check",
+          "score": 0.01198655366897583
+        },
+        {
+          "term": "00",
+          "score": 0.011772149242460728
+        },
+        {
+          "term": "the bank",
+          "score": 0.011527873575687408
+        },
+        {
+          "term": "checking account",
+          "score": 0.011349370703101158
+        },
+        {
+          "term": "deposit",
+          "score": 0.010902546346187592
+        },
+        {
+          "term": "had",
+          "score": 0.010332899168133736
+        },
+        {
+          "term": "xx xx",
+          "score": 0.010312813334167004
+        },
+        {
+          "term": "me",
+          "score": 0.009760953485965729
+        },
+        {
+          "term": "overdraft",
+          "score": 0.00941617414355278
+        },
+        {
+          "term": "fees",
+          "score": 0.009344314225018024
+        },
+        {
+          "term": "fargo",
+          "score": 0.009319365955889225
+        },
+        {
+          "term": "wells",
+          "score": 0.009295380674302578
+        },
+        {
+          "term": "wells fargo",
+          "score": 0.009128747507929802
+        },
+        {
+          "term": "told",
+          "score": 0.009083103388547897
+        },
+        {
+          "term": "xxxx xxxx",
+          "score": 0.009079137817025185
+        },
+        {
+          "term": "in",
+          "score": 0.008919412270188332
+        },
+        {
+          "term": "card",
+          "score": 0.008844482712447643
+        },
+        {
+          "term": "closed",
+          "score": 0.00861902255564928
+        },
+        {
+          "term": "at",
+          "score": 0.008518172428011894
+        },
+        {
+          "term": "debit",
+          "score": 0.00836113654077053
+        },
+        {
+          "term": "from",
+          "score": 0.008305234834551811
+        }
+      ]
+    }
+  },
+  "duplicate_controls": {
+    "exact_normalized_cross_split": 0,
+    "conflicting_normalized_label_groups": 112,
+    "normalization": "Unicode NFKC, casefold, whitespace collapse",
+    "near_duplicate_sample": {
+      "method": "deterministic 2,000-by-2,000 char 4-5 gram nearest-neighbor sample",
+      "fit_sample": 2000,
+      "validation_sample": 2000,
+      "maximum_cosine_similarity": 0.9991371830817024,
+      "at_or_above_0_90": 189,
+      "at_or_above_0_95": 127,
+      "limitation": "sampled risk estimate; not an exhaustive near-duplicate proof"
+    }
+  },
+  "candidates": [
+    {
+      "candidate": {
+        "candidate_id": "word_mnb_baseline",
+        "vectorizer": "word",
+        "classifier": "MultinomialNB",
+        "c": null,
+        "alpha": 0.5
+      },
+      "feature_count": 100000,
+      "validation_metrics": {
+        "macro_f1": 0.6754179813776572,
+        "weighted_f1": 0.8325674810394903,
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.9859154929577465,
+            "recall": 0.3878116343490305,
+            "f1": 0.5566600397614314,
+            "support": 361
+          },
+          "account_support": {
+            "precision": 0.656573116691285,
+            "recall": 0.8339587242026266,
+            "f1": 0.7347107438016529,
+            "support": 1066
+          },
+          "card_atm": {
+            "precision": 0.5630205441421433,
+            "recall": 0.7483394833948339,
+            "f1": 0.6425855513307985,
+            "support": 1355
+          },
+          "fraud_security": {
+            "precision": 0.9586266909263508,
+            "recall": 0.8565168221656771,
+            "f1": 0.904699690171339,
+            "support": 14148
+          },
+          "loan_credit": {
+            "precision": 0.5794106391121316,
+            "recall": 0.9082183563287343,
+            "f1": 0.7074766355140187,
+            "support": 1667
+          },
+          "general_support": {
+            "precision": 0.495985727029438,
+            "recall": 0.5172093023255814,
+            "f1": 0.5063752276867031,
+            "support": 1075
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              140,
+              171,
+              30,
+              3,
+              16,
+              1
+            ],
+            [
+              1,
+              889,
+              110,
+              26,
+              40,
+              0
+            ],
+            [
+              0,
+              80,
+              1014,
+              164,
+              81,
+              16
+            ],
+            [
+              1,
+              186,
+              575,
+              12118,
+              742,
+              526
+            ],
+            [
+              0,
+              19,
+              42,
+              70,
+              1514,
+              22
+            ],
+            [
+              0,
+              9,
+              30,
+              260,
+              220,
+              556
+            ]
+          ]
+        },
+        "transfer_as_account": 171,
+        "account_as_transfer": 1
+      },
+      "text_length_metrics": [
+        {
+          "minimum_characters": 0,
+          "maximum_characters": 100,
+          "count": 583,
+          "accuracy": 0.8404802744425386,
+          "macro_f1": 0.5167320284186873
+        },
+        {
+          "minimum_characters": 101,
+          "maximum_characters": 300,
+          "count": 3065,
+          "accuracy": 0.8016313213703099,
+          "macro_f1": 0.5545979317551893
+        },
+        {
+          "minimum_characters": 301,
+          "maximum_characters": 1000,
+          "count": 9291,
+          "accuracy": 0.8432892046066085,
+          "macro_f1": 0.7112593718727465
+        },
+        {
+          "minimum_characters": 1001,
+          "maximum_characters": null,
+          "count": 6733,
+          "accuracy": 0.8092974899747513,
+          "macro_f1": 0.5928571558345709
+        }
+      ],
+      "regression_suite": [
+        {
+          "case_id": "mobile_transfer_short",
+          "expected_department": "transfer_payment",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.3328159971965774
+        },
+        {
+          "case_id": "mobile_transfer_clear",
+          "expected_department": "transfer_payment",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.8719709410832085
+        },
+        {
+          "case_id": "account_access",
+          "expected_department": "account_support",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.8232107253417309
+        },
+        {
+          "case_id": "card_payment",
+          "expected_department": "card_atm",
+          "predicted_department": "card_atm",
+          "raw_max_probability": 0.7334376457318241
+        },
+        {
+          "case_id": "fraud",
+          "expected_department": "fraud_security",
+          "predicted_department": "fraud_security",
+          "raw_max_probability": 0.6770358561544203
+        },
+        {
+          "case_id": "loan",
+          "expected_department": "loan_credit",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.9308357070588265
+        },
+        {
+          "case_id": "general",
+          "expected_department": "general_support",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.3653481467604218
+        }
+      ],
+      "native_score_type": "probability",
+      "runtime_seconds": 42.44129500000054,
+      "raw_confidence": {
+        "ece": 0.05499596761270857,
+        "multiclass_brier": 0.26904064640213626,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 38,
+            "accuracy": 0.2894736842105263,
+            "mean_confidence": 0.28367995535540663
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 354,
+            "accuracy": 0.3050847457627119,
+            "mean_confidence": 0.3592612690009326
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 1046,
+            "accuracy": 0.47992351816443596,
+            "mean_confidence": 0.4614374601411017
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1097,
+            "accuracy": 0.47219690063810393,
+            "mean_confidence": 0.5499983915497705
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1104,
+            "accuracy": 0.532608695652174,
+            "mean_confidence": 0.6513123346947851
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 1193,
+            "accuracy": 0.6387259010896899,
+            "mean_confidence": 0.7520362011896471
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 1659,
+            "accuracy": 0.7540687160940326,
+            "mean_confidence": 0.8537504374739782
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 13181,
+            "accuracy": 0.9476519232228208,
+            "mean_confidence": 0.9875728237948753
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 2045,
+          "0.7": 1529,
+          "0.8": 1098,
+          "0.9": 690
+        }
+      },
+      "sigmoid_calibration": {
+        "ece": 0.037376609746186146,
+        "multiclass_brier": 0.22108426698588232,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 190,
+            "accuracy": 0.37894736842105264,
+            "mean_confidence": 0.3766078237216878
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 1012,
+            "accuracy": 0.42193675889328064,
+            "mean_confidence": 0.45329568325173053
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1049,
+            "accuracy": 0.5090562440419447,
+            "mean_confidence": 0.5501756041796605
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1463,
+            "accuracy": 0.6131237183868763,
+            "mean_confidence": 0.6556785117123212
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 3482,
+            "accuracy": 0.80413555427915,
+            "mean_confidence": 0.7406934817705099
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 844,
+            "accuracy": 0.8281990521327014,
+            "mean_confidence": 0.8560196534817428
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 11632,
+            "accuracy": 0.9713720770288858,
+            "mean_confidence": 0.9409976644987897
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1726,
+          "0.7": 1160,
+          "0.8": 478,
+          "0.9": 333
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "word_complement_nb",
+        "vectorizer": "word",
+        "classifier": "ComplementNB",
+        "c": null,
+        "alpha": 0.5
+      },
+      "feature_count": 100000,
+      "validation_metrics": {
+        "macro_f1": 0.6735308305705097,
+        "weighted_f1": 0.8262121344907699,
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.8691099476439791,
+            "recall": 0.4598337950138504,
+            "f1": 0.6014492753623188,
+            "support": 361
+          },
+          "account_support": {
+            "precision": 0.6247450713800136,
+            "recall": 0.8621013133208255,
+            "f1": 0.724477729601892,
+            "support": 1066
+          },
+          "card_atm": {
+            "precision": 0.6269256530475552,
+            "recall": 0.6907749077490775,
+            "f1": 0.6573033707865169,
+            "support": 1355
+          },
+          "fraud_security": {
+            "precision": 0.959747119078105,
+            "recall": 0.8476816511167656,
+            "f1": 0.9002402041735476,
+            "support": 14148
+          },
+          "loan_credit": {
+            "precision": 0.5155362512529235,
+            "recall": 0.9256148770245951,
+            "f1": 0.6622317596566524,
+            "support": 1667
+          },
+          "general_support": {
+            "precision": 0.5068093385214008,
+            "recall": 0.4846511627906977,
+            "f1": 0.4954826438421303,
+            "support": 1075
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              166,
+              154,
+              18,
+              1,
+              21,
+              1
+            ],
+            [
+              8,
+              919,
+              74,
+              15,
+              49,
+              1
+            ],
+            [
+              1,
+              107,
+              936,
+              149,
+              147,
+              15
+            ],
+            [
+              15,
+              245,
+              426,
+              11993,
+              995,
+              474
+            ],
+            [
+              0,
+              27,
+              23,
+              58,
+              1543,
+              16
+            ],
+            [
+              1,
+              19,
+              16,
+              280,
+              238,
+              521
+            ]
+          ]
+        },
+        "transfer_as_account": 154,
+        "account_as_transfer": 8
+      },
+      "text_length_metrics": [
+        {
+          "minimum_characters": 0,
+          "maximum_characters": 100,
+          "count": 583,
+          "accuracy": 0.7855917667238422,
+          "macro_f1": 0.5118098329851599
+        },
+        {
+          "minimum_characters": 101,
+          "maximum_characters": 300,
+          "count": 3065,
+          "accuracy": 0.7797716150081566,
+          "macro_f1": 0.5884875355057974
+        },
+        {
+          "minimum_characters": 301,
+          "maximum_characters": 1000,
+          "count": 9291,
+          "accuracy": 0.8334947798945216,
+          "macro_f1": 0.7047971329789456
+        },
+        {
+          "minimum_characters": 1001,
+          "maximum_characters": null,
+          "count": 6733,
+          "accuracy": 0.814792811525323,
+          "macro_f1": 0.6043214984557429
+        }
+      ],
+      "regression_suite": [
+        {
+          "case_id": "mobile_transfer_short",
+          "expected_department": "transfer_payment",
+          "predicted_department": "transfer_payment",
+          "raw_max_probability": 0.248926950875642
+        },
+        {
+          "case_id": "mobile_transfer_clear",
+          "expected_department": "transfer_payment",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.452216833023654
+        },
+        {
+          "case_id": "account_access",
+          "expected_department": "account_support",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.4658695348809123
+        },
+        {
+          "case_id": "card_payment",
+          "expected_department": "card_atm",
+          "predicted_department": "card_atm",
+          "raw_max_probability": 0.4069570142663184
+        },
+        {
+          "case_id": "fraud",
+          "expected_department": "fraud_security",
+          "predicted_department": "fraud_security",
+          "raw_max_probability": 0.2177807518859996
+        },
+        {
+          "case_id": "loan",
+          "expected_department": "loan_credit",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.5630189262980887
+        },
+        {
+          "case_id": "general",
+          "expected_department": "general_support",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.20962067250438013
+        }
+      ],
+      "native_score_type": "probability",
+      "runtime_seconds": 42.039850000001024,
+      "raw_confidence": {
+        "ece": 0.08752861252035088,
+        "multiclass_brier": 0.2996978959626995,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 71,
+            "accuracy": 0.18309859154929578,
+            "mean_confidence": 0.19248969545794645
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 1838,
+            "accuracy": 0.40750816104461374,
+            "mean_confidence": 0.251637347780761
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 2170,
+            "accuracy": 0.5147465437788018,
+            "mean_confidence": 0.3483687212258287
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 1589,
+            "accuracy": 0.6664568911264946,
+            "mean_confidence": 0.447023688476543
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1203,
+            "accuracy": 0.7564422277639236,
+            "mean_confidence": 0.5492317021183315
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1052,
+            "accuracy": 0.8193916349809885,
+            "mean_confidence": 0.6483825835888248
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 1088,
+            "accuracy": 0.9126838235294118,
+            "mean_confidence": 0.7526159178866685
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 1296,
+            "accuracy": 0.9104938271604939,
+            "mean_confidence": 0.8500908238931553
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 9365,
+            "accuracy": 0.9818473037907101,
+            "mean_confidence": 0.9864788414739095
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 571,
+          "0.7": 381,
+          "0.8": 286,
+          "0.9": 170
+        }
+      },
+      "sigmoid_calibration": {
+        "ece": 0.052339018866290776,
+        "multiclass_brier": 0.21559367631262188,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 1,
+            "accuracy": 0.0,
+            "mean_confidence": 0.2864109761071911
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 481,
+            "accuracy": 0.340956340956341,
+            "mean_confidence": 0.3738909033338453
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 1871,
+            "accuracy": 0.4917156600748263,
+            "mean_confidence": 0.45069638872620305
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1422,
+            "accuracy": 0.6483825597749648,
+            "mean_confidence": 0.5472232399188582
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1829,
+            "accuracy": 0.7845817386550027,
+            "mean_confidence": 0.6556238138073871
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 2434,
+            "accuracy": 0.8804437140509449,
+            "mean_confidence": 0.7410899146303981
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 931,
+            "accuracy": 0.8861439312567132,
+            "mean_confidence": 0.8583140187675883
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 10703,
+            "accuracy": 0.9752405867513781,
+            "mean_confidence": 0.9573083440842706
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1056,
+          "0.7": 662,
+          "0.8": 371,
+          "0.9": 265
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "word_balanced_logreg",
+        "vectorizer": "word",
+        "classifier": "LogisticRegression",
+        "c": 2.0,
+        "alpha": null
+      },
+      "feature_count": 100000,
+      "validation_metrics": {
+        "macro_f1": 0.7297992150000018,
+        "weighted_f1": 0.8367986699504893,
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.6522781774580336,
+            "recall": 0.7534626038781164,
+            "f1": 0.699228791773779,
+            "support": 361
+          },
+          "account_support": {
+            "precision": 0.7184841453982985,
+            "recall": 0.8714821763602252,
+            "f1": 0.7876218736752861,
+            "support": 1066
+          },
+          "card_atm": {
+            "precision": 0.6025303110173958,
+            "recall": 0.8435424354243543,
+            "f1": 0.7029520295202952,
+            "support": 1355
+          },
+          "fraud_security": {
+            "precision": 0.9804844646066935,
+            "recall": 0.8096550749222505,
+            "f1": 0.8869188184739267,
+            "support": 14148
+          },
+          "loan_credit": {
+            "precision": 0.7128475551294343,
+            "recall": 0.8920215956808638,
+            "f1": 0.7924327204902745,
+            "support": 1667
+          },
+          "general_support": {
+            "precision": 0.3741289198606272,
+            "recall": 0.7990697674418604,
+            "f1": 0.5096410560664492,
+            "support": 1075
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              272,
+              68,
+              11,
+              1,
+              5,
+              4
+            ],
+            [
+              44,
+              929,
+              64,
+              13,
+              14,
+              2
+            ],
+            [
+              7,
+              85,
+              1143,
+              59,
+              27,
+              34
+            ],
+            [
+              91,
+              162,
+              623,
+              11455,
+              480,
+              1337
+            ],
+            [
+              3,
+              33,
+              31,
+              53,
+              1487,
+              60
+            ],
+            [
+              0,
+              16,
+              25,
+              102,
+              73,
+              859
+            ]
+          ]
+        },
+        "transfer_as_account": 68,
+        "account_as_transfer": 44
+      },
+      "text_length_metrics": [
+        {
+          "minimum_characters": 0,
+          "maximum_characters": 100,
+          "count": 583,
+          "accuracy": 0.7478559176672385,
+          "macro_f1": 0.5332680562799357
+        },
+        {
+          "minimum_characters": 101,
+          "maximum_characters": 300,
+          "count": 3065,
+          "accuracy": 0.7748776508972267,
+          "macro_f1": 0.6346686160483415
+        },
+        {
+          "minimum_characters": 301,
+          "maximum_characters": 1000,
+          "count": 9291,
+          "accuracy": 0.8268216553654074,
+          "macro_f1": 0.7421813636992433
+        },
+        {
+          "minimum_characters": 1001,
+          "maximum_characters": null,
+          "count": 6733,
+          "accuracy": 0.8394474974008614,
+          "macro_f1": 0.7283854996229259
+        }
+      ],
+      "regression_suite": [
+        {
+          "case_id": "mobile_transfer_short",
+          "expected_department": "transfer_payment",
+          "predicted_department": "transfer_payment",
+          "raw_max_probability": 0.867389976978302
+        },
+        {
+          "case_id": "mobile_transfer_clear",
+          "expected_department": "transfer_payment",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.5138514041900635
+        },
+        {
+          "case_id": "account_access",
+          "expected_department": "account_support",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.8943130373954773
+        },
+        {
+          "case_id": "card_payment",
+          "expected_department": "card_atm",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.7069494128227234
+        },
+        {
+          "case_id": "fraud",
+          "expected_department": "fraud_security",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.5459097623825073
+        },
+        {
+          "case_id": "loan",
+          "expected_department": "loan_credit",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.9951748847961426
+        },
+        {
+          "case_id": "general",
+          "expected_department": "general_support",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.30984774231910706
+        }
+      ],
+      "native_score_type": "probability",
+      "runtime_seconds": 91.37756660000014,
+      "raw_confidence": {
+        "ece": 0.03239961419498453,
+        "multiclass_brier": 0.2663719058036804,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 124,
+            "accuracy": 0.2903225806451613,
+            "mean_confidence": 0.272188276052475
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 587,
+            "accuracy": 0.4514480408858603,
+            "mean_confidence": 0.35770735144615173
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 1338,
+            "accuracy": 0.44245142002989535,
+            "mean_confidence": 0.46023499965667725
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1671,
+            "accuracy": 0.646918013165769,
+            "mean_confidence": 0.5504968762397766
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1858,
+            "accuracy": 0.7491926803013994,
+            "mean_confidence": 0.6485556364059448
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 2406,
+            "accuracy": 0.7959268495428097,
+            "mean_confidence": 0.7522066831588745
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 3564,
+            "accuracy": 0.8737373737373737,
+            "mean_confidence": 0.8559461832046509
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 8124,
+            "accuracy": 0.9539635647464303,
+            "mean_confidence": 0.9588373303413391
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1781,
+          "0.7": 1315,
+          "0.8": 824,
+          "0.9": 374
+        }
+      },
+      "sigmoid_calibration": {
+        "ece": 0.039813376195476494,
+        "multiclass_brier": 0.1828681636602851,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 7,
+            "accuracy": 0.0,
+            "mean_confidence": 0.2876198223970126
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 117,
+            "accuracy": 0.29914529914529914,
+            "mean_confidence": 0.3666780995659142
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 519,
+            "accuracy": 0.44508670520231214,
+            "mean_confidence": 0.4647184699164885
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1608,
+            "accuracy": 0.5740049751243781,
+            "mean_confidence": 0.5481129657059729
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1663,
+            "accuracy": 0.6885147324113049,
+            "mean_confidence": 0.6513088401363908
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 1903,
+            "accuracy": 0.7882291119285338,
+            "mean_confidence": 0.7505841829219755
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 3687,
+            "accuracy": 0.9099538920531598,
+            "mean_confidence": 0.857765283028804
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 10168,
+            "accuracy": 0.9890833988985052,
+            "mean_confidence": 0.9501829540859061
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1364,
+          "0.7": 846,
+          "0.8": 443,
+          "0.9": 111
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "word_char_balanced_logreg",
+        "vectorizer": "word_char",
+        "classifier": "LogisticRegression",
+        "c": 2.0,
+        "alpha": null
+      },
+      "feature_count": 175000,
+      "validation_metrics": {
+        "macro_f1": 0.7328607307698874,
+        "weighted_f1": 0.8380413701825156,
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.6487119437939111,
+            "recall": 0.7673130193905817,
+            "f1": 0.7030456852791879,
+            "support": 361
+          },
+          "account_support": {
+            "precision": 0.7215686274509804,
+            "recall": 0.8630393996247655,
+            "f1": 0.7859888936351986,
+            "support": 1066
+          },
+          "card_atm": {
+            "precision": 0.6247978436657682,
+            "recall": 0.855350553505535,
+            "f1": 0.7221183800623053,
+            "support": 1355
+          },
+          "fraud_security": {
+            "precision": 0.9812274987142122,
+            "recall": 0.8090896239751202,
+            "f1": 0.8868830866971411,
+            "support": 14148
+          },
+          "loan_credit": {
+            "precision": 0.7205240174672489,
+            "recall": 0.8908218356328734,
+            "f1": 0.7966738197424893,
+            "support": 1667
+          },
+          "general_support": {
+            "precision": 0.36432160804020103,
+            "recall": 0.8093023255813954,
+            "f1": 0.5024545192030032,
+            "support": 1075
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              277,
+              67,
+              9,
+              0,
+              5,
+              3
+            ],
+            [
+              46,
+              920,
+              72,
+              11,
+              11,
+              6
+            ],
+            [
+              8,
+              77,
+              1159,
+              60,
+              22,
+              29
+            ],
+            [
+              92,
+              167,
+              553,
+              11447,
+              478,
+              1411
+            ],
+            [
+              4,
+              32,
+              34,
+              43,
+              1485,
+              69
+            ],
+            [
+              0,
+              12,
+              28,
+              105,
+              60,
+              870
+            ]
+          ]
+        },
+        "transfer_as_account": 67,
+        "account_as_transfer": 46
+      },
+      "text_length_metrics": [
+        {
+          "minimum_characters": 0,
+          "maximum_characters": 100,
+          "count": 583,
+          "accuracy": 0.6963979416809606,
+          "macro_f1": 0.5075953394680218
+        },
+        {
+          "minimum_characters": 101,
+          "maximum_characters": 300,
+          "count": 3065,
+          "accuracy": 0.7853181076672104,
+          "macro_f1": 0.6445609009225918
+        },
+        {
+          "minimum_characters": 301,
+          "maximum_characters": 1000,
+          "count": 9291,
+          "accuracy": 0.8258529759982779,
+          "macro_f1": 0.7479908013082538
+        },
+        {
+          "minimum_characters": 1001,
+          "maximum_characters": null,
+          "count": 6733,
+          "accuracy": 0.8424179414822516,
+          "macro_f1": 0.7317872888702723
+        }
+      ],
+      "regression_suite": [
+        {
+          "case_id": "mobile_transfer_short",
+          "expected_department": "transfer_payment",
+          "predicted_department": "transfer_payment",
+          "raw_max_probability": 0.8958948850631714
+        },
+        {
+          "case_id": "mobile_transfer_clear",
+          "expected_department": "transfer_payment",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.531152069568634
+        },
+        {
+          "case_id": "account_access",
+          "expected_department": "account_support",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.9325985312461853
+        },
+        {
+          "case_id": "card_payment",
+          "expected_department": "card_atm",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.5822263360023499
+        },
+        {
+          "case_id": "fraud",
+          "expected_department": "fraud_security",
+          "predicted_department": "account_support",
+          "raw_max_probability": 0.7523893713951111
+        },
+        {
+          "case_id": "loan",
+          "expected_department": "loan_credit",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.9985291957855225
+        },
+        {
+          "case_id": "general",
+          "expected_department": "general_support",
+          "predicted_department": "loan_credit",
+          "raw_max_probability": 0.4345705807209015
+        }
+      ],
+      "native_score_type": "probability",
+      "runtime_seconds": 426.0001039999988,
+      "raw_confidence": {
+        "ece": 0.023732799164050952,
+        "multiclass_brier": 0.2603578567504883,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 63,
+            "accuracy": 0.31746031746031744,
+            "mean_confidence": 0.27504482865333557
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 344,
+            "accuracy": 0.45348837209302323,
+            "mean_confidence": 0.3613811433315277
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 1055,
+            "accuracy": 0.47962085308056873,
+            "mean_confidence": 0.4639338254928589
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1557,
+            "accuracy": 0.518946692357097,
+            "mean_confidence": 0.5440689325332642
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1470,
+            "accuracy": 0.6979591836734694,
+            "mean_confidence": 0.6498721241950989
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 1811,
+            "accuracy": 0.7360574268360022,
+            "mean_confidence": 0.754411518573761
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 3330,
+            "accuracy": 0.8594594594594595,
+            "mean_confidence": 0.8528788089752197
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 10042,
+            "accuracy": 0.9407488548097989,
+            "mean_confidence": 0.9657447338104248
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1985,
+          "0.7": 1541,
+          "0.8": 1063,
+          "0.9": 595
+        }
+      },
+      "sigmoid_calibration": {
+        "ece": 0.043332868863280596,
+        "multiclass_brier": 0.18452275116469571,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 9,
+            "accuracy": 0.1111111111111111,
+            "mean_confidence": 0.2807238721621053
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 111,
+            "accuracy": 0.3333333333333333,
+            "mean_confidence": 0.3655373847796536
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 523,
+            "accuracy": 0.4837476099426386,
+            "mean_confidence": 0.46128601886191495
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1663,
+            "accuracy": 0.5694527961515333,
+            "mean_confidence": 0.5485212592176518
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1713,
+            "accuracy": 0.6981903093987157,
+            "mean_confidence": 0.6528327065283542
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 2150,
+            "accuracy": 0.8027906976744186,
+            "mean_confidence": 0.7500537945108355
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 3575,
+            "accuracy": 0.9172027972027972,
+            "mean_confidence": 0.8569052676119618
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 9928,
+            "accuracy": 0.9890209508460919,
+            "mean_confidence": 0.9493210223754711
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1346,
+          "0.7": 829,
+          "0.8": 405,
+          "0.9": 109
+        }
+      }
+    },
+    {
+      "candidate": {
+        "candidate_id": "word_char_linear_svc",
+        "vectorizer": "word_char",
+        "classifier": "LinearSVC",
+        "c": 1.0,
+        "alpha": null
+      },
+      "feature_count": 175000,
+      "validation_metrics": {
+        "macro_f1": 0.7477814966333606,
+        "weighted_f1": 0.8645958623961424,
+        "per_class": {
+          "transfer_payment": {
+            "precision": 0.6753246753246753,
+            "recall": 0.7202216066481995,
+            "f1": 0.6970509383378016,
+            "support": 361
+          },
+          "account_support": {
+            "precision": 0.7154150197628458,
+            "recall": 0.848968105065666,
+            "f1": 0.7764907764907765,
+            "support": 1066
+          },
+          "card_atm": {
+            "precision": 0.6617122473246135,
+            "recall": 0.8214022140221402,
+            "f1": 0.7329601580507079,
+            "support": 1355
+          },
+          "fraud_security": {
+            "precision": 0.9703616352201258,
+            "recall": 0.8724201300537179,
+            "f1": 0.9187881494714902,
+            "support": 14148
+          },
+          "loan_credit": {
+            "precision": 0.7357539082198689,
+            "recall": 0.8752249550089982,
+            "f1": 0.7994520547945205,
+            "support": 1667
+          },
+          "general_support": {
+            "precision": 0.4654856444715944,
+            "recall": 0.7088372093023256,
+            "f1": 0.5619469026548672,
+            "support": 1075
+          }
+        },
+        "confusion_matrix": {
+          "label_order": [
+            "transfer_payment",
+            "account_support",
+            "card_atm",
+            "fraud_security",
+            "loan_credit",
+            "general_support"
+          ],
+          "values": [
+            [
+              260,
+              77,
+              11,
+              5,
+              6,
+              2
+            ],
+            [
+              40,
+              905,
+              82,
+              16,
+              15,
+              8
+            ],
+            [
+              7,
+              84,
+              1113,
+              88,
+              34,
+              29
+            ],
+            [
+              74,
+              153,
+              412,
+              12343,
+              396,
+              770
+            ],
+            [
+              3,
+              33,
+              34,
+              72,
+              1459,
+              66
+            ],
+            [
+              1,
+              13,
+              30,
+              196,
+              73,
+              762
+            ]
+          ]
+        },
+        "transfer_as_account": 77,
+        "account_as_transfer": 40
+      },
+      "text_length_metrics": [
+        {
+          "minimum_characters": 0,
+          "maximum_characters": 100,
+          "count": 583,
+          "accuracy": 0.7770154373927959,
+          "macro_f1": 0.555023665881853
+        },
+        {
+          "minimum_characters": 101,
+          "maximum_characters": 300,
+          "count": 3065,
+          "accuracy": 0.8068515497553018,
+          "macro_f1": 0.63945140811338
+        },
+        {
+          "minimum_characters": 301,
+          "maximum_characters": 1000,
+          "count": 9291,
+          "accuracy": 0.8773006134969326,
+          "macro_f1": 0.7763799372284773
+        },
+        {
+          "minimum_characters": 1001,
+          "maximum_characters": null,
+          "count": 6733,
+          "accuracy": 0.8562305064607159,
+          "macro_f1": 0.7277992835450852
+        }
+      ],
+      "regression_suite": [
+        {
+          "case_id": "mobile_transfer_short",
+          "expected_department": "transfer_payment",
+          "predicted_department": "transfer_payment",
+          "decision_score": 0.15760167741845799
+        },
+        {
+          "case_id": "mobile_transfer_clear",
+          "expected_department": "transfer_payment",
+          "predicted_department": "account_support",
+          "decision_score": 0.6344683270612927
+        },
+        {
+          "case_id": "account_access",
+          "expected_department": "account_support",
+          "predicted_department": "account_support",
+          "decision_score": 0.8963425388392721
+        },
+        {
+          "case_id": "card_payment",
+          "expected_department": "card_atm",
+          "predicted_department": "account_support",
+          "decision_score": 0.5820579329228752
+        },
+        {
+          "case_id": "fraud",
+          "expected_department": "fraud_security",
+          "predicted_department": "account_support",
+          "decision_score": 0.1237318839197652
+        },
+        {
+          "case_id": "loan",
+          "expected_department": "loan_credit",
+          "predicted_department": "loan_credit",
+          "decision_score": 1.2522165310702351
+        },
+        {
+          "case_id": "general",
+          "expected_department": "general_support",
+          "predicted_department": "card_atm",
+          "decision_score": 0.015589229112001113
+        }
+      ],
+      "native_score_type": "decision_score",
+      "runtime_seconds": 424.11094129999765,
+      "sigmoid_calibration": {
+        "ece": 0.022830640499739083,
+        "multiclass_brier": 0.1779619293996742,
+        "bins": [
+          {
+            "lower": 0.0,
+            "upper": 0.1,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.1,
+            "upper": 0.2,
+            "count": 0,
+            "accuracy": null,
+            "mean_confidence": null
+          },
+          {
+            "lower": 0.2,
+            "upper": 0.30000000000000004,
+            "count": 9,
+            "accuracy": 0.4444444444444444,
+            "mean_confidence": 0.28338919151667713
+          },
+          {
+            "lower": 0.30000000000000004,
+            "upper": 0.4,
+            "count": 156,
+            "accuracy": 0.2948717948717949,
+            "mean_confidence": 0.366865571330263
+          },
+          {
+            "lower": 0.4,
+            "upper": 0.5,
+            "count": 513,
+            "accuracy": 0.4678362573099415,
+            "mean_confidence": 0.4591767146220444
+          },
+          {
+            "lower": 0.5,
+            "upper": 0.6,
+            "count": 1341,
+            "accuracy": 0.5473527218493661,
+            "mean_confidence": 0.5501939970311277
+          },
+          {
+            "lower": 0.6000000000000001,
+            "upper": 0.7000000000000001,
+            "count": 1388,
+            "accuracy": 0.6390489913544669,
+            "mean_confidence": 0.6512027078595312
+          },
+          {
+            "lower": 0.7000000000000001,
+            "upper": 0.8,
+            "count": 1739,
+            "accuracy": 0.7855089131684876,
+            "mean_confidence": 0.7520187316385075
+          },
+          {
+            "lower": 0.8,
+            "upper": 0.9,
+            "count": 3031,
+            "accuracy": 0.8950841306499505,
+            "mean_confidence": 0.8549250823245163
+          },
+          {
+            "lower": 0.9,
+            "upper": 1.0,
+            "count": 11495,
+            "accuracy": 0.9833840800347977,
+            "mean_confidence": 0.9632570266702647
+          }
+        ],
+        "wrong_high_confidence": {
+          "0.6": 1383,
+          "0.7": 882,
+          "0.8": 509,
+          "0.9": 191
+        }
+      }
+    }
+  ],
+  "recommended_finalist": null,
+  "feature_explanations": {
+    "word_mnb_baseline": {
+      "available": true,
+      "toward_account_support": [
+        {
+          "feature": "banking",
+          "contribution": 0.26501382365026416
+        },
+        {
+          "feature": "mobile",
+          "contribution": 0.26437214396514314
+        },
+        {
+          "feature": "deducted from",
+          "contribution": 0.22336920592921292
+        },
+        {
+          "feature": "mobile banking",
+          "contribution": 0.2207302894618072
+        },
+        {
+          "feature": "deducted",
+          "contribution": 0.21989415302547888
+        },
+        {
+          "feature": "was deducted",
+          "contribution": 0.21332846987173626
+        },
+        {
+          "feature": "account but",
+          "contribution": 0.20687187760136244
+        },
+        {
+          "feature": "not receive",
+          "contribution": 0.16099583816254273
+        },
+        {
+          "feature": "the amount",
+          "contribution": 0.1394807199474914
+        },
+        {
+          "feature": "but the",
+          "contribution": 0.13276541853417098
+        },
+        {
+          "feature": "receive",
+          "contribution": 0.12113052655853697
+        },
+        {
+          "feature": "amount was",
+          "contribution": 0.11896678695743439
+        }
+      ],
+      "toward_transfer_payment": [
+        {
+          "feature": "the recipient",
+          "contribution": -0.13011705423442743
+        },
+        {
+          "feature": "recipient",
+          "contribution": -0.09463068361221004
+        },
+        {
+          "feature": "did not",
+          "contribution": -0.07016799071972943
+        },
+        {
+          "feature": "money through",
+          "contribution": -0.045822077317100376
+        },
+        {
+          "feature": "did",
+          "contribution": -0.03212997956649628
+        }
+      ]
+    }
+  },
+  "privacy": {
+    "contains_narratives": false,
+    "contains_complaint_ids": false,
+    "aggregate_or_synthetic_only": true
+  },
+  "runtime_seconds": 1134.3337400000019,
+  "limitations": [
+    "The held-out test and original validation partitions were reconstructed only for counts and were never transformed or predicted.",
+    "Near-duplicate analysis is sampled and cannot prove the absence of all semantic duplicates.",
+    "CFPB Product/Issue proxy labels are not institutional ground truth.",
+    "Validation-only calibration does not repair incorrect class boundaries."
+  ]
+}

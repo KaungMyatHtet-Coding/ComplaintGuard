@@ -938,3 +938,21 @@ automatic Myanmar routing.
 - [x] Keep Myanmar and mixed-language automatic routing blocked.
 - [x] Preserve the frozen Day 18 artifact and held-out test set unchanged.
 - [ ] Keep production Firebase deployment verification explicitly incomplete.
+
+### Phase 2A — controlled classifier-improvement research
+
+- [x] Reconstruct and protect the original seed-`20260727` held-out partition.
+- [x] Create grouped fit/calibration/validation partitions from original
+  training rows only, using fixed seed `20260810`.
+- [x] Compare the bounded CPU-friendly NB, ComplementNB, Logistic Regression,
+  and Linear SVC matrix using development validation evidence only.
+- [x] Record length, duplicate-risk, feature-boundary, and validation-only
+  calibration evidence in research-only artifacts.
+- [x] Conclude that no candidate passes every gate; ComplementNB improves the
+  transfer boundary but exceeds the per-class Loan/Credit regression limit.
+- [ ] Obtain approval before one locked finalist receives one held-out test
+  evaluation.
+- [ ] Decide whether any finalist should replace frozen production model v1.
+
+Phase 2A does not change production model v1, the `0.60` routing policy,
+Myanmar/mixed-language manual review, Day 18 evidence, or Firebase behavior.
