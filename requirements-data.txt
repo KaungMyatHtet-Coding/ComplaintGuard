@@ -9,3 +9,5 @@ joblib>=1.4,<2
 torch==2.9.1
 transformers==4.57.6
 sentencepiece==0.2.1
+# Phase 3 CPU-friendly dense embedding research over the protected development split.
+sentence-transformers>=3,<6
