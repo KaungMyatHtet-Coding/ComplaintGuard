@@ -230,12 +230,38 @@ changing the existing snapshot, deleting or overwriting it, accepting it
 without successful isolated round-trip verification, production Firebase
 access, or broader credential storage.
 
-`canonical-visual-demo-v1` remains pending acceptance until a separate
-read-only validation checkpoint confirms its unchanged snapshot fingerprint, a
-successful import into a fresh isolated emulator instance, exactly 11 synthetic
-Auth identities, exactly 21 deterministic Firestore fixture paths, fixture
-fingerprint equality, and clean shutdown with released ports. The existing
-immutable and non-overwrite contract remains in force.
+#### Day 25 acceptance — 2026-08-11
+
+`canonical-visual-demo-v1` passed isolated read-only round-trip validation on
+2026-08-11 and is accepted as the immutable canonical visual-demo baseline.
+The accepted Git-ignored directory is
+`firebase/emulator-data/canonical-visual-demo-v1`: it contains six files totaling
+27,410 bytes with snapshot fingerprint
+`38a332a81c12c418ae5874dfb5dd2182163419454c0a823c6004409a871e00cb`.
+
+The accepted state uses exactly 11 deterministic synthetic Auth identities and
+21 deterministic Firestore fixture paths: 11 tickets, 4 messages, 4 events, 1
+top-level feedback document, 1 fixture marker, and 0 actions. Its fixture
+fingerprint is
+`5107998dcf2dec9621a9922cdb01ee63a7f79f8b17955eac26ab9358359bb8ef`.
+
+Acceptance was established by importing into fresh isolated loopback Auth and
+Firestore emulators for project `demo-complaintguard`, verifying exact Auth
+identity membership and the standalone Firestore fixture contract, confirming
+matching pre/post snapshot fingerprints with unchanged six-file structure and
+byte size, then shutting down cleanly with ports released. No production
+Firebase access occurred, and the final Git state was clean.
+
+The synthetic Auth exception above remains in force: `passwordHash` and `salt`
+are sensitive Auth Emulator export material. Their values must never be
+displayed, decoded, copied, committed, uploaded, or reused outside the isolated
+local demo workflow.
+
+Do not edit, normalize, repair, regenerate, overwrite, merge into, or export
+onto the accepted v1 directory. Any future snapshot must use a newly authorized
+versioned directory; v1 remains the reproducible Day 25 baseline. Acceptance
+does not authorize production import or deployment. The existing immutable and
+non-overwrite contract remains in force.
 
 ### Preserve emulator data across a restart
 
