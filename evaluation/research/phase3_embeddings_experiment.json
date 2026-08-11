@@ -1,0 +1,433 @@
+{
+  "schema_version": 1,
+  "status": "completed",
+  "research_only": true,
+  "held_out_test_evaluated": false,
+  "original_validation_evaluated": false,
+  "source": {
+    "dataset_file": "cfpb_training_v1.csv",
+    "dataset_sha256": "71a5ffda7914664a2b6803d92a6327bbe8e2438036e4420d3b30b95928241848",
+    "rows": 3822576,
+    "language": "existing English source narratives; no translation step applied"
+  },
+  "locked_partitions": {
+    "locked_reservoir_rows": 200000,
+    "source_rows": 3822576,
+    "source_chunks": 39,
+    "original_training_rows": 140781,
+    "development_partitions": {
+      "fit": {
+        "rows": 99200,
+        "label_counts": {
+          "transfer_payment": 2353,
+          "account_support": 5158,
+          "card_atm": 6314,
+          "fraud_security": 72525,
+          "loan_credit": 7807,
+          "general_support": 5043
+        }
+      },
+      "calibration": {
+        "rows": 21909,
+        "label_counts": {
+          "transfer_payment": 395,
+          "account_support": 1055,
+          "card_atm": 1274,
+          "fraud_security": 16074,
+          "loan_credit": 1664,
+          "general_support": 1447
+        }
+      },
+      "validation": {
+        "rows": 19672,
+        "label_counts": {
+          "transfer_payment": 361,
+          "account_support": 1066,
+          "card_atm": 1355,
+          "fraud_security": 14148,
+          "loan_credit": 1667,
+          "general_support": 1075
+        }
+      }
+    },
+    "fit_after_fraud_cap": {
+      "rows": 56675
+    },
+    "source_label_counts": {
+      "transfer_payment": 85180,
+      "account_support": 198831,
+      "card_atm": 241219,
+      "fraud_security": 2785444,
+      "loan_credit": 305355,
+      "general_support": 206547
+    },
+    "locked_original_validation_rows": 29277,
+    "locked_held_out_test_rows": 29942,
+    "development_seed": 20260810,
+    "locked_reservoir_seed": 20260727
+  },
+  "embedding_config": {
+    "model_name": "all-MiniLM-L6-v2",
+    "batch_size": 256,
+    "normalize_embeddings": true,
+    "logistic_regression_c": 1.0,
+    "train_per_class_cap": 30000,
+    "device": "cpu",
+    "embedding_dimension": 384,
+    "sentence_transformers_version": "5.7.0"
+  },
+  "validation_metrics": {
+    "macro_f1": 0.6847006337869818,
+    "weighted_f1": 0.8018016210218143,
+    "per_class": {
+      "transfer_payment": {
+        "precision": 0.5521821631878557,
+        "recall": 0.8060941828254847,
+        "f1": 0.6554054054054054,
+        "support": 361
+      },
+      "account_support": {
+        "precision": 0.6743295019157088,
+        "recall": 0.8255159474671669,
+        "f1": 0.7423028258118937,
+        "support": 1066
+      },
+      "card_atm": {
+        "precision": 0.5184122429459589,
+        "recall": 0.8,
+        "f1": 0.6291352292513058,
+        "support": 1355
+      },
+      "fraud_security": {
+        "precision": 0.9780538677790876,
+        "recall": 0.7622985581000848,
+        "f1": 0.8568023833167825,
+        "support": 14148
+      },
+      "loan_credit": {
+        "precision": 0.6867298578199053,
+        "recall": 0.8692261547690462,
+        "f1": 0.767275615567911,
+        "support": 1667
+      },
+      "general_support": {
+        "precision": 0.32274119448698313,
+        "recall": 0.7841860465116279,
+        "f1": 0.45728234336859236,
+        "support": 1075
+      }
+    },
+    "confusion_matrix": {
+      "label_order": [
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support"
+      ],
+      "values": [
+        [
+          291,
+          55,
+          9,
+          0,
+          3,
+          3
+        ],
+        [
+          66,
+          880,
+          81,
+          9,
+          21,
+          9
+        ],
+        [
+          18,
+          107,
+          1084,
+          67,
+          37,
+          42
+        ],
+        [
+          133,
+          206,
+          844,
+          10785,
+          537,
+          1643
+        ],
+        [
+          15,
+          41,
+          35,
+          55,
+          1449,
+          72
+        ],
+        [
+          4,
+          16,
+          38,
+          111,
+          63,
+          843
+        ]
+      ]
+    },
+    "transfer_as_account": 55,
+    "account_as_transfer": 66
+  },
+  "text_length_metrics": [
+    {
+      "minimum_characters": 0,
+      "maximum_characters": 100,
+      "count": 583,
+      "accuracy": 0.5934819897084048,
+      "macro_f1": 0.41048563239058034,
+      "transfer_recall": 0.42857142857142855,
+      "account_recall": 0.6551724137931034,
+      "transfer_as_account": 4,
+      "account_as_transfer": 4
+    },
+    {
+      "minimum_characters": 101,
+      "maximum_characters": 300,
+      "count": 3065,
+      "accuracy": 0.6955954323001632,
+      "macro_f1": 0.5792922927223438,
+      "transfer_recall": 0.59375,
+      "account_recall": 0.8,
+      "transfer_as_account": 11,
+      "account_as_transfer": 10
+    },
+    {
+      "minimum_characters": 301,
+      "maximum_characters": 1000,
+      "count": 9291,
+      "accuracy": 0.8102464750834141,
+      "macro_f1": 0.7206938258316115,
+      "transfer_recall": 0.8947368421052632,
+      "account_recall": 0.8496583143507973,
+      "transfer_as_account": 17,
+      "account_as_transfer": 20
+    },
+    {
+      "minimum_characters": 1001,
+      "maximum_characters": null,
+      "count": 6733,
+      "accuracy": 0.7910292588742017,
+      "macro_f1": 0.6779607143936465,
+      "transfer_recall": 0.6914893617021277,
+      "account_recall": 0.8202959830866807,
+      "transfer_as_account": 23,
+      "account_as_transfer": 32
+    }
+  ],
+  "short_text_summary": {
+    "0_100": {
+      "minimum_characters": 0,
+      "maximum_characters": 100,
+      "count": 583,
+      "accuracy": 0.5934819897084048,
+      "macro_f1": 0.41048563239058034,
+      "transfer_recall": 0.42857142857142855,
+      "account_recall": 0.6551724137931034,
+      "transfer_as_account": 4,
+      "account_as_transfer": 4
+    },
+    "101_300": {
+      "minimum_characters": 101,
+      "maximum_characters": 300,
+      "count": 3065,
+      "accuracy": 0.6955954323001632,
+      "macro_f1": 0.5792922927223438,
+      "transfer_recall": 0.59375,
+      "account_recall": 0.8,
+      "transfer_as_account": 11,
+      "account_as_transfer": 10
+    }
+  },
+  "raw_confidence": {
+    "ece": 0.03328258718275694,
+    "multiclass_brier": 0.32554158568382263,
+    "bins": [
+      {
+        "lower": 0.0,
+        "upper": 0.1,
+        "count": 0,
+        "accuracy": null,
+        "mean_confidence": null
+      },
+      {
+        "lower": 0.1,
+        "upper": 0.2,
+        "count": 0,
+        "accuracy": null,
+        "mean_confidence": null
+      },
+      {
+        "lower": 0.2,
+        "upper": 0.30000000000000004,
+        "count": 83,
+        "accuracy": 0.3493975903614458,
+        "mean_confidence": 0.2759692966938019
+      },
+      {
+        "lower": 0.30000000000000004,
+        "upper": 0.4,
+        "count": 588,
+        "accuracy": 0.3129251700680272,
+        "mean_confidence": 0.35987743735313416
+      },
+      {
+        "lower": 0.4,
+        "upper": 0.5,
+        "count": 1438,
+        "accuracy": 0.43532684283727396,
+        "mean_confidence": 0.45542803406715393
+      },
+      {
+        "lower": 0.5,
+        "upper": 0.6,
+        "count": 1830,
+        "accuracy": 0.5693989071038251,
+        "mean_confidence": 0.548150360584259
+      },
+      {
+        "lower": 0.6000000000000001,
+        "upper": 0.7000000000000001,
+        "count": 2102,
+        "accuracy": 0.7207421503330161,
+        "mean_confidence": 0.6539174318313599
+      },
+      {
+        "lower": 0.7000000000000001,
+        "upper": 0.8,
+        "count": 2958,
+        "accuracy": 0.8184584178498986,
+        "mean_confidence": 0.7566304802894592
+      },
+      {
+        "lower": 0.8,
+        "upper": 0.9,
+        "count": 4417,
+        "accuracy": 0.8594068372198325,
+        "mean_confidence": 0.8545788526535034
+      },
+      {
+        "lower": 0.9,
+        "upper": 1.0,
+        "count": 6256,
+        "accuracy": 0.9141624040920716,
+        "mean_confidence": 0.9475007057189941
+      }
+    ],
+    "wrong_high_confidence": {
+      "0.6": 2282,
+      "0.7": 1695,
+      "0.8": 1158,
+      "0.9": 537
+    }
+  },
+  "calibrated_confidence": {
+    "ece": 0.038055095205677555,
+    "multiclass_brier": 0.21740703587779708,
+    "bins": [
+      {
+        "lower": 0.0,
+        "upper": 0.1,
+        "count": 0,
+        "accuracy": null,
+        "mean_confidence": null
+      },
+      {
+        "lower": 0.1,
+        "upper": 0.2,
+        "count": 0,
+        "accuracy": null,
+        "mean_confidence": null
+      },
+      {
+        "lower": 0.2,
+        "upper": 0.30000000000000004,
+        "count": 5,
+        "accuracy": 0.2,
+        "mean_confidence": 0.2845711740246336
+      },
+      {
+        "lower": 0.30000000000000004,
+        "upper": 0.4,
+        "count": 132,
+        "accuracy": 0.2727272727272727,
+        "mean_confidence": 0.3681962260949954
+      },
+      {
+        "lower": 0.4,
+        "upper": 0.5,
+        "count": 606,
+        "accuracy": 0.4438943894389439,
+        "mean_confidence": 0.4671124490350211
+      },
+      {
+        "lower": 0.5,
+        "upper": 0.6,
+        "count": 1716,
+        "accuracy": 0.5378787878787878,
+        "mean_confidence": 0.5498630443465469
+      },
+      {
+        "lower": 0.6000000000000001,
+        "upper": 0.7000000000000001,
+        "count": 1963,
+        "accuracy": 0.7101375445746306,
+        "mean_confidence": 0.6518492715807717
+      },
+      {
+        "lower": 0.7000000000000001,
+        "upper": 0.8,
+        "count": 2473,
+        "accuracy": 0.7957945814799838,
+        "mean_confidence": 0.7518170794642205
+      },
+      {
+        "lower": 0.8,
+        "upper": 0.9,
+        "count": 3764,
+        "accuracy": 0.8913390010626993,
+        "mean_confidence": 0.8554668076427139
+      },
+      {
+        "lower": 0.9,
+        "upper": 1.0,
+        "count": 9013,
+        "accuracy": 0.984244979474093,
+        "mean_confidence": 0.9462153812767362
+      }
+    ],
+    "wrong_high_confidence": {
+      "0.6": 1625,
+      "0.7": 1056,
+      "0.8": 551,
+      "0.9": 142
+    }
+  },
+  "privacy": {
+    "contains_narratives": false,
+    "contains_complaint_ids": false,
+    "contains_row_level_predictions": false,
+    "aggregate_only": true
+  },
+  "limitations": [
+    "The sentence encoder is pretrained but was not fine-tuned on this corpus.",
+    "Original validation and held-out test partitions were not vectorized or predicted.",
+    "The source development narratives are English; this experiment does not claim Myanmar routing quality."
+  ],
+  "environment": {
+    "python": "3.12.0",
+    "scikit_learn": "1.9.0",
+    "joblib": "1.5.3"
+  }
+}

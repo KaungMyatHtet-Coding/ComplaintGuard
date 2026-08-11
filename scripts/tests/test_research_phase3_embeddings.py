@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
@@ -14,9 +13,9 @@ if str(SCRIPTS_DIR) not in sys.path:
 from research_phase3_embeddings import (
     EMBEDDING_BATCH_SIZE,
     MODEL_NAME,
-    ResearchError,
     TRAIN_PER_CLASS_CAP,
     EmbeddingConfig,
+    ResearchError,
     atomic_write_json,
     configure_determinism,
     encode_texts,
@@ -77,15 +76,40 @@ def test_encode_texts_rejects_non_finite_embeddings() -> None:
 def test_short_text_summary_preserves_phase2b_bucket_results() -> None:
     summary = short_text_summary(
         [
-            {"minimum_characters": 0, "maximum_characters": 100, "count": 11, "macro_f1": 0.55},
-            {"minimum_characters": 101, "maximum_characters": 300, "count": 7, "macro_f1": 0.66},
-            {"minimum_characters": 301, "maximum_characters": 600, "count": 4, "macro_f1": 0.71},
+            {
+                "minimum_characters": 0,
+                "maximum_characters": 100,
+                "count": 11,
+                "macro_f1": 0.55,
+            },
+            {
+                "minimum_characters": 101,
+                "maximum_characters": 300,
+                "count": 7,
+                "macro_f1": 0.66,
+            },
+            {
+                "minimum_characters": 301,
+                "maximum_characters": 600,
+                "count": 4,
+                "macro_f1": 0.71,
+            },
         ]
     )
 
     assert summary == {
-        "0_100": {"minimum_characters": 0, "maximum_characters": 100, "count": 11, "macro_f1": 0.55},
-        "101_300": {"minimum_characters": 101, "maximum_characters": 300, "count": 7, "macro_f1": 0.66},
+        "0_100": {
+            "minimum_characters": 0,
+            "maximum_characters": 100,
+            "count": 11,
+            "macro_f1": 0.55,
+        },
+        "101_300": {
+            "minimum_characters": 101,
+            "maximum_characters": 300,
+            "count": 7,
+            "macro_f1": 0.66,
+        },
     }
 
 
@@ -104,9 +128,13 @@ def test_train_embedding_classifier_uses_balanced_logistic_regression() -> None:
         ],
         dtype=np.float32,
     )
-    labels = np.array(["account_support", "account_support", "transfer_payment", "transfer_payment"])
+    labels = np.array(
+        ["account_support", "account_support", "transfer_payment", "transfer_payment"]
+    )
 
-    classifier = train_embedding_classifier(embeddings, labels.tolist(), EmbeddingConfig())
+    classifier = train_embedding_classifier(
+        embeddings, labels.tolist(), EmbeddingConfig()
+    )
 
     assert classifier.class_weight == "balanced"
     assert classifier.random_state == 20260810
@@ -117,7 +145,9 @@ def test_train_embedding_classifier_uses_balanced_logistic_regression() -> None:
     "protected_name",
     ["held_out_test.csv", "held-out-test.csv", "original_validation.csv"],
 )
-def test_protected_input_paths_are_rejected(tmp_path: Path, protected_name: str) -> None:
+def test_protected_input_paths_are_rejected(
+    tmp_path: Path, protected_name: str
+) -> None:
     with pytest.raises(ResearchError, match="protected evaluation partition"):
         validate_research_paths(
             tmp_path / protected_name,

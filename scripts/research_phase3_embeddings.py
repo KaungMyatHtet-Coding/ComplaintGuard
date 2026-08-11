@@ -77,7 +77,10 @@ def _phase2_dependencies() -> tuple[Any, ...]:
             length_metrics,
             metric_summary,
         )
-        from scripts.train_department_baseline import BaselineConfig, balance_training_rows
+        from scripts.train_department_baseline import (
+            BaselineConfig,
+            balance_training_rows,
+        )
     return (
         EXPECTED_DATASET_SHA256,
         _load_development,
@@ -89,14 +92,21 @@ def _phase2_dependencies() -> tuple[Any, ...]:
     )
 
 
-def validate_research_paths(input_path: Path, manifest_path: Path, output_path: Path) -> None:
+def validate_research_paths(
+    input_path: Path, manifest_path: Path, output_path: Path
+) -> None:
     """Reject protected evaluation sources before any file is opened."""
-    resolved = [path.expanduser().resolve(strict=False) for path in (input_path, manifest_path, output_path)]
+    resolved = [
+        path.expanduser().resolve(strict=False)
+        for path in (input_path, manifest_path, output_path)
+    ]
     if len(set(resolved)) != len(resolved):
         raise ResearchError("input, manifest, and output paths must be distinct")
     for role, path in zip(("input", "manifest", "output"), resolved, strict=True):
         if PROTECTED_PATH_PATTERN.search(path.as_posix()):
-            raise ResearchError(f"{role} path refers to a protected evaluation partition")
+            raise ResearchError(
+                f"{role} path refers to a protected evaluation partition"
+            )
 
 
 def configure_determinism(seed: int = DEVELOPMENT_SEED) -> dict[str, Any]:
@@ -153,7 +163,12 @@ def _encoder_provenance(encoder: Any, requested_revision: str | None) -> dict[st
     }
 
 
-def load_encoder(config: EmbeddingConfig = EmbeddingConfig()) -> tuple[EmbeddingEncoder, dict[str, Any]]:
+DEFAULT_EMBEDDING_CONFIG = EmbeddingConfig()
+
+
+def load_encoder(
+    config: EmbeddingConfig = DEFAULT_EMBEDDING_CONFIG,
+) -> tuple[EmbeddingEncoder, dict[str, Any]]:
     try:
         import sentence_transformers
         from sentence_transformers import SentenceTransformer
@@ -163,7 +178,9 @@ def load_encoder(config: EmbeddingConfig = EmbeddingConfig()) -> tuple[Embedding
         ) from error
     try:
         import transformers
-    except ModuleNotFoundError:  # pragma: no cover - sentence-transformers normally supplies it
+    except (
+        ModuleNotFoundError
+    ):  # pragma: no cover - sentence-transformers normally supplies it
         transformers = None
     encoder = SentenceTransformer(
         config.model_name,
@@ -197,7 +214,9 @@ def atomic_write_json(output_path: Path, result: dict[str, Any]) -> None:
             os.fsync(handle.fileno())
         os.link(temporary_path, output_path)
     except FileExistsError as error:
-        raise FileExistsError("refusing to overwrite an existing Phase 3 artifact") from error
+        raise FileExistsError(
+            "refusing to overwrite an existing Phase 3 artifact"
+        ) from error
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
@@ -223,9 +242,7 @@ def encode_texts(
     return matrix
 
 
-def short_text_summary(
-    rows: list[dict[str, Any]]
-) -> dict[str, dict[str, Any]]:
+def short_text_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     wanted = {(0, 100): "0_100", (101, 300): "101_300"}
     summary: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -257,7 +274,7 @@ def run_research(
     input_path: Path,
     manifest_path: Path,
     output_path: Path,
-    config: EmbeddingConfig = EmbeddingConfig(),
+    config: EmbeddingConfig = DEFAULT_EMBEDDING_CONFIG,
 ) -> dict[str, Any]:
     validate_research_paths(input_path, manifest_path, output_path)
     if output_path.exists():
