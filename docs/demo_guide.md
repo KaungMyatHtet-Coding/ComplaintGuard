@@ -34,6 +34,10 @@ Expected model hash:
 
 ## Four-terminal startup order
 
+Use the full PowerShell `Start-Process` cmdlet when launching background
+services. Do not use the ambiguous `sp` alias, which can resolve to
+`Set-ItemProperty` rather than `Start-Process`.
+
 ### Terminal 1 — Firebase Auth and Firestore emulators
 
 ```powershell

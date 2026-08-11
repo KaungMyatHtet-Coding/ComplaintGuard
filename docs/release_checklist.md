@@ -18,7 +18,7 @@ explicitly outside the supported local academic demo.
 - [x] Frontend and Firebase dependencies already exist; nothing was installed for finalization.
 - [x] Frozen model exists and matches its documented hash.
 - [ ] Optional Myanmar cache availability is checked without exposing its path contents.
-- [ ] Four-terminal startup succeeds in documented order.
+- [x] Four-terminal startup succeeds in documented order for both accepted Day 28 local-emulator rehearsals.
 - [x] API health reports model v1 loaded through tested startup/readiness behavior.
 - [x] Seeded identity/password file remains ignored and off-screen.
 - [x] Customer, department staff and manager flow is exercised with synthetic text by Playwright.
