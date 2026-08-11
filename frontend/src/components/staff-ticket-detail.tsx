@@ -20,6 +20,37 @@ function actionId(prefix: string) {
   return `${prefix}_${crypto.randomUUID()}`;
 }
 
+type StaffTicketMetadataProps = {
+  ticketId: string;
+  statusLabel: string;
+  priorityLabel: string;
+  createdAtLabel: string;
+  referenceLabel: string;
+  statusTitle: string;
+  priorityTitle: string;
+  createdTitle: string;
+};
+
+export function StaffTicketMetadata({
+  ticketId,
+  statusLabel,
+  priorityLabel,
+  createdAtLabel,
+  referenceLabel,
+  statusTitle,
+  priorityTitle,
+  createdTitle,
+}: StaffTicketMetadataProps) {
+  return (
+    <dl className="ticket-metadata">
+      <div><dt>{referenceLabel}</dt><dd className="ticket-reference">{ticketId}</dd></div>
+      <div><dt>{statusTitle}</dt><dd>{statusLabel}</dd></div>
+      <div><dt>{priorityTitle}</dt><dd>{priorityLabel}</dd></div>
+      <div><dt>{createdTitle}</dt><dd>{createdAtLabel}</dd></div>
+    </dl>
+  );
+}
+
 export function StaffTicketDetail({ ticketId, getToken, onChanged }: { ticketId: string; getToken: () => Promise<string>; onChanged: () => Promise<void> }) {
   const { locale, t } = useApp();
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -69,12 +100,16 @@ export function StaffTicketDetail({ ticketId, getToken, onChanged }: { ticketId:
   return (
     <article className="staff-detail-panel">
       <h2>{t("staffDetailTitle")}</h2>
-      <dl className="ticket-metadata">
-        <div><dt>{t("staffReference")}</dt><dd>{detail.ticketId}</dd></div>
-        <div><dt>{t("staffStatus")}</dt><dd>{t(`status_${detail.status}` as "status_triaged")}</dd></div>
-        <div><dt>{t("staffPriority")}</dt><dd>{t(`priority_${detail.priority}` as "priority_normal")}</dd></div>
-        <div><dt>{t("staffCreated")}</dt><dd>{date.format(new Date(detail.createdAt))}</dd></div>
-      </dl>
+      <StaffTicketMetadata
+        ticketId={detail.ticketId}
+        statusLabel={t(`status_${detail.status}` as "status_triaged")}
+        priorityLabel={t(`priority_${detail.priority}` as "priority_normal")}
+        createdAtLabel={date.format(new Date(detail.createdAt))}
+        referenceLabel={t("staffReference")}
+        statusTitle={t("staffStatus")}
+        priorityTitle={t("staffPriority")}
+        createdTitle={t("staffCreated")}
+      />
       <p className="complaint-body">{detail.complaintText}</p>
       <DatasetEvidencePanel
         predictedDepartmentId={detail.predictedDepartmentId}

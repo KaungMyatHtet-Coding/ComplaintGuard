@@ -85,7 +85,7 @@ export function ComplaintForm() {
       {success ? (
         <div className="success-panel" role="status">
           <strong>{t("complaintSuccess")}</strong>
-          <span>{t("complaintReference")}: {success.complaintId}</span>
+          <span className="ticket-reference">{t("complaintReference")}: {success.complaintId}</span>
           <span>{t("complaintStatus")}: {t("statusSubmitted")}</span>
         </div>
       ) : null}

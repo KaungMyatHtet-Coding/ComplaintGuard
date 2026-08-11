@@ -3,17 +3,9 @@
 import { useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
+import { departmentIds, getDepartmentLabel } from "@/lib/department-labels";
 import type { LowConfidenceTicket } from "@/lib/manager-workflow";
 import { modelEvaluation } from "@/lib/model-evaluation";
-
-const DEPARTMENTS = [
-  { id: "transfer_payment", labelKey: "departmentTransferPayment" },
-  { id: "account_support", labelKey: "departmentAccountSupport" },
-  { id: "card_atm", labelKey: "departmentCardAtm" },
-  { id: "fraud_security", labelKey: "departmentFraudSecurity" },
-  { id: "loan_credit", labelKey: "departmentLoanCredit" },
-  { id: "general_support", labelKey: "departmentGeneralSupport" },
-] as const;
 
 type ManagerLowConfidenceReviewProps = {
   tickets: LowConfidenceTicket[];
@@ -24,7 +16,9 @@ export function ManagerLowConfidenceReview({
   tickets,
   onOverride,
 }: ManagerLowConfidenceReviewProps) {
-  const { t } = useApp();
+  const { locale, t } = useApp();
+  const departmentName = (departmentId: string | null | undefined) =>
+    getDepartmentLabel(departmentId, locale) ?? t("managerNotAvailable");
   const [selectedTicket, setSelectedTicket] = useState<LowConfidenceTicket | null>(null);
   const [targetDeptId, setTargetDeptId] = useState<string>("fraud_security");
   const [reason, setReason] = useState<string>("");
@@ -56,8 +50,12 @@ export function ManagerLowConfidenceReview({
           {t("managerNoLowConfidence")}
         </p>
       ) : (
-        <div className="overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
+        <div
+          className="overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm"
+          tabIndex={0}
+          aria-label={t("managerLowConfidenceQueue")}
+        >
+          <table className="manager-review-table divide-y divide-gray-200 text-left text-xs">
             <thead className="bg-gray-50 text-gray-700 font-semibold uppercase">
               <tr>
                 <th className="px-4 py-3">{t("managerTicketId")}</th>
@@ -71,12 +69,14 @@ export function ManagerLowConfidenceReview({
             <tbody className="divide-y divide-gray-200 text-gray-800 font-medium">
               {tickets.map((ticket) => (
                 <tr key={ticket.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-gray-900 font-bold">{ticket.id}</td>
+                  <td className="ticket-reference px-4 py-3 font-mono text-gray-900 font-bold">
+                    {ticket.id}
+                  </td>
                   <td className="px-4 py-3 max-w-xs truncate" title={ticket.complaintText}>
                     {ticket.complaintText}
                   </td>
                   <td className="px-4 py-3">
-                    {ticket.predictedDepartmentId || t("managerNotAvailable")}
+                    {departmentName(ticket.predictedDepartmentId)}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -92,7 +92,7 @@ export function ManagerLowConfidenceReview({
                         : t("managerManualRouting")}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{ticket.departmentId}</td>
+                  <td className="px-4 py-3">{departmentName(ticket.departmentId)}</td>
                   <td className="px-4 py-3">
                     <button
                       type="button"
@@ -114,7 +114,7 @@ export function ManagerLowConfidenceReview({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
             <h4 className="text-lg font-bold text-gray-900">{t("managerOverrideModalTitle")}</h4>
-            <p className="text-xs text-gray-500 font-mono">
+            <p className="ticket-reference text-xs text-gray-500 font-mono">
               {t("managerTicketLabel")}: {selectedTicket.id}
             </p>
 
@@ -135,9 +135,9 @@ export function ManagerLowConfidenceReview({
                 onChange={(e) => setTargetDeptId(e.target.value)}
                 className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                {DEPARTMENTS.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {t(d.labelKey)}
+                {departmentIds.map((departmentId) => (
+                  <option key={departmentId} value={departmentId}>
+                    {departmentName(departmentId)}
                   </option>
                 ))}
               </select>

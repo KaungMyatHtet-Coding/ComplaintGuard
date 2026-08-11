@@ -9,6 +9,7 @@ import { CustomerDashboardWorkflow } from "@/components/customer-dashboard-workf
 import { ManagerDashboardWorkflow } from "@/components/manager-dashboard-workflow";
 import { StaffTicketQueue } from "@/components/staff-ticket-queue";
 import { canViewManagerAnalytics } from "@/lib/auth-policy";
+import { getDepartmentLabel } from "@/lib/department-labels";
 
 const shellKeys = {
   customer: "customerShell",
@@ -19,7 +20,7 @@ const shellKeys = {
 
 export function ProtectedDashboard() {
   const router = useRouter();
-  const { profile, status, t } = useApp();
+  const { locale, profile, status, t } = useApp();
 
   useEffect(() => {
     if (status === "unauthenticated" || status === "configuration_missing" || status === "error") {
@@ -43,7 +44,9 @@ export function ProtectedDashboard() {
         <aside className="dashboard-nav">
           <p className="eyebrow">{profile.role}</p>
           <strong>{profile.displayName}</strong>
-          {profile.departmentId ? <span>{profile.departmentId}</span> : null}
+          {profile.departmentId ? (
+            <span>{getDepartmentLabel(profile.departmentId, locale) ?? t("evidenceUnavailable")}</span>
+          ) : null}
           <a href="#overview" aria-current="page">
             {t("dashboard")}
           </a>
