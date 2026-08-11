@@ -78,7 +78,7 @@ TF-IDF က စာလုံး/စကားစု အရေးပါမှုက�
 **English slide text:** Accuracy 82.79%; Macro-F1 69.23%; Weighted-F1 83.78%;
 target 70% not achieved; held-out test 29,942.
 
-**Visual:** Manager metric cards and per-department table.
+**Visual:** [Manager metric cards and pipeline](assets/day27/04-manager-metrics-pipeline.png). Synthetic data shown from the local Firebase emulator; the displayed aggregate metrics are local demonstration evidence, not production evidence.
 
 **Burmese notes:**
 
@@ -91,7 +91,7 @@ Accuracy က majority class ကြောင့် ကောင်းပုံပ
 **English slide text:** True rows / predicted columns; Transfer recall 43.69%;
 0.60 is operational review policy; confidence is not accuracy.
 
-**Visual:** Confusion matrix and confidence-bin screenshot.
+**Visual:** [Confusion matrix](assets/day27/05-manager-confusion-matrix.png). Synthetic data shown from the local Firebase emulator; the committed Day 18 aggregate evaluation has true departments by row and predicted departments by column.
 
 **Burmese notes:**
 
@@ -104,7 +104,7 @@ Transfer precision မြင့်ပေမယ့် recall နိမ့်တ�
 **English slide text:** Auth → trusted API → inference/review → Firestore →
 customer/staff/manager workflow.
 
-**Visual:** Current architecture diagram and role screenshots.
+**Visual:** [Customer ticket with Dataset Evidence](assets/day27/01-customer-ticket-dataset-evidence.png) and [department-scoped staff ticket detail](assets/day27/02-staff-ticket-detail-message.png). Synthetic data shown from the local Firebase emulator; these are local demonstration screenshots, not production evidence.
 
 **Burmese notes:**
 
@@ -117,7 +117,7 @@ FastAPI က token/role/ownership ကိုစစ်ပြီး Firestore rules 
 **English slide text:** English may auto-route; low confidence and all
 Myanmar/mixed submissions require manager review; translation quality not accepted.
 
-**Visual:** Synthetic Dataset Evidence manual-review panel.
+**Visual:** [Manager low-confidence review](assets/day27/03-manager-low-confidence-review.png). Synthetic data shown from the local Firebase emulator; the review control is shown without applying an override.
 
 **Burmese notes:**
 
@@ -158,17 +158,22 @@ retention policy နဲ့ production verification လိုအပ်ပါတ�
 route, the staff/customer resolution flow, one manual-review override, and the
 real held-out analytics. No real consumer narrative or credential will appear.”
 
-## Safe screenshot placeholders
+## Accepted screenshot evidence
 
-1. Customer synthetic ticket with Dataset Evidence.
-2. Department-scoped staff ticket detail and synthetic message.
-3. Manager low-confidence override modal.
-4. Manager held-out metric cards and pipeline.
-5. Confusion matrix with caption visible.
+All application records shown below are synthetic data shown from the local
+Firebase emulator. They are local demonstration evidence, not production
+evidence. The aggregate analytics and confusion matrix are rendered from the
+committed Day 18 evaluation artifact.
 
-Do not create these until emulator E2E passes. Inspect every image at original
-resolution and confirm no credential, token, terminal, environment value, real
-narrative, or raw Complaint ID is visible.
+1. [Customer ticket with Dataset Evidence](assets/day27/01-customer-ticket-dataset-evidence.png) — synthetic customer fixture and its evidence panel.
+2. [Department-scoped staff ticket detail](assets/day27/02-staff-ticket-detail-message.png) — existing synthetic fixture message, shown without sending a message.
+3. [Manager low-confidence review](assets/day27/03-manager-low-confidence-review.png) — synthetic manual-review fixture; no override is confirmed.
+4. [Manager metric cards and pipeline](assets/day27/04-manager-metrics-pipeline.png) — held-out aggregate metrics, dataset pipeline, and related evaluation context.
+5. [Confusion matrix](assets/day27/05-manager-confusion-matrix.png) — true departments by row and predicted departments by column.
+
+Each accepted PNG was inspected at original resolution. No credential, token,
+terminal, environment value, real narrative, raw Complaint ID, or debug UI is
+visible.
 
 ## Likely questions and evidence-backed answers
 
