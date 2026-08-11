@@ -172,6 +172,37 @@ committed Day 10 evidence rather than claiming a live translation result.
 
 ## Failure and recovery
 
+### Canonical visual-demo snapshot target
+
+The only authorized canonical visual-demo snapshot target is local and
+repository-scoped:
+
+```text
+D:\ComplaintGuard\firebase\emulator-data\canonical-visual-demo-v1
+```
+
+Repository-relative form:
+
+```text
+firebase/emulator-data/canonical-visual-demo-v1
+```
+
+This Git-ignored directory may contain only Auth and Firestore Emulator export
+state for the clearly non-production `demo-complaintguard` project. Create it
+only from an empty isolated emulator state, without importing any earlier
+snapshot. It must never contain production data or credentials.
+
+The target must not exist before canonical creation. If it already exists, stop
+and request human review: never delete, empty, merge, update, replace, or
+overwrite it automatically. After successful creation and validation,
+`canonical-visual-demo-v1` is immutable. Any future replacement requires a
+newly authorized versioned path, such as `canonical-visual-demo-v2`; this guide
+does not authorize any later version.
+
+This documentation checkpoint does not authorize emulator startup, fixture
+creation, snapshot export or import, source-code changes, deployment, or Day 26
+work.
+
 ### Preserve emulator data across a restart
 
 Normal `emulators:start` without `--import` starts an empty Auth/Firestore
