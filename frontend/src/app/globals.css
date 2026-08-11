@@ -510,6 +510,29 @@ a {
   flex: 0 0 auto;
 }
 
+.ticket-message-bubble {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ticket-message-bubble p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ticket-message-composer,
+.ticket-message-input,
+.ticket-message-send {
+  min-width: 0;
+}
+
+.ticket-message-send {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .manager-review-table {
   width: 100%;
   min-width: 52rem;
@@ -1070,6 +1093,47 @@ a {
 
   .ticket-created-meta {
     text-align: left;
+  }
+}
+
+@media (max-width: 520px) {
+  .site-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .brand,
+  .header-actions,
+  .language-switcher,
+  .language-switcher button,
+  .role-chip,
+  .text-button {
+    min-width: 0;
+  }
+
+  .header-actions {
+    width: 100%;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .language-switcher,
+  .role-chip,
+  .text-button {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .ticket-message-composer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ticket-message-input,
+  .ticket-message-send {
+    width: 100%;
   }
 }
 

@@ -178,7 +178,7 @@ export function CustomerTicketDetailView({
                   }`}
                 >
                   <div
-                    className={`max-w-md rounded-lg p-3 text-sm ${
+                    className={`ticket-message-bubble max-w-md rounded-lg p-3 text-sm ${
                       isMe
                         ? "bg-blue-600 text-white rounded-br-none"
                         : "bg-gray-100 text-gray-900 rounded-bl-none border border-gray-200"
@@ -203,19 +203,19 @@ export function CustomerTicketDetailView({
 
         {/* Message Input Form */}
         {!isResolvedOrClosed && (
-          <form onSubmit={handleSend} className="flex gap-2 pt-2">
+          <form onSubmit={handleSend} className="ticket-message-composer flex gap-2 pt-2">
             <input
               type="text"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder={translate(locale, "customerSendMessage")}
               disabled={sendingMsg}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="ticket-message-input flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
               disabled={sendingMsg || !messageText.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+              className="ticket-message-send bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
             >
               {sendingMsg
                 ? translate(locale, "customerSending")
