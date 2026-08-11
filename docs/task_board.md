@@ -286,7 +286,8 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Record `word_complement_nb` as the strongest transfer-boundary candidate,
   but recommend no finalist because its Loan/Credit F1 regression exceeds the
   conservative per-class limit.
-- [ ] Keep held-out evaluation blocked pending explicit Phase 2B approval.
+- [ ] Keep held-out evaluation blocked unless a later finalist receives separate
+  authorization; Phase 2B is complete and nominated no finalist.
 - [ ] Keep production replacement, deployment, and threshold changes incomplete.
 
 #### Phase 2B — completed bounded research
@@ -301,8 +302,18 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Enforce all strict end-to-end gates; select no finalist and make no
   production replacement, routing-threshold, Firebase, mapping, or held-out
   evaluation change.
-- [ ] Obtain separate authorization for a Phase 3 Dense Embeddings study using
-  FastText or MiniLM to investigate the short-text bottleneck.
+- [x] Begin a separate Phase 3 Dense Embeddings study on the protected
+  development split; the Batch-256 MiniLM aggregate result is exploratory only.
+- [ ] Complete provenance and full acceptance-gate evidence before any Phase 3
+  finalist discussion; no regression/safety-gate result currently supports one.
+
+#### Phase 4 — prepared reproducibility preflight
+
+- [x] Define a locked, local-cache-only MiniLM reproducibility protocol using
+  only a future protected development artifact.
+- [ ] Generate no Phase 4 development data or result until separately approved.
+- [ ] Keep original validation, held-out evaluation, model replacement, routing,
+  Firebase, and deployment work incomplete.
 
 Phase 2B completed successfully as rigorous bounded research. The result does
 not prove a universal sparse-model limit, but the tested TF-IDF matrix produced
