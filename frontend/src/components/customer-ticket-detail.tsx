@@ -79,14 +79,14 @@ export function CustomerTicketDetailView({
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
-        <div>
-          <span className="text-xs text-gray-400 font-mono">ID: {ticket.id}</span>
+      <div className="ticket-detail-header border-b border-gray-100 pb-4">
+        <div className="min-w-0">
+          <span className="ticket-reference text-xs text-gray-400 font-mono">ID: {ticket.id}</span>
           <h2 className="text-xl font-bold text-gray-900 mt-1">
             {translate(locale, "staffDetailTitle")}
           </h2>
         </div>
-        <div className="text-right text-xs text-gray-500">
+        <div className="ticket-created-meta text-right text-xs text-gray-500">
           <div>
             {translate(locale, "staffCreated")}:{" "}
             {new Date(ticket.createdAt).toLocaleString(
@@ -151,7 +151,7 @@ export function CustomerTicketDetailView({
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
           {translate(locale, "complaintTextLabel")}
         </h4>
-        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
           {ticket.complaintText}
         </p>
       </div>
@@ -178,7 +178,7 @@ export function CustomerTicketDetailView({
                   }`}
                 >
                   <div
-                    className={`max-w-md rounded-lg p-3 text-sm ${
+                    className={`ticket-message-bubble max-w-md rounded-lg p-3 text-sm ${
                       isMe
                         ? "bg-blue-600 text-white rounded-br-none"
                         : "bg-gray-100 text-gray-900 rounded-bl-none border border-gray-200"
@@ -187,7 +187,7 @@ export function CustomerTicketDetailView({
                     <div className="text-[10px] opacity-75 mb-1 font-semibold">
                       {isMe ? "You" : "Department Staff"}
                     </div>
-                    <p className="whitespace-pre-wrap">{m.text}</p>
+                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
                   </div>
                   <span className="text-[10px] text-gray-400 mt-1">
                     {new Date(m.createdAt).toLocaleTimeString([], {
@@ -203,19 +203,19 @@ export function CustomerTicketDetailView({
 
         {/* Message Input Form */}
         {!isResolvedOrClosed && (
-          <form onSubmit={handleSend} className="flex gap-2 pt-2">
+          <form onSubmit={handleSend} className="ticket-message-composer flex gap-2 pt-2">
             <input
               type="text"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder={translate(locale, "customerSendMessage")}
               disabled={sendingMsg}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="ticket-message-input flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="submit"
               disabled={sendingMsg || !messageText.trim()}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+              className="ticket-message-send bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
             >
               {sendingMsg
                 ? translate(locale, "customerSending")

@@ -28,6 +28,37 @@ async function currentToken() {
   return user.getIdToken();
 }
 
+type StaffTicketRowProps = {
+  ticket: StaffTicket;
+  locale: string;
+  selected: boolean;
+  statusLabel: string;
+  priorityLabel: string;
+  onSelect: (ticketId: string) => void;
+};
+
+export function StaffTicketRow({
+  ticket,
+  locale,
+  selected,
+  statusLabel,
+  priorityLabel,
+  onSelect,
+}: StaffTicketRowProps) {
+  return (
+    <button
+      className="ticket-row"
+      onClick={() => onSelect(ticket.ticketId)}
+      aria-pressed={selected}
+    >
+      <strong className="ticket-reference">{ticket.ticketId}</strong>
+      <span className="ticket-status-badge">{statusLabel}</span>
+      <span>{priorityLabel}</span>
+      <time>{new Intl.DateTimeFormat(locale).format(new Date(ticket.createdAt))}</time>
+    </button>
+  );
+}
+
 export function StaffTicketQueue() {
   const { locale, t } = useApp();
   const [filters, setFilters] = useState<StaffFilters>({});
@@ -82,12 +113,15 @@ export function StaffTicketQueue() {
         {!loading && !error && tickets.length === 0 ? <p className="empty-state">{t("staffEmpty")}</p> : null}
         <div className="ticket-list">
           {tickets.map((ticket) => (
-            <button key={ticket.ticketId} className="ticket-row" onClick={() => setSelectedId(ticket.ticketId)} aria-pressed={selectedId === ticket.ticketId}>
-              <strong>{ticket.ticketId}</strong>
-              <span>{t(`status_${ticket.status}` as "status_triaged")}</span>
-              <span>{t(`priority_${ticket.priority}` as "priority_normal")}</span>
-              <time>{new Intl.DateTimeFormat(locale).format(new Date(ticket.createdAt))}</time>
-            </button>
+            <StaffTicketRow
+              key={ticket.ticketId}
+              ticket={ticket}
+              locale={locale}
+              selected={selectedId === ticket.ticketId}
+              statusLabel={t(`status_${ticket.status}` as "status_triaged")}
+              priorityLabel={t(`priority_${ticket.priority}` as "priority_normal")}
+              onSelect={setSelectedId}
+            />
           ))}
         </div>
       </div>

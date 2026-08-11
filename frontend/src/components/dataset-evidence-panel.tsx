@@ -3,23 +3,14 @@ import {
   formatCount,
   formatMetric,
   modelEvaluation,
-  type DepartmentId,
 } from "@/lib/model-evaluation";
+import { getDepartmentLabel } from "@/lib/department-labels";
 
 type DatasetEvidencePanelProps = {
   predictedDepartmentId?: string | null;
   predictionConfidence?: number | null;
   routingSource?: string | null;
   assignedDepartmentId?: string | null;
-};
-
-const departmentKeys: Record<DepartmentId, Parameters<ReturnType<typeof useApp>["t"]>[0]> = {
-  transfer_payment: "departmentTransferPayment",
-  account_support: "departmentAccountSupport",
-  card_atm: "departmentCardAtm",
-  fraud_security: "departmentFraudSecurity",
-  loan_credit: "departmentLoanCredit",
-  general_support: "departmentGeneralSupport",
 };
 
 export function DatasetEvidencePanel({
@@ -30,10 +21,8 @@ export function DatasetEvidencePanel({
 }: DatasetEvidencePanelProps) {
   const { locale, t } = useApp();
   const threshold = modelEvaluation.confidence.threshold;
-  const validDepartment = (value?: string | null): value is DepartmentId =>
-    Boolean(value && value in departmentKeys);
   const departmentName = (value?: string | null) =>
-    validDepartment(value) ? t(departmentKeys[value]) : t("evidenceUnavailable");
+    getDepartmentLabel(value, locale) ?? t("evidenceUnavailable");
   const confidenceAvailable =
     typeof predictionConfidence === "number" && Number.isFinite(predictionConfidence);
   const manualReview = routingSource === "manual_review";
