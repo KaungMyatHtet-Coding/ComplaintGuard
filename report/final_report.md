@@ -274,6 +274,26 @@ Day 20 final command results are recorded only in
 `docs/final_test_report.md`. Historical milestone counts remain provenance, not
 a substitute for current verification. Production deployment was not tested.
 
+### Day 27 screenshot evidence
+
+The following accepted visual evidence was recaptured in a separate verified
+local-emulator development session. All application records shown are synthetic
+data shown from the local Firebase emulator; they are local demonstration
+evidence, not production evidence. The manager analytics and confusion matrix
+are aggregate views backed by the committed Day 18 evaluation artifact.
+
+- [Customer ticket with Dataset Evidence](../presentation/assets/day27/01-customer-ticket-dataset-evidence.png) shows a synthetic customer fixture and its evidence panel. Synthetic data shown from the local Firebase emulator.
+- [Department-scoped staff ticket detail](../presentation/assets/day27/02-staff-ticket-detail-message.png) shows an existing synthetic fixture message without sending a message. Synthetic data shown from the local Firebase emulator.
+- [Manager low-confidence review](../presentation/assets/day27/03-manager-low-confidence-review.png) shows a synthetic manual-review fixture without confirming an override. Synthetic data shown from the local Firebase emulator.
+- [Manager metric cards and pipeline](../presentation/assets/day27/04-manager-metrics-pipeline.png) shows the held-out aggregate metrics and data-to-evaluation context. Synthetic local-emulator application context is shown alongside approved aggregate evaluation evidence.
+- [Confusion matrix](../presentation/assets/day27/05-manager-confusion-matrix.png) shows true departments by row and predicted departments by column. Synthetic local-emulator application context is shown alongside approved aggregate evaluation evidence.
+
+An initial production-mode startup was rejected because outbound Auth behavior
+could not be certified. No evidence from that attempt was retained. The
+accepted evidence pack was recaptured in a separate verified local-emulator
+development session; browser request observation during that fresh session
+contained only the loopback host `127.0.0.1`.
+
 ## 15. Supported operating mode
 
 The final supported mode is a local emulator-based academic demonstration with

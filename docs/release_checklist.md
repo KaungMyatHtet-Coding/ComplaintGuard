@@ -28,7 +28,7 @@ explicitly outside the supported local academic demo.
 
 - [x] No `.env`, seed credentials, tokens, service-account files, private keys or passwords are tracked.
 - [x] No raw/cleaned CFPB narrative or raw Complaint ID is exposed.
-- [ ] Screenshots, if created, contain only synthetic data and passed manual inspection.
+- [x] Day 27 screenshots contain only synthetic local-emulator data and passed manual original-resolution inspection.
 - [x] Redaction is described as PII reduction, not anonymization.
 - [x] Operational complaint text is described as sensitive.
 - [x] UI, FastAPI and Firestore authorization layers are distinguished.
@@ -70,10 +70,10 @@ explicitly outside the supported local academic demo.
 
 ## Screenshot/presentation gate
 
-- [ ] Emulator/browser workflow passed before capture.
-- [ ] No credential, token, environment value, terminal secret, real narrative or raw Complaint ID is visible.
-- [ ] Every image is manually inspected at original resolution.
-- [ ] Screenshot captions identify synthetic emulator data.
+- [x] Emulator/browser workflow passed before capture in the verified local-emulator development session.
+- [x] No credential, token, environment value, terminal secret, real narrative or raw Complaint ID is visible.
+- [x] Every image is manually inspected at original resolution.
+- [x] Screenshot captions identify synthetic local-emulator data.
 - [ ] No demo video is committed.
 
 If these gates cannot all be proven, retain placeholder screenshot descriptions
