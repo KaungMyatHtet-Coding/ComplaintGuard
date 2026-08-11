@@ -6,20 +6,13 @@ import {
   formatCount,
   formatMetric,
   modelEvaluation,
-  type DepartmentId,
 } from "@/lib/model-evaluation";
-
-const departmentKeys: Record<DepartmentId, Parameters<ReturnType<typeof useApp>["t"]>[0]> = {
-  transfer_payment: "departmentTransferPayment",
-  account_support: "departmentAccountSupport",
-  card_atm: "departmentCardAtm",
-  fraud_security: "departmentFraudSecurity",
-  loan_credit: "departmentLoanCredit",
-  general_support: "departmentGeneralSupport",
-};
+import { getDepartmentLabel } from "@/lib/department-labels";
 
 export function ModelAnalyticsDashboard() {
   const { locale, t } = useApp();
+  const departmentName = (departmentId: string) =>
+    getDepartmentLabel(departmentId, locale) ?? t("evidenceUnavailable");
   const evaluation = modelEvaluation;
   const count = (value: number) => formatCount(value, locale);
   const cards = [
@@ -98,7 +91,7 @@ export function ModelAnalyticsDashboard() {
               {departmentIds.map((id) => {
                 const metric = evaluation.metrics.perDepartment[id];
                 return <tr key={id}>
-                  <th scope="row">{t(departmentKeys[id])}</th>
+                  <th scope="row">{departmentName(id)}</th>
                   {[metric.precision, metric.recall, metric.f1].map((value, index) => <td key={index}><div className="metric-bar"><span style={{ width: `${value * 100}%` }} /><strong>{formatMetric(value, locale)}</strong></div></td>)}
                   <td>{count(metric.support)}</td>
                 </tr>;
@@ -114,7 +107,7 @@ export function ModelAnalyticsDashboard() {
           <div className="distribution-list">
             {departmentIds.map((id) => {
               const value = evaluation.classDistribution.heldOutTestTrue[id];
-              return <div key={id}><div><span>{t(departmentKeys[id])}</span><strong>{count(value)}</strong></div><div className="distribution-track"><span style={{ width: `${(value / maxDistribution) * 100}%` }} /></div></div>;
+              return <div key={id}><div><span>{departmentName(id)}</span><strong>{count(value)}</strong></div><div className="distribution-track"><span style={{ width: `${(value / maxDistribution) * 100}%` }} /></div></div>;
             })}
           </div>
         </section>
@@ -136,8 +129,8 @@ export function ModelAnalyticsDashboard() {
         <div className="responsive-table matrix-scroll" tabIndex={0}>
           <table className="analytics-table matrix-table">
             <caption>{t("confusionMatrixCaption")}</caption>
-            <thead><tr><th scope="col">{t("truePredicted")}</th>{departmentIds.map((id) => <th scope="col" key={id}>{t(departmentKeys[id])}</th>)}</tr></thead>
-            <tbody>{departmentIds.map((trueId, rowIndex) => <tr key={trueId}><th scope="row">{t(departmentKeys[trueId])}</th>{evaluation.metrics.confusionMatrix.values[rowIndex].map((value, columnIndex) => <td key={departmentIds[columnIndex]} style={{ backgroundColor: `rgb(21 94 239 / ${0.05 + (value / maxMatrix) * 0.72})` }}><span>{count(value)}</span></td>)}</tr>)}</tbody>
+            <thead><tr><th scope="col">{t("truePredicted")}</th>{departmentIds.map((id) => <th scope="col" key={id}>{departmentName(id)}</th>)}</tr></thead>
+            <tbody>{departmentIds.map((trueId, rowIndex) => <tr key={trueId}><th scope="row">{departmentName(trueId)}</th>{evaluation.metrics.confusionMatrix.values[rowIndex].map((value, columnIndex) => <td key={departmentIds[columnIndex]} style={{ backgroundColor: `rgb(21 94 239 / ${0.05 + (value / maxMatrix) * 0.72})` }}><span>{count(value)}</span></td>)}</tr>)}</tbody>
           </table>
         </div>
       </section>

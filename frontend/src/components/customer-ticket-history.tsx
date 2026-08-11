@@ -99,12 +99,12 @@ export function CustomerTicketHistory({
                     : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs text-gray-500">
+                <div className="ticket-summary-header mb-1">
+                  <span className="ticket-reference font-mono text-xs text-gray-500">
                     ID: {t.id}
                   </span>
                   <span
-                    className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-full border ${getStatusBadge(
+                    className={`ticket-status-badge inline-block px-2 py-0.5 text-xs font-semibold rounded-full border ${getStatusBadge(
                       t.status
                     )}`}
                   >

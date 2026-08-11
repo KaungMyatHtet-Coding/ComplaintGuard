@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { StaffTicketMetadata } from "./staff-ticket-detail";
 import { StaffResolutionDetails } from "./staff-resolution-details";
 
 describe("StaffResolutionDetails", () => {
@@ -41,5 +42,27 @@ describe("StaffResolutionDetails", () => {
 
     expect(markup).toBe("");
     expect(formatDate).not.toHaveBeenCalled();
+  });
+});
+
+describe("StaffTicketMetadata", () => {
+  it("uses the ticket reference overflow contract in the responsive metadata grid", () => {
+    const ticketId = "ticket_7cd45298-8c0a-4827-b1a1-444444444444444444444444";
+    const markup = renderToStaticMarkup(
+      <StaffTicketMetadata
+        ticketId={ticketId}
+        referenceLabel="Reference"
+        statusTitle="Status"
+        statusLabel="Triaged"
+        priorityTitle="Priority"
+        priorityLabel="Normal"
+        createdTitle="Created"
+        createdAtLabel="Aug 11, 2026"
+      />,
+    );
+
+    expect(markup).toContain("ticket-metadata");
+    expect(markup).toContain("ticket-reference");
+    expect(markup).toContain(ticketId);
   });
 });

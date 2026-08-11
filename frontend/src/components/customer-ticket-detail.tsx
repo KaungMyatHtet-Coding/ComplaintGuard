@@ -79,14 +79,14 @@ export function CustomerTicketDetailView({
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
-        <div>
-          <span className="text-xs text-gray-400 font-mono">ID: {ticket.id}</span>
+      <div className="ticket-detail-header border-b border-gray-100 pb-4">
+        <div className="min-w-0">
+          <span className="ticket-reference text-xs text-gray-400 font-mono">ID: {ticket.id}</span>
           <h2 className="text-xl font-bold text-gray-900 mt-1">
             {translate(locale, "staffDetailTitle")}
           </h2>
         </div>
-        <div className="text-right text-xs text-gray-500">
+        <div className="ticket-created-meta text-right text-xs text-gray-500">
           <div>
             {translate(locale, "staffCreated")}:{" "}
             {new Date(ticket.createdAt).toLocaleString(
@@ -151,7 +151,7 @@ export function CustomerTicketDetailView({
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
           {translate(locale, "complaintTextLabel")}
         </h4>
-        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
           {ticket.complaintText}
         </p>
       </div>
@@ -187,7 +187,7 @@ export function CustomerTicketDetailView({
                     <div className="text-[10px] opacity-75 mb-1 font-semibold">
                       {isMe ? "You" : "Department Staff"}
                     </div>
-                    <p className="whitespace-pre-wrap">{m.text}</p>
+                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
                   </div>
                   <span className="text-[10px] text-gray-400 mt-1">
                     {new Date(m.createdAt).toLocaleTimeString([], {
