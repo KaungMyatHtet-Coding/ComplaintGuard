@@ -203,6 +203,40 @@ This documentation checkpoint does not authorize emulator startup, fixture
 creation, snapshot export or import, source-code changes, deployment, or Day 26
 work.
 
+### Synthetic Auth export safety exception
+
+The canonical snapshot may contain Firebase Auth Emulator-generated
+`passwordHash` and `salt` fields only for the 11 deterministic synthetic Day 25
+demo identities. These fields are expected Auth export/import material, not
+plain-text passwords, but remain sensitive authentication material. Never
+print, decode, copy into reports, commit, upload, or use their values outside
+the isolated local demo-emulator workflow.
+
+This exception is valid only when all of the following are true:
+
+- the Firebase project ID is exactly `demo-complaintguard`;
+- every identity is a deterministic synthetic fixture, with no real user,
+  production account, or personal data;
+- the snapshot remains under the documented Git-ignored local target;
+- no API key, service-account key, access token, refresh token, private key,
+  session cookie, production credential, or real password is present;
+- the snapshot is used only with isolated loopback Firebase emulators; and
+- the snapshot is never deployed or imported into a real Firebase project.
+
+The exception applies only to `auth_export/accounts.json` and only to
+`passwordHash` and `salt` fields generated for the synthetic fixture
+identities. It does not authorize displaying or inspecting their values,
+changing the existing snapshot, deleting or overwriting it, accepting it
+without successful isolated round-trip verification, production Firebase
+access, or broader credential storage.
+
+`canonical-visual-demo-v1` remains pending acceptance until a separate
+read-only validation checkpoint confirms its unchanged snapshot fingerprint, a
+successful import into a fresh isolated emulator instance, exactly 11 synthetic
+Auth identities, exactly 21 deterministic Firestore fixture paths, fixture
+fingerprint equality, and clean shutdown with released ports. The existing
+immutable and non-overwrite contract remains in force.
+
 ### Preserve emulator data across a restart
 
 Normal `emulators:start` without `--import` starts an empty Auth/Firestore
