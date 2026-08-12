@@ -66,7 +66,7 @@ export function CustomerTicketHistory({
           disabled={loading}
           className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1 px-3 rounded transition-colors"
         >
-          {loading ? translate(locale, "loading") : "Refresh"}
+          {loading ? translate(locale, "loading") : translate(locale, "customerRefreshHistory")}
         </button>
       </div>
 
@@ -101,7 +101,7 @@ export function CustomerTicketHistory({
               >
                 <div className="ticket-summary-header mb-1">
                   <span className="ticket-reference font-mono text-xs text-gray-500">
-                    ID: {t.id}
+                    {translate(locale, "customerTicketId")}: {t.id}
                   </span>
                   <span
                     className={`ticket-status-badge inline-block px-2 py-0.5 text-xs font-semibold rounded-full border ${getStatusBadge(
@@ -112,7 +112,7 @@ export function CustomerTicketHistory({
                   </span>
                 </div>
                 <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                  {t.summaryText || "No text summary"}
+                  {t.summaryText || translate(locale, "customerNoSummary")}
                 </p>
                 <div className="mt-2 text-xs text-gray-400">
                   {new Date(t.createdAt).toLocaleDateString(

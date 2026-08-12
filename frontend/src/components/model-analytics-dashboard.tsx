@@ -17,6 +17,7 @@ export function ModelAnalyticsDashboard() {
   const count = (value: number) => formatCount(value, locale);
   const cards = [
     ["modelAccuracy", evaluation.metrics.accuracy],
+    ["modelBalancedAccuracy", evaluation.metrics.balancedAccuracy],
     ["modelMacroPrecision", evaluation.metrics.macro.precision],
     ["modelMacroRecall", evaluation.metrics.macro.recall],
     ["modelMacroF1", evaluation.metrics.macro.f1],

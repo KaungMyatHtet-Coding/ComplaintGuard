@@ -38,7 +38,7 @@ export function CustomerFeedbackPanel({
       <h3 className="text-md font-bold text-gray-900 mb-2">
         {translate(locale, "customerFeedbackTitle")}
       </h3>
-      {error ? <div role="alert">Failed to submit feedback. Please try again.</div> : null}
+      {error ? <div className="error-panel" role="alert">{translate(locale, "customerFeedbackError")}</div> : null}
       {feedback ? (
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm font-medium">
           ✓ {translate(locale, "customerFeedbackSuccess")}
@@ -51,7 +51,14 @@ export function CustomerFeedbackPanel({
             </label>
             <div className="flex items-center gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
-                <button key={star} type="button" onClick={() => setRating(star)} className={`text-2xl transition-transform ${star <= rating ? "text-yellow-400 scale-110" : "text-gray-300"}`}>★</button>
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  aria-label={translate(locale, "customerStarRating").replace("{rating}", String(star))}
+                  aria-pressed={star === rating}
+                  className={`rating-star text-2xl transition-transform ${star <= rating ? "text-yellow-500 scale-110" : "text-gray-400"}`}
+                >★</button>
               ))}
               <span className="text-xs text-gray-500 ml-2 font-medium">{rating} / 5</span>
             </div>

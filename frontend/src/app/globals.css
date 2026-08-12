@@ -42,6 +42,11 @@ a {
   text-decoration: none;
 }
 
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 3px;
+}
+
 .site-header {
   display: flex;
   min-height: 4.5rem;
@@ -554,6 +559,44 @@ a {
   border-radius: 0.75rem;
   background: var(--canvas);
   padding: 0.85rem;
+}
+
+.ticket-timeline {
+  min-width: 34rem;
+}
+
+.ticket-timeline-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.complaint-body,
+.history-item p,
+.resolution-details p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.rating-star {
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.field-help {
+  margin: -0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.manager-dialog-backdrop {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.manager-dialog {
+  overflow-wrap: anywhere;
 }
 
 .staff-detail-panel form,
@@ -1101,6 +1144,18 @@ a {
     align-items: stretch;
     flex-direction: column;
     gap: 0.75rem;
+  }
+
+  .dashboard-shell {
+    width: min(100% - 1rem, 1120px);
+    padding: 0.75rem 0;
+  }
+
+  .dashboard-content,
+  .dashboard-nav,
+  .complaint-card,
+  .manager-dialog {
+    padding: 1rem;
   }
 
   .brand,

@@ -51,7 +51,7 @@ export function CustomerTicketDetailView({
       await onSendMessage(messageText.trim());
       setMessageText("");
     } catch {
-      setErrorMsg("Failed to send message. Please try again.");
+      setErrorMsg(translate(locale, "customerMessageSendError"));
     } finally {
       setSendingMsg(false);
     }
@@ -62,6 +62,7 @@ export function CustomerTicketDetailView({
     { key: "submitted", label: translate(locale, "customerTimelineSubmitted") },
     { key: "triaged", label: translate(locale, "customerTimelineTriaged") },
     { key: "in_progress", label: translate(locale, "customerTimelineInProgress") },
+    { key: "awaiting_customer", label: translate(locale, "customerTimelineAwaitingCustomer") },
     { key: "resolved", label: translate(locale, "customerTimelineResolved") },
   ];
 
@@ -81,7 +82,9 @@ export function CustomerTicketDetailView({
       {/* Header */}
       <div className="ticket-detail-header border-b border-gray-100 pb-4">
         <div className="min-w-0">
-          <span className="ticket-reference text-xs text-gray-400 font-mono">ID: {ticket.id}</span>
+          <span className="ticket-reference text-xs text-gray-400 font-mono">
+            {translate(locale, "customerTicketId")}: {ticket.id}
+          </span>
           <h2 className="text-xl font-bold text-gray-900 mt-1">
             {translate(locale, "staffDetailTitle")}
           </h2>
@@ -103,11 +106,11 @@ export function CustomerTicketDetailView({
       )}
 
       {/* Visual Timeline */}
-      <div>
+      <div className="ticket-timeline-wrapper">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
           {translate(locale, "customerTimelineTitle")}
         </h3>
-        <div className="flex items-center justify-between w-full max-w-xl mx-auto py-2">
+        <div className="ticket-timeline flex items-center justify-between w-full max-w-xl mx-auto py-2">
           {steps.map((step, idx) => {
             const status = getStepStatus(step.key);
             const isLast = idx === steps.length - 1;
@@ -185,7 +188,9 @@ export function CustomerTicketDetailView({
                     }`}
                   >
                     <div className="text-[10px] opacity-75 mb-1 font-semibold">
-                      {isMe ? "You" : "Department Staff"}
+                      {isMe
+                        ? translate(locale, "customerMessageYou")
+                        : translate(locale, "customerMessageStaff")}
                     </div>
                     <p className="whitespace-pre-wrap break-words">{m.text}</p>
                   </div>
