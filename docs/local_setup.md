@@ -10,8 +10,8 @@ documents; they are not current runtime instructions.
 - Python 3.12 virtual environment at `.venv`
 - Java for Firebase emulators
 - Chrome at the path configured in `frontend/playwright.config.ts` for E2E
-- Installed existing dependencies under `frontend/node_modules` and
-  `firebase/node_modules`
+- For an existing workspace, installed dependencies under `frontend/node_modules`
+  and `firebase/node_modules`; a clean setup installs them from the lockfiles
 - Ignored frozen model at `models/generated/cfpb_department_model_v1.joblib`
 
 Do not install or upgrade dependencies merely for finalization. Create the
@@ -26,9 +26,9 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r ml-api\requirements.txt
 
 Set-Location frontend
-npm.cmd install
+npm.cmd ci
 Set-Location ..\firebase
-npm.cmd install
+npm.cmd ci
 ```
 
 The complete historical data/ML suite additionally imports Matplotlib. If it is

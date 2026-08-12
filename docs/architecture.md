@@ -4,15 +4,21 @@
 
 ComplaintGuard uses a small, zero-cost architecture that one developer can build and demonstrate before 10 August 2026. It separates historical data mining from the live complaint workflow, keeps operational data in Firebase Cloud Firestore, and uses no paid API.
 
-## Final zero-cost architecture
+## Verified local architecture and unverified deployment options
+
+The implemented and verified topology is the local Next.js frontend, local
+FastAPI service, and Firebase Auth/Firestore emulators. Vercel, Hugging Face
+Spaces, and production Firebase in the table and diagram below are original
+zero-cost deployment options only; they were not configured or verified and
+must not be presented as delivered architecture.
 
 | Layer | Technology | Responsibility | Cost boundary |
 |---|---|---|---|
 | Frontend | Next.js, TypeScript, Tailwind CSS | Responsive English/Myanmar customer, staff, and manager web UI | Open-source |
-| Frontend hosting | Vercel Hobby | Public web demo and QR-code destination | Free Hobby limits only |
-| Authentication | Firebase Authentication | Prepared customer, staff, and manager demo accounts | Free supported methods only; no SMS |
-| Operational NoSQL | Firebase Cloud Firestore Spark | Live/demo users, departments, tickets, messages, events, feedback, and small dashboard summaries | Spark plan with billing disabled |
-| ML API | Python FastAPI on Hugging Face Spaces CPU | Language handling, preprocessing, translation orchestration, classification, and confidence | Free CPU Space only |
+| Frontend hosting | Local Next.js development/build | Verified local evaluator and demo access | Local only; Vercel remains unverified |
+| Authentication | Firebase Auth Emulator | Synthetic customer, staff, and manager demo accounts | Local emulator only; no SMS |
+| Operational NoSQL | Firestore Emulator | Synthetic users, departments, tickets, messages, events, and feedback | Local emulator only; production Spark unverified |
+| ML API | Local Python FastAPI | Preprocessing, trusted workflows, classification, and confidence | Local CPU only; Hugging Face Spaces unverified |
 | Offline data | Historical CFPB CSV/Parquet | Local profiling, cleaning, EDA, deterministic label mapping, and model training | Free public data; never bulk-loaded into Firestore |
 | Classifier | TF-IDF + Multinomial Naive Bayes | Predict one of the stable department labels | Open-source local training/inference |
 | Myanmar translation | Open-source Myanmar-to-English model | Convert Myanmar text for the English-trained classifier | No paid translation API or paid GPU |
