@@ -330,6 +330,15 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
   teacher-specific submission details, final repository access, presentation
   rehearsal, and actual submission remain manual and incomplete.
 
+### Pre-Model-Hunting Checkpoint
+
+- [x] Record the merged Day 32 known-good Git, application, classifier,
+  evaluation, Firebase/demo, test, limitation, and rollback baseline without
+  changing runtime behavior.
+- [ ] Evaluate Model Hunting candidates under the frozen-label, held-out-test,
+  regression, offline/free, and no-replacement entry criteria. Model Hunting is
+  the next planned phase and has not started.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.
