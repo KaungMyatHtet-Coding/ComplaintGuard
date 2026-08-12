@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
 import { departmentIds, getDepartmentLabel } from "@/lib/department-labels";
@@ -23,8 +23,24 @@ export function ManagerLowConfidenceReview({
   const [targetDeptId, setTargetDeptId] = useState<string>("fraud_security");
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const cancelRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!selectedTicket) return;
+    cancelRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !submitting) setSelectedTicket(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      triggerRef.current?.focus();
+    };
+  }, [selectedTicket, submitting]);
 
   const handleOpenModal = (ticket: LowConfidenceTicket) => {
+    triggerRef.current = document.activeElement as HTMLButtonElement | null;
     setSelectedTicket(ticket);
     setTargetDeptId(ticket.departmentId || "fraud_security");
     setReason("");
@@ -97,6 +113,7 @@ export function ManagerLowConfidenceReview({
                     <button
                       type="button"
                       onClick={() => handleOpenModal(ticket)}
+                      aria-haspopup="dialog"
                       className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition"
                     >
                       {t("managerReassignBtn")}
@@ -111,9 +128,9 @@ export function ManagerLowConfidenceReview({
 
       {/* Override Modal */}
       {selectedTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
-            <h4 className="text-lg font-bold text-gray-900">{t("managerOverrideModalTitle")}</h4>
+        <div className="manager-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="manager-override-title" className="manager-dialog w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
+            <h4 id="manager-override-title" className="text-lg font-bold text-gray-900">{t("managerOverrideModalTitle")}</h4>
             <p className="ticket-reference text-xs text-gray-500 font-mono">
               {t("managerTicketLabel")}: {selectedTicket.id}
             </p>
@@ -153,13 +170,16 @@ export function ManagerLowConfidenceReview({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder={t("managerReasonPlaceholder")}
+                aria-describedby="override-reason-help"
                 className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
+            <p id="override-reason-help" className="field-help">{t("managerOverrideReasonRequired")}</p>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
+                ref={cancelRef}
                 onClick={() => setSelectedTicket(null)}
                 disabled={submitting}
                 className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
@@ -169,7 +189,7 @@ export function ManagerLowConfidenceReview({
               <button
                 type="button"
                 onClick={handleConfirmOverride}
-                disabled={submitting}
+                disabled={submitting || !reason.trim()}
                 className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
               >
                 {submitting ? t("managerSaving") : t("managerConfirmOverride")}

@@ -30,7 +30,25 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 
 ## Review
 
-- None.
+### Day 30
+
+- [x] Verify `main` at `6368e78` as the clean base and confirm Day 29 produced
+  no repository commit, diff, or tracked PowerPoint output.
+- [x] Audit the implemented public, customer, department-staff, and manager UI
+  routes and states without changing classifier, evidence, backend contracts,
+  Firebase rules, or deployment.
+- [x] Localize customer history/detail/message/feedback states in English and
+  Myanmar and clarify the awaiting-customer timeline.
+- [x] Improve long-text containment, narrow-screen padding, table/dialog
+  containment, keyboard focus visibility, feedback rating semantics, and
+  manager override clarity.
+- [x] Display the existing authoritative balanced-accuracy value without
+  changing model evidence.
+- [x] Add unit and isolated emulator browser regressions for bilingual mobile
+  containment, accessibility semantics, complete customer/staff lifecycle,
+  feedback, manual review/override, and department isolation.
+- Day 30 status: Review. Implementation and verification are complete, but no
+  commit has been created pending owner approval.
 
 ## Done
 

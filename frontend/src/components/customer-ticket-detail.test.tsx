@@ -54,6 +54,9 @@ describe("CustomerTicketDetailView", () => {
     expect(markup).toContain("ticket-message-composer");
     expect(markup).toContain("ticket-message-input");
     expect(markup).toContain("ticket-message-send");
+    expect(markup).toContain("ticket-timeline-wrapper");
+    expect(markup).toContain("Waiting for your reply");
+    expect(markup).toContain("Department staff");
     expect(markup).toContain(longMessage);
     expect(markup).toContain("မြန်မာစာအရှည်အတွက်စာသား");
   });

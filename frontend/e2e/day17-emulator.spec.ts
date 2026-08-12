@@ -112,11 +112,14 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   await page.getByLabel("Participant reply").fill("Complete staff E2E reply.");
   await page.getByRole("button", { name: "Send reply" }).click();
   await expect(page.getByText("Complete staff E2E reply.")).toBeVisible();
+  await page.getByRole("button", { name: "Await customer" }).click();
+  await expect(page.getByRole("button", { name: "Resume work" })).toBeVisible();
   await signOut(page);
 
   await signIn(page, users.customer, "Customer dashboard");
   await refreshAndOpen(page, highId);
   await expect(page.getByText("Complete staff E2E reply.")).toBeVisible();
+  await expect(page.getByText("Waiting for your reply", { exact: true })).toBeVisible();
   await page
     .getByPlaceholder("Send message to department staff")
     .fill("Complete customer E2E reply.");
@@ -135,6 +138,8 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   const row = page.getByRole("row").filter({ hasText: lowId });
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Reassign" }).click();
+  await expect(page.getByRole("dialog", { name: "Manager Department Override" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Confirm Override" })).toBeDisabled();
   await page.locator("#dept-select").selectOption("card_atm");
   await page.locator("#override-reason").fill("Approved in emulator browser review");
   await page.getByRole("button", { name: "Confirm Override" }).click();
@@ -148,11 +153,18 @@ test("Day 17 high/low routing and role isolation use real emulator identities", 
   await signIn(page, users.staffFraud, "Department staff dashboard");
   await page.getByRole("button", { name: new RegExp(highId, "u") }).click();
   await expect(page.getByText("Complete customer E2E reply.")).toBeVisible();
+  await page.getByRole("button", { name: "Resume work" }).click();
+  await page.getByLabel("Resolution summary").fill("Synthetic resolution completed.");
+  await page.getByRole("button", { name: "Resolve complaint" }).click();
+  await expect(page.getByText("Synthetic resolution completed.")).toBeVisible();
   await signOut(page);
 
   await signIn(page, users.customer, "Customer dashboard");
   await refreshAndOpen(page, highId);
-  await expect(page.getByText("Investigation in progress", { exact: true })).toBeVisible();
+  await expect(page.getByText("Resolved", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "4 out of 5 stars" }).click();
+  await page.getByRole("button", { name: "Submit feedback" }).click();
+  await expect(page.getByText("Thank you for your rating and feedback.")).toBeVisible();
 });
 
 test("additional emulator customers submit and see only their own synthetic tickets", async ({ page }) => {
@@ -171,4 +183,34 @@ test("additional emulator customers submit and see only their own synthetic tick
     priorTicketIds.push(ticketId);
     await signOut(page);
   }
+});
+
+test("customer, staff, and manager dashboards remain bilingual and viewport-contained on mobile", async ({ page }) => {
+  const users = await identities();
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const [identity, dashboard] of [
+    [users.customer, "Customer dashboard"],
+    [users.staffCard, "Department staff dashboard"],
+    [users.manager, "Manager dashboard"],
+  ] as const) {
+    await signIn(page, identity, dashboard);
+    await page.locator(".language-switcher button").nth(1).click();
+    await expect(page.locator(".language-switcher button").nth(1)).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true);
+    await page.locator(".language-switcher button").first().click();
+    await signOut(page);
+  }
+
+  await page.goto("/login");
+  await page.keyboard.press("Tab");
+  const focusedOutline = await page.evaluate(() =>
+    getComputedStyle(document.activeElement as Element).outlineStyle,
+  );
+  expect(focusedOutline).not.toBe("none");
 });

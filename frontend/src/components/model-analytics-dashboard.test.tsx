@@ -14,6 +14,7 @@ const markup = renderToStaticMarkup(
 describe("ModelAnalyticsDashboard", () => {
   it("renders artifact-derived metrics and dataset counts", () => {
     expect(markup).toContain(formatMetric(modelEvaluation.metrics.accuracy));
+    expect(markup).toContain(formatMetric(modelEvaluation.metrics.balancedAccuracy));
     expect(markup).toContain(formatMetric(modelEvaluation.metrics.macro.f1));
     expect(markup).toContain(formatCount(modelEvaluation.datasetPipeline.rawRecords));
     expect(markup).toContain(formatCount(modelEvaluation.datasetPipeline.mappedRecords));

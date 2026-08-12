@@ -39,6 +39,9 @@ describe("CustomerFeedbackPanel", () => {
     expect(markup).toContain("Comments (Optional)");
     expect(markup).toContain("Submit feedback");
     expect(markup).toContain("<form");
+    expect(markup).toContain('aria-label="1 out of 5 stars"');
+    expect(markup).toContain('aria-label="5 out of 5 stars"');
+    expect(markup).toContain('aria-pressed="true"');
     expect(markup).not.toContain("Thank you for your rating and feedback.");
   });
 

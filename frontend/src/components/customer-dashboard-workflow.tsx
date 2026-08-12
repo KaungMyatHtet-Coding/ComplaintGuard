@@ -23,7 +23,7 @@ async function currentToken(): Promise<string> {
 }
 
 export function CustomerDashboardWorkflow() {
-  const { locale } = useApp();
+  const { locale, t } = useApp();
   const [tickets, setTickets] = useState<CustomerTicketSummary[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [ticketDetail, setTicketDetail] = useState<CustomerTicketDetail | null>(null);
@@ -43,11 +43,11 @@ export function CustomerDashboardWorkflow() {
         setSelectedTicketId(list[0].id);
       }
     } catch {
-      setError("Failed to load your complaint history.");
+      setError(t("customerLoadError"));
     } finally {
       setLoadingList(false);
     }
-  }, [selectedTicketId]);
+  }, [selectedTicketId, t]);
 
   const loadTicketDetail = useCallback(
     async (ticketId: string) => {
@@ -59,12 +59,12 @@ export function CustomerDashboardWorkflow() {
         const detail = await fetchCustomerTicketDetail(ticketId, idToken);
         setTicketDetail(detail);
       } catch {
-        setError("Failed to load complaint detail.");
+        setError(t("customerDetailLoadError"));
       } finally {
         setLoadingDetail(false);
       }
     },
-    []
+    [t]
   );
 
   useEffect(() => {
