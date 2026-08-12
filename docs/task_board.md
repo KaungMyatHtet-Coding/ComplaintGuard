@@ -30,6 +30,27 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 
 ## Review
 
+### Day 31
+
+- [x] Fast-forward local `main` to verified Day 30 merge commit `b558eee` and
+  create `test/day31-final-e2e-verification` from that clean base.
+- [x] Establish the public/auth, customer, low-confidence, staff, manager,
+  security, bilingual/responsive, privacy, cleanup, and model-integrity matrix
+  before source-code changes.
+- [x] Pass 74 frontend tests, TypeScript, ESLint, the Next.js production build,
+  107 standalone backend tests, 9 focused evaluation/similarity tests, Ruff
+  check, and Ruff format check.
+- [x] Pass 4 Firestore rules tests, 1 Auth identity test, 7 emulator adapter
+  tests, and 3 Playwright tests covering the complete synthetic high- and
+  low-confidence workflows, role isolation, and 390 x 844 bilingual UI.
+- [x] Reconcile the frozen model and source/generated Day 18 hashes, release all
+  harness ports, preserve the canonical snapshot, and pass secret, forbidden
+  tracked-artifact, UTF-8, and Git integrity checks.
+- [x] Record the unchanged Matplotlib blocker for the complete root scripts
+  suite without installing packages or substituting global Python.
+- Day 31 status: Review. No product defect or source-code fix was required; the
+  documentation-only evidence remains uncommitted pending owner approval.
+
 ### Day 30
 
 - [x] Verify `main` at `6368e78` as the clean base and confirm Day 29 produced
