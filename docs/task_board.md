@@ -312,6 +312,24 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Preserve the frozen Day 18 model artifact, metrics, and held-out test set.
 - [ ] Keep production Firebase deployment/rules verification incomplete.
 
+### Day 32
+
+- [x] Audit and reconcile the evaluator-facing README, setup, architecture,
+  demo, evidence, security, dataset/model, and limitation documentation.
+- [x] Add a concise 5-8 minute final demo guide and evidence-based submission
+  checklist without creating or claiming a PowerPoint.
+- [x] Verify an isolated 222-file tracked package, required setup paths, and
+  temporary cleanup; a fresh network dependency installation was not performed.
+- [x] Verify 74 frontend tests, TypeScript, ESLint, production build, 107 backend
+  passes with 7 skips and 1 expected xfail, 9 focused model-evidence tests,
+  4 Firestore rules tests, 1 Auth test, 7 adapter tests, and 3 Playwright tests.
+- [x] Verify model/evaluation hashes, local Markdown links, `git diff --check`,
+  tracked secret signatures, forbidden artifacts, and emulator port cleanup.
+- Day 32 status: Complete for documentation and packaging verification in the
+  supported synthetic local-emulator scope. The editable PowerPoint,
+  teacher-specific submission details, final repository access, presentation
+  rehearsal, and actual submission remain manual and incomplete.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.
