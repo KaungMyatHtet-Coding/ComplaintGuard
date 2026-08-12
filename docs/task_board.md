@@ -335,9 +335,10 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Record the merged Day 32 known-good Git, application, classifier,
   evaluation, Firebase/demo, test, limitation, and rollback baseline without
   changing runtime behavior.
-- [ ] Evaluate Model Hunting candidates under the frozen-label, held-out-test,
-  regression, offline/free, and no-replacement entry criteria. Model Hunting is
-  the next planned phase and has not started.
+- [x] Complete Model Hunting planning under frozen-label, held-out-test,
+  regression, offline/free, licensing, resource, and no-replacement controls.
+- [ ] Run Model Hunting experiments. No candidate has been downloaded, trained,
+  integrated, or approved, and the known-good model remains unchanged.
 
 ## Day 2 completion rule
 
