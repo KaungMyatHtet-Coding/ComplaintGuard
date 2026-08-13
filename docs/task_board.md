@@ -340,6 +340,22 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [ ] Run Model Hunting experiments. No candidate has been downloaded, trained,
   integrated, or approved, and the known-good model remains unchanged.
 
+### Model Hunting Stage 0 and Benchmark Preparation
+
+- [x] Complete the pre-model-hunting checkpoint and controlled Model Hunting
+  plan.
+- [x] Verify Stage 0 Git, frozen-model, six-label, API, routing-policy, and
+  protected-evidence integrity against the recorded hashes and focused tests.
+- [x] Add and run a deterministic offline CPU baseline performance harness with
+  non-overwriting machine-readable output and focused tests.
+- [x] Define the candidate-neutral short-English benchmark specification,
+  privacy rules, review process, leakage controls, schema, and freeze gate.
+- [ ] Author short-English benchmark examples; not started.
+- [ ] Review, hash, and freeze the short-English benchmark; not started.
+- [ ] Train or evaluate a candidate model; not started.
+- [ ] Create a new Myanmar benchmark; not started. Existing frozen Day 10
+  evidence remains unchanged and is not a new Model Hunting benchmark.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.

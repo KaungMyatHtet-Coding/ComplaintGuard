@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "status": "completed",
+  "benchmark": "frozen_v1_cpu_inference",
+  "configuration": {
+    "seed": 20260813,
+    "warmup_runs": 20,
+    "measured_runs": 500,
+    "input_count": 6,
+    "input_order": "fixed; measured calls cycle through the input tuple",
+    "cpu_only": true,
+    "network_required": false,
+    "model_loading_included_in_inference": false
+  },
+  "inputs": {
+    "source": "repository-owned synthetic non-sensitive English text",
+    "sha256": "593df2515d6561e98818e9906e0e9afc5f6acf9873f71a0b5ece5ccbeaa9d1e1",
+    "serialization": "compact UTF-8 JSON array in fixed tuple order",
+    "texts_in_output": false
+  },
+  "model": {
+    "path": "models/generated/cfpb_department_model_v1.joblib",
+    "sha256_before": "bafc086fe5b11bdcc5cbc4f04f3f3f222de8cbad27fe66d62a6685cc30f953d5",
+    "sha256_after": "bafc086fe5b11bdcc5cbc4f04f3f3f222de8cbad27fe66d62a6685cc30f953d5",
+    "size_bytes": 13311363,
+    "version": "v1",
+    "artifact_threshold": 0.0
+  },
+  "timings": {
+    "model_loading_ms": 2183.2218,
+    "warmup": {
+      "run_count": 20,
+      "median_ms": 3.0307,
+      "p95_ms": 4.7152,
+      "minimum_ms": 2.7828,
+      "maximum_ms": 11.6544
+    },
+    "single_request_inference": {
+      "run_count": 500,
+      "median_ms": 3.1566,
+      "p95_ms": 4.9196,
+      "minimum_ms": 2.615,
+      "maximum_ms": 7.0502
+    },
+    "batch_inference": {
+      "supported": false,
+      "reason": "FrozenDepartmentClassifier.predict accepts one complaint; the production prediction interface has no batch contract."
+    }
+  },
+  "memory": {
+    "before_model_load": {
+      "method": "unavailable",
+      "working_set_bytes": null,
+      "peak_working_set_bytes": null,
+      "private_usage_bytes": null,
+      "limitation": "No reliable process-memory method was available from the standard library on this platform; no package was installed."
+    },
+    "after_model_load": {
+      "method": "unavailable",
+      "working_set_bytes": null,
+      "peak_working_set_bytes": null,
+      "private_usage_bytes": null,
+      "limitation": "No reliable process-memory method was available from the standard library on this platform; no package was installed."
+    },
+    "after_inference": {
+      "method": "unavailable",
+      "working_set_bytes": null,
+      "peak_working_set_bytes": null,
+      "private_usage_bytes": null,
+      "limitation": "No reliable process-memory method was available from the standard library on this platform; no package was installed."
+    }
+  },
+  "environment": {
+    "python_version": "3.12.0",
+    "python_implementation": "CPython",
+    "operating_system": "Windows",
+    "os_release": "11",
+    "platform": "Windows-11-10.0.22000-SP0",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 140 Stepping 1, GenuineIntel",
+    "logical_cpu_count": 8
+  },
+  "limitations": [
+    "This is one local CPU environment and does not represent all computers.",
+    "Timing includes Python-call, normalization, vectorization, probability, and validation overhead but excludes process startup and model loading.",
+    "Thread scheduling, power state, and other local workload can affect timing."
+  ]
+}
