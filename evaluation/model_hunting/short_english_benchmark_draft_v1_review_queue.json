@@ -1,0 +1,1022 @@
+{
+  "category_counts": {
+    "ambiguity_notes": 48,
+    "controlled_variation": 42,
+    "cross_label_similarity": 0,
+    "hard_label_confirmation": 48,
+    "near_duplicate_candidates": 0,
+    "unusual_length": 1
+  },
+  "dataset_text_included": false,
+  "entries": [
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0013",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "unusual_length"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0019",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0020",
+      "expected_department": "account_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0021",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0022",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0023",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0024",
+      "expected_department": "general_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0025",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation",
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0026",
+      "expected_department": "account_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation",
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0027",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation",
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0028",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation",
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0029",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation",
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "easy",
+      "example_id": "SEB-0030",
+      "expected_department": "general_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation",
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0079",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0080",
+      "expected_department": "account_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0081",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0082",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0083",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0084",
+      "expected_department": "general_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0085",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0086",
+      "expected_department": "account_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0087",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0088",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0089",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "",
+      "difficulty": "medium",
+      "example_id": "SEB-0090",
+      "expected_department": "general_support",
+      "review_categories": [
+        "controlled_variation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0133",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0134",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0135",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0136",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0137",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0138",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0139",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0140",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0141",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0142",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0143",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0144",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal",
+        "typo"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0145",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0146",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0147",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0148",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0149",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0150",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "abbreviation"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0151",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0152",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0153",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0154",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0155",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0156",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0157",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0158",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0159",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0160",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0161",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0162",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0163",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0164",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0165",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0166",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0167",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0168",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": [
+        "informal"
+      ]
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0169",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0170",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0171",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0172",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0173",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0174",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm transfer or payment movement is primary; no account-access problem is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0175",
+      "expected_department": "transfer_payment",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm deposit-account service is primary; no card, transfer, fraud, or loan event is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0176",
+      "expected_department": "account_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the card or cash-machine event is primary; unauthorized use is not alleged.",
+      "difficulty": "hard",
+      "example_id": "SEB-0177",
+      "expected_department": "card_atm",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm unauthorized activity or identity integrity is primary rather than ordinary product servicing.",
+      "difficulty": "hard",
+      "example_id": "SEB-0178",
+      "expected_department": "fraud_security",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm loan servicing or repayment is primary; no deposit-account or card issue is described.",
+      "difficulty": "hard",
+      "example_id": "SEB-0179",
+      "expected_department": "loan_credit",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    },
+    {
+      "ambiguity_notes": "Confirm the general service or complaint-process concern lacks a more specific protected product label.",
+      "difficulty": "hard",
+      "example_id": "SEB-0180",
+      "expected_department": "general_support",
+      "review_categories": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "review_status": "pending",
+      "variation_tags": []
+    }
+  ],
+  "independent_reviewer_available": false,
+  "leakage_summary": {
+    "freezing_blocked_until_human_review": true,
+    "sources_checked": [
+      {
+        "candidate_lines_checked": 15677,
+        "excluded_generated_paths": [
+          "evaluation/model_hunting/short_english_benchmark_draft_v1.jsonl",
+          "evaluation/model_hunting/short_english_benchmark_draft_v1_review.json",
+          "evaluation/model_hunting/short_english_benchmark_draft_v1_review_queue.json"
+        ],
+        "files_checked": 191,
+        "method": "local repository text-line exact and normalized scan"
+      },
+      {
+        "method": "streamed NFKC/case-fold/whitespace exact comparison",
+        "near_overlap_checked": false,
+        "path": "data/interim/cfpb/cfpb_training_v1.csv",
+        "rows_checked": 3822576,
+        "status": "checked"
+      }
+    ],
+    "sources_not_checked": [
+      "raw CFPB CSV/ZIP",
+      "near-duplicate similarity against the full mapped corpus",
+      "unavailable external or private data"
+    ]
+  },
+  "queue_size": 73,
+  "schema_version": "draft-review-v1",
+  "status": "pending_delayed_blind_self_review",
+  "unresolved_leakage_limitations": [
+    "Near-duplicate screening against the 3.8-million-row mapped corpus was not performed.",
+    "Raw CFPB source data was not scanned."
+  ]
+}

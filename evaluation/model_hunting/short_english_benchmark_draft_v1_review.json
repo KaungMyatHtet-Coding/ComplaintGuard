@@ -1,0 +1,87 @@
+{
+  "blocking_error_count": 0,
+  "character_count": {
+    "maximum": 119,
+    "minimum": 16
+  },
+  "controlled_variation_record_count": 42,
+  "cross_label_similarity_warning_count": 0,
+  "dataset_path": "evaluation/model_hunting/short_english_benchmark_draft_v1.jsonl",
+  "difficulty_distribution": {
+    "easy": 60,
+    "hard": 48,
+    "medium": 72
+  },
+  "draft_review_sha256": "f9ae2ab171c51b630a081c770e6db48bc06d0924f3823da4827643c2562553f7",
+  "exact_duplicate_count": 0,
+  "findings": [],
+  "freeze_status": "unfrozen",
+  "hash_status": "draft review identity only; not a frozen benchmark hash",
+  "human_review_status": "pending",
+  "human_review_warning_count": 0,
+  "informational_finding_count": 0,
+  "leakage": {
+    "freezing_blocked_until_human_review": true,
+    "sources_checked": [
+      {
+        "candidate_lines_checked": 15677,
+        "excluded_generated_paths": [
+          "evaluation/model_hunting/short_english_benchmark_draft_v1.jsonl",
+          "evaluation/model_hunting/short_english_benchmark_draft_v1_review.json",
+          "evaluation/model_hunting/short_english_benchmark_draft_v1_review_queue.json"
+        ],
+        "files_checked": 191,
+        "method": "local repository text-line exact and normalized scan"
+      },
+      {
+        "method": "streamed NFKC/case-fold/whitespace exact comparison",
+        "near_overlap_checked": false,
+        "path": "data/interim/cfpb/cfpb_training_v1.csv",
+        "rows_checked": 3822576,
+        "status": "checked"
+      }
+    ],
+    "sources_not_checked": [
+      "raw CFPB CSV/ZIP",
+      "near-duplicate similarity against the full mapped corpus",
+      "unavailable external or private data"
+    ]
+  },
+  "length_distribution": {
+    "14-20": 45,
+    "3-6": 45,
+    "7-13": 90
+  },
+  "near_duplicate_candidate_count": 0,
+  "normalized_duplicate_count": 0,
+  "per_label_counts": {
+    "account_support": 30,
+    "card_atm": 30,
+    "fraud_security": 30,
+    "general_support": 30,
+    "loan_credit": 30,
+    "transfer_payment": 30
+  },
+  "privacy_error_count": 0,
+  "record_count": 180,
+  "schema_version": "draft-review-v1",
+  "source_type_distribution": {
+    "synthetic_authored": 180
+  },
+  "status": "draft_review_pending",
+  "structural_validation": "pass",
+  "validator": {
+    "candidate_predictions_consulted": false,
+    "path": "scripts/validate_short_english_benchmark.py",
+    "version": "draft-review-v1"
+  },
+  "variation_distribution": {
+    "abbreviation": 18,
+    "informal": 27,
+    "typo": 18
+  },
+  "word_count": {
+    "maximum": 17,
+    "minimum": 3
+  }
+}

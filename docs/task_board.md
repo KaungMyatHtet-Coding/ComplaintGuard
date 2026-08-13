@@ -347,11 +347,22 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
 - [x] Verify Stage 0 Git, frozen-model, six-label, API, routing-policy, and
   protected-evidence integrity against the recorded hashes and focused tests.
 - [x] Add and run a deterministic offline CPU baseline performance harness with
-  non-overwriting machine-readable output and focused tests.
+  non-overwriting machine-readable output and focused tests. Process-memory
+  measurement was unavailable and remains a recorded Stage 0 limitation.
 - [x] Define the candidate-neutral short-English benchmark specification,
   privacy rules, review process, leakage controls, schema, and freeze gate.
-- [ ] Author short-English benchmark examples; not started.
-- [ ] Review, hash, and freeze the short-English benchmark; not started.
+- [x] Author all 180 balanced short-English records as an explicitly unapproved,
+  unfrozen draft and pass deterministic structural, balance, privacy, and
+  within-draft duplicate validation.
+- [x] Complete partial leakage screening: no exact or normalized overlap was
+  found across local repository text sources or 3,822,576 streamed mapped-corpus
+  narratives. Full-corpus near-duplicate and raw-source checks remain blocked
+  and are not claimed.
+- [ ] Complete delayed blind human review of ambiguity, hard-label, controlled-
+  variation, unusual-length, and similarity queues; review is pending and no
+  independent reviewer is claimed.
+- [ ] Approve, hash, and freeze the short-English benchmark; not started. The
+  recorded draft review hash is not a final benchmark hash.
 - [ ] Train or evaluate a candidate model; not started.
 - [ ] Create a new Myanmar benchmark; not started. Existing frozen Day 10
   evidence remains unchanged and is not a new Model Hunting benchmark.
