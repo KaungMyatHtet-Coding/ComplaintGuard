@@ -1,0 +1,813 @@
+{
+  "contains_confidence": false,
+  "contains_predictions": false,
+  "deterministic_shuffle": {
+    "algorithm": "Python random.Random(seed).shuffle",
+    "input_order": "committed Stage 1A review queue entry order",
+    "seed": 20260814
+  },
+  "do_not_consult_during_blind_review": true,
+  "not_approval_evidence": true,
+  "not_human_review_results": true,
+  "record_count": 73,
+  "records": [
+    {
+      "original_department": "general_support",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0024",
+      "review_order": 1,
+      "source_queue_position": 7
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0162",
+      "review_order": 2,
+      "source_queue_position": 55
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0173",
+      "review_order": 3,
+      "source_queue_position": 66
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0160",
+      "review_order": 4,
+      "source_queue_position": 53
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0142",
+      "review_order": 5,
+      "source_queue_position": 35
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0084",
+      "review_order": 6,
+      "source_queue_position": 19
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0169",
+      "review_order": 7,
+      "source_queue_position": 62
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0136",
+      "review_order": 8,
+      "source_queue_position": 29
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0144",
+      "review_order": 9,
+      "source_queue_position": 37
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0164",
+      "review_order": 10,
+      "source_queue_position": 57
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0133",
+      "review_order": 11,
+      "source_queue_position": 26
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0175",
+      "review_order": 12,
+      "source_queue_position": 68
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0157",
+      "review_order": 13,
+      "source_queue_position": 50
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0087",
+      "review_order": 14,
+      "source_queue_position": 22
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0171",
+      "review_order": 15,
+      "source_queue_position": 64
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0139",
+      "review_order": 16,
+      "source_queue_position": 32
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0141",
+      "review_order": 17,
+      "source_queue_position": 34
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0177",
+      "review_order": 18,
+      "source_queue_position": 70
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0086",
+      "review_order": 19,
+      "source_queue_position": 21
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0027",
+      "review_order": 20,
+      "source_queue_position": 10
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0028",
+      "review_order": 21,
+      "source_queue_position": 11
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0179",
+      "review_order": 22,
+      "source_queue_position": 72
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0170",
+      "review_order": 23,
+      "source_queue_position": 63
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0155",
+      "review_order": 24,
+      "source_queue_position": 48
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "unusual_length"
+      ],
+      "record_id": "SEB-0013",
+      "review_order": 25,
+      "source_queue_position": 1
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0134",
+      "review_order": 26,
+      "source_queue_position": 27
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0156",
+      "review_order": 27,
+      "source_queue_position": 49
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0143",
+      "review_order": 28,
+      "source_queue_position": 36
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0161",
+      "review_order": 29,
+      "source_queue_position": 54
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0138",
+      "review_order": 30,
+      "source_queue_position": 31
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0150",
+      "review_order": 31,
+      "source_queue_position": 43
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0168",
+      "review_order": 32,
+      "source_queue_position": 61
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0165",
+      "review_order": 33,
+      "source_queue_position": 58
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0159",
+      "review_order": 34,
+      "source_queue_position": 52
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0023",
+      "review_order": 35,
+      "source_queue_position": 6
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0135",
+      "review_order": 36,
+      "source_queue_position": 28
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0088",
+      "review_order": 37,
+      "source_queue_position": 23
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0178",
+      "review_order": 38,
+      "source_queue_position": 71
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0166",
+      "review_order": 39,
+      "source_queue_position": 59
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0145",
+      "review_order": 40,
+      "source_queue_position": 38
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0083",
+      "review_order": 41,
+      "source_queue_position": 18
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0089",
+      "review_order": 42,
+      "source_queue_position": 24
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0153",
+      "review_order": 43,
+      "source_queue_position": 46
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0021",
+      "review_order": 44,
+      "source_queue_position": 4
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0147",
+      "review_order": 45,
+      "source_queue_position": 40
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0158",
+      "review_order": 46,
+      "source_queue_position": 51
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0146",
+      "review_order": 47,
+      "source_queue_position": 39
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0090",
+      "review_order": 48,
+      "source_queue_position": 25
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0137",
+      "review_order": 49,
+      "source_queue_position": 30
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0176",
+      "review_order": 50,
+      "source_queue_position": 69
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0140",
+      "review_order": 51,
+      "source_queue_position": 33
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0149",
+      "review_order": 52,
+      "source_queue_position": 42
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0152",
+      "review_order": 53,
+      "source_queue_position": 45
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0148",
+      "review_order": 54,
+      "source_queue_position": 41
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0029",
+      "review_order": 55,
+      "source_queue_position": 12
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0080",
+      "review_order": 56,
+      "source_queue_position": 15
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0019",
+      "review_order": 57,
+      "source_queue_position": 2
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0180",
+      "review_order": 58,
+      "source_queue_position": 73
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0026",
+      "review_order": 59,
+      "source_queue_position": 9
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0030",
+      "review_order": 60,
+      "source_queue_position": 13
+    },
+    {
+      "original_department": "account_support",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0020",
+      "review_order": 61,
+      "source_queue_position": 3
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0082",
+      "review_order": 62,
+      "source_queue_position": 17
+    },
+    {
+      "original_department": "loan_credit",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0167",
+      "review_order": 63,
+      "source_queue_position": 60
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0085",
+      "review_order": 64,
+      "source_queue_position": 20
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0079",
+      "review_order": 65,
+      "source_queue_position": 14
+    },
+    {
+      "original_department": "card_atm",
+      "original_difficulty": "medium",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0081",
+      "review_order": 66,
+      "source_queue_position": 16
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0163",
+      "review_order": 67,
+      "source_queue_position": 56
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0025",
+      "review_order": 68,
+      "source_queue_position": 8
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0172",
+      "review_order": 69,
+      "source_queue_position": 65
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0154",
+      "review_order": 70,
+      "source_queue_position": 47
+    },
+    {
+      "original_department": "fraud_security",
+      "original_difficulty": "easy",
+      "original_review_reasons": [
+        "controlled_variation"
+      ],
+      "record_id": "SEB-0022",
+      "review_order": 71,
+      "source_queue_position": 5
+    },
+    {
+      "original_department": "general_support",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0174",
+      "review_order": 72,
+      "source_queue_position": 67
+    },
+    {
+      "original_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "original_review_reasons": [
+        "ambiguity_notes",
+        "hard_label_confirmation"
+      ],
+      "record_id": "SEB-0151",
+      "review_order": 73,
+      "source_queue_position": 44
+    }
+  ],
+  "source_draft_sha256": "f9ae2ab171c51b630a081c770e6db48bc06d0924f3823da4827643c2562553f7",
+  "status": "internal_reference_only"
+}
