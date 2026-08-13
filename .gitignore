@@ -61,6 +61,7 @@ data/downloads/
 !data/eda/**/*.json
 !evaluation/day18/*.csv
 !evaluation/model_hunting/short_english_benchmark_stage1b_review_worksheet.csv
+!evaluation/model_hunting/short_english_benchmark_stage1b_completed_review.csv
 
 # Generated model artifacts (allow only by deliberate force-add/review)
 *.joblib
