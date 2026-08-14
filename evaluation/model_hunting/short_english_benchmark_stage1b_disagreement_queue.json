@@ -1,0 +1,197 @@
+{
+  "status": "unadjudicated_disagreement_queue",
+  "git_commit_analyzed": "5241f888b8f14ef49f25f71d09f9bef395efe398",
+  "controlled_unsealing_timestamp": "2026-08-14T20:41:42.6165257+06:30",
+  "ordering": {
+    "method": "ascending SHA-256 of fixed seed, colon, and record_id",
+    "fixed_seed": "stage1b-disagreement-queue-v1",
+    "independent_of_original_and_reviewer_labels": true
+  },
+  "queue_size": 10,
+  "entries": [
+    {
+      "adjudication_order": 1,
+      "record_id": "SEB-0176",
+      "complaint_text": "The branch confirmed closure but online banking still shows my account as available",
+      "original_department": "account_support",
+      "reviewer_department": "fraud_security",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 2,
+      "record_id": "SEB-0136",
+      "complaint_text": "Unknown account opened recently",
+      "original_department": "fraud_security",
+      "reviewer_department": "account_support",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 3,
+      "record_id": "SEB-0158",
+      "complaint_text": "The statement history ends before the period I need",
+      "original_department": "account_support",
+      "reviewer_department": "general_support",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 4,
+      "record_id": "SEB-0088",
+      "complaint_text": "ID verification exposed my information again today",
+      "original_department": "fraud_security",
+      "reviewer_department": "account_support",
+      "original_difficulty": "medium",
+      "review_reasons": [
+        "controlled_variation"
+      ],
+      "controlled_variation_flags": [
+        "abbreviation"
+      ],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 5,
+      "record_id": "SEB-0160",
+      "complaint_text": "My credit file merged with another persons history",
+      "original_department": "fraud_security",
+      "reviewer_department": "account_support",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 6,
+      "record_id": "SEB-0178",
+      "complaint_text": "My identity theft report was accepted but the fraudulent account remains visible on my latest credit file",
+      "original_department": "fraud_security",
+      "reviewer_department": "account_support",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 7,
+      "record_id": "SEB-0179",
+      "complaint_text": "The vehicle lender marked an installment late even though its receipt confirms processing before the due date",
+      "original_department": "loan_credit",
+      "reviewer_department": "transfer_payment",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 8,
+      "record_id": "SEB-0167",
+      "complaint_text": "Why's the escrow balance still rising today",
+      "original_department": "loan_credit",
+      "reviewer_department": "general_support",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [
+        "informal"
+      ],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 9,
+      "record_id": "SEB-0163",
+      "complaint_text": "Why'd the transfer disappear after confirmation today",
+      "original_department": "transfer_payment",
+      "reviewer_department": "general_support",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "controlled_variation",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [
+        "informal"
+      ],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    },
+    {
+      "adjudication_order": 10,
+      "record_id": "SEB-0151",
+      "complaint_text": "The recipient received less than the amount I sent",
+      "original_department": "transfer_payment",
+      "reviewer_department": "fraud_security",
+      "original_difficulty": "hard",
+      "review_reasons": [
+        "ambiguity_review",
+        "hard_label_confirmation"
+      ],
+      "controlled_variation_flags": [],
+      "adjudication_decision": "",
+      "final_department": "",
+      "revised_text": "",
+      "adjudication_note": ""
+    }
+  ],
+  "safeguards": {
+    "no_agreement_records_included": true,
+    "no_final_department_preselected_or_recommended": true,
+    "no_adjudication_occurred": true,
+    "empty_queue_does_not_mean_benchmark_approval": false,
+    "spot_check_still_recommended_because_all_decisions_were_approve": true
+  }
+}

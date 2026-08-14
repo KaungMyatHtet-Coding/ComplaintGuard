@@ -1,0 +1,298 @@
+{
+  "analysis_status": "descriptive_agreement_analysis_complete_no_adjudication",
+  "git_commit_analyzed": "5241f888b8f14ef49f25f71d09f9bef395efe398",
+  "controlled_unsealing_timestamp": "2026-08-14T20:41:42.6165257+06:30",
+  "inputs": {
+    "completed_review": {
+      "path": "evaluation/model_hunting/short_english_benchmark_stage1b_completed_review.csv",
+      "sha256": "b3975a3604a82ae594e851673a9092054cc74f3294ca70c34ca9195541416cc3"
+    },
+    "pristine_worksheet": {
+      "path": "evaluation/model_hunting/short_english_benchmark_stage1b_review_worksheet.csv",
+      "sha256": "1c1771b3ab77daa7bb0d30807faadf23ad76b1ed298c1d38d891f71094ce34b1"
+    },
+    "sealed_reference": {
+      "path": "evaluation/model_hunting/short_english_benchmark_stage1b_reference.json",
+      "sha256": "51e2eca79aa6d5a73a3ed56b53ee372f912c0e3e24c5c67b221a98574ec195a9"
+    },
+    "draft_benchmark": {
+      "path": "evaluation/model_hunting/short_english_benchmark_draft_v1.jsonl",
+      "sha256": "f9ae2ab171c51b630a081c770e6db48bc06d0924f3823da4827643c2562553f7"
+    }
+  },
+  "record_counts": {
+    "completed_review": 73,
+    "unique_completed_record_ids": 73,
+    "sealed_reference_mappings": 73,
+    "disagreement_queue": 10
+  },
+  "metrics": {
+    "record_count": 73,
+    "agreement_count": 63,
+    "disagreement_count": 10,
+    "exact_agreement_percentage": 86.3013698630137,
+    "cohens_kappa": 0.8356226075208287,
+    "original_department_distribution": {
+      "transfer_payment": 13,
+      "account_support": 12,
+      "card_atm": 12,
+      "fraud_security": 12,
+      "loan_credit": 12,
+      "general_support": 12
+    },
+    "reviewer_department_distribution": {
+      "transfer_payment": 12,
+      "account_support": 14,
+      "card_atm": 12,
+      "fraud_security": 10,
+      "loan_credit": 10,
+      "general_support": 15
+    },
+    "confusion_matrix": {
+      "orientation": "rows=original_department; columns=reviewer_department",
+      "label_order": [
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support"
+      ],
+      "values": [
+        [
+          11,
+          0,
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          10,
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          12,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          8,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          10,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          12
+        ]
+      ]
+    },
+    "per_original_department_agreement": {
+      "transfer_payment": {
+        "reviewed_count": 13,
+        "agreement_count": 11,
+        "agreement_rate": 0.8461538461538461
+      },
+      "account_support": {
+        "reviewed_count": 12,
+        "agreement_count": 10,
+        "agreement_rate": 0.8333333333333334
+      },
+      "card_atm": {
+        "reviewed_count": 12,
+        "agreement_count": 12,
+        "agreement_rate": 1.0
+      },
+      "fraud_security": {
+        "reviewed_count": 12,
+        "agreement_count": 8,
+        "agreement_rate": 0.6666666666666666
+      },
+      "loan_credit": {
+        "reviewed_count": 12,
+        "agreement_count": 10,
+        "agreement_rate": 0.8333333333333334
+      },
+      "general_support": {
+        "reviewed_count": 12,
+        "agreement_count": 12,
+        "agreement_rate": 1.0
+      }
+    },
+    "difficulty_agreement": {
+      "easy": {
+        "reviewed_count": 13,
+        "agreement_count": 13,
+        "agreement_rate": 1.0
+      },
+      "hard": {
+        "reviewed_count": 48,
+        "agreement_count": 39,
+        "agreement_rate": 0.8125
+      },
+      "medium": {
+        "reviewed_count": 12,
+        "agreement_count": 11,
+        "agreement_rate": 0.9166666666666666
+      }
+    },
+    "review_reason_agreement": {
+      "ambiguity_review": {
+        "reviewed_count": 48,
+        "agreement_count": 39,
+        "agreement_rate": 0.8125
+      },
+      "controlled_variation": {
+        "reviewed_count": 42,
+        "agreement_count": 39,
+        "agreement_rate": 0.9285714285714286
+      },
+      "hard_label_confirmation": {
+        "reviewed_count": 48,
+        "agreement_count": 39,
+        "agreement_rate": 0.8125
+      },
+      "unusual_length": {
+        "reviewed_count": 1,
+        "agreement_count": 1,
+        "agreement_rate": 1.0
+      }
+    },
+    "controlled_variation_status_agreement": {
+      "absent": {
+        "reviewed_count": 31,
+        "agreement_count": 24,
+        "agreement_rate": 0.7741935483870968
+      },
+      "present": {
+        "reviewed_count": 42,
+        "agreement_count": 39,
+        "agreement_rate": 0.9285714285714286
+      }
+    },
+    "controlled_variation_type_agreement": {
+      "abbreviation": {
+        "reviewed_count": 18,
+        "agreement_count": 17,
+        "agreement_rate": 0.9444444444444444
+      },
+      "informal": {
+        "reviewed_count": 27,
+        "agreement_count": 25,
+        "agreement_rate": 0.9259259259259259
+      },
+      "typo": {
+        "reviewed_count": 18,
+        "agreement_count": 18,
+        "agreement_rate": 1.0
+      }
+    },
+    "pairwise_disagreement_counts": {
+      "account_support->fraud_security": 1,
+      "account_support->general_support": 1,
+      "fraud_security->account_support": 4,
+      "loan_credit->general_support": 1,
+      "loan_credit->transfer_payment": 1,
+      "transfer_payment->fraud_security": 1,
+      "transfer_payment->general_support": 1
+    },
+    "disagreement_record_ids": [
+      "SEB-0088",
+      "SEB-0136",
+      "SEB-0151",
+      "SEB-0158",
+      "SEB-0160",
+      "SEB-0163",
+      "SEB-0167",
+      "SEB-0176",
+      "SEB-0178",
+      "SEB-0179"
+    ]
+  },
+  "quality_flags": {
+    "materially_lower_department_definition": "at least 0.10 below the median per-original-department agreement rate",
+    "materially_lower_original_departments": [
+      {
+        "original_department": "fraud_security",
+        "agreement_rate": 0.6666666666666666,
+        "comparison_median_rate": 0.8397435897435898,
+        "gap_below_median": 0.17307692307692313
+      }
+    ],
+    "disagreement_department_pairs": [
+      {
+        "original_to_reviewer": "fraud_security->account_support",
+        "disagreement_count": 4,
+        "human_adjudication_required": true
+      },
+      {
+        "original_to_reviewer": "account_support->fraud_security",
+        "disagreement_count": 1,
+        "human_adjudication_required": true
+      },
+      {
+        "original_to_reviewer": "account_support->general_support",
+        "disagreement_count": 1,
+        "human_adjudication_required": true
+      },
+      {
+        "original_to_reviewer": "loan_credit->general_support",
+        "disagreement_count": 1,
+        "human_adjudication_required": true
+      },
+      {
+        "original_to_reviewer": "loan_credit->transfer_payment",
+        "disagreement_count": 1,
+        "human_adjudication_required": true
+      },
+      {
+        "original_to_reviewer": "transfer_payment->fraud_security",
+        "disagreement_count": 1,
+        "human_adjudication_required": true
+      },
+      {
+        "original_to_reviewer": "transfer_payment->general_support",
+        "disagreement_count": 1,
+        "human_adjudication_required": true
+      }
+    ]
+  },
+  "interpretation": {
+    "metric_boundary": "Agreement is not model accuracy; no model was evaluated.",
+    "kappa_scope": "Cohen's kappa describes agreement between authored label proposals and one delayed blind human review.",
+    "single_reviewer_limitation": "One delayed blind reviewer cannot establish inter-annotator reliability.",
+    "decision_coverage_limitation": "All 73 reviewer decisions were approve, so rejection and revision quality was not exercised.",
+    "high_agreement_limitation": "High or perfect agreement does not prove benchmark validity; a post-unsealing spot check of hard and ambiguous examples is recommended.",
+    "worksheet_blinding_check": "The pristine worksheet contains complaint text, neutral review reasons, word count, and empty human-entry fields; it contains no original/proposed label, difficulty, rationale, prediction, or confidence column.",
+    "spot_check_recommendation": "Spot-check hard and ambiguity-review records because all 73 decisions were approve, even if no disagreements enter the queue."
+  },
+  "safeguards": {
+    "no_disagreement_adjudicated": true,
+    "no_benchmark_record_modified": true,
+    "original_labels_are_proposals_not_automatic_ground_truth": true,
+    "reviewer_labels_are_human_judgments_not_automatic_replacements": true,
+    "benchmark_status": "draft_unfrozen"
+  }
+}
