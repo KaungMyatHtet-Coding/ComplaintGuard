@@ -1,0 +1,88 @@
+{
+  "application_timestamp": "2026-08-14T23:55:28.741416+06:30",
+  "candidate": {
+    "approved": false,
+    "benchmark_version": "",
+    "freeze_status": "unfrozen",
+    "label_distribution": {
+      "account_support": 29,
+      "card_atm": 30,
+      "fraud_security": 31,
+      "general_support": 30,
+      "loan_credit": 30,
+      "transfer_payment": 30
+    },
+    "path": "evaluation/model_hunting/short_english_benchmark_reviewed_candidate_v1.jsonl",
+    "sha256": "f5fc04393cd8b820df4df70c37719e0d834537cb419aaae43e0abb609c0480ea"
+  },
+  "changes": [
+    {
+      "after_department": "fraud_security",
+      "before_department": "account_support",
+      "record_id": "SEB-0176"
+    }
+  ],
+  "counts": {
+    "added": 0,
+    "adjudicated_keep_original": 9,
+    "adjudicated_remove": 0,
+    "adjudicated_revise_and_relabel": 0,
+    "adjudicated_use_reviewer": 1,
+    "agreement": 63,
+    "candidate_records": 180,
+    "non_queued": 107,
+    "removed": 0,
+    "reordered": 0,
+    "reviewed_queue": 73,
+    "source_records": 180,
+    "text_changes": 0,
+    "unresolved": 0
+  },
+  "git_commit": "9986353321bcb33e200fc0e6b2f7f7e0e82213da",
+  "inputs": {
+    "completed_adjudication": {
+      "path": "evaluation/model_hunting/short_english_benchmark_stage1b_completed_adjudication.json",
+      "sha256": "2ebfc8696767aca54c56334cf8d432b5368c40be7faf5d201912ae0967bfd90b"
+    },
+    "completed_review": {
+      "path": "evaluation/model_hunting/short_english_benchmark_stage1b_completed_review.csv",
+      "sha256": "b3975a3604a82ae594e851673a9092054cc74f3294ca70c34ca9195541416cc3"
+    },
+    "source_draft": {
+      "path": "evaluation/model_hunting/short_english_benchmark_draft_v1.jsonl",
+      "sha256": "f9ae2ab171c51b630a081c770e6db48bc06d0924f3823da4827643c2562553f7"
+    }
+  },
+  "leakage_limitation": "Prior exact checks are carried forward because complaint text did not change; full-corpus near-duplicate and raw-source checks remain incomplete.",
+  "review_coverage": {
+    "limitation": "Only the 73 Stage 1B queued records received delayed blind review; the other 107 records were not individually reviewed in Stage 1B.",
+    "record_level_schema_handling": "Existing draft fields are preserved; the schema cannot distinguish 73 reviewed records from 107 non-queued records without ad hoc fields."
+  },
+  "safeguards": {
+    "authored_rationale_preserved_as_source_metadata": true,
+    "candidate_remains_unapproved": true,
+    "candidate_remains_unfrozen": true,
+    "no_candidate_model_work_occurred": true,
+    "no_model_predictions_consulted": true
+  },
+  "spot_check_plan": {
+    "method": "Include changed records, then one hard ambiguity agreement per unrepresented department where available, then controlled-variation agreements and deterministic SHA-256 order using seed stage1b-post-adjudication-spot-check-v1.",
+    "record_ids": [
+      "SEB-0176",
+      "SEB-0145",
+      "SEB-0153",
+      "SEB-0148",
+      "SEB-0137",
+      "SEB-0168",
+      "SEB-0085",
+      "SEB-0083",
+      "SEB-0146",
+      "SEB-0022",
+      "SEB-0086",
+      "SEB-0142"
+    ],
+    "size": 12,
+    "status": "pending"
+  },
+  "status": "reviewed_candidate_unapproved_unfrozen"
+}

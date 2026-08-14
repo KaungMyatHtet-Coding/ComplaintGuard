@@ -358,9 +358,13 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
   found across local repository text sources or 3,822,576 streamed mapped-corpus
   narratives. Full-corpus near-duplicate and raw-source checks remain blocked
   and are not claimed.
-- [ ] Complete delayed blind human review of ambiguity, hard-label, controlled-
-  variation, unusual-length, and similarity queues; review is pending and no
-  independent reviewer is claimed.
+- [x] Complete delayed blind human review of the 73-record Stage 1B queue,
+  authored-label agreement analysis, and human adjudication of all ten
+  disagreements; no independent reviewer is claimed.
+- [x] Derive the unapproved, unfrozen 180-record reviewed candidate by applying
+  the single adjudicated label change while preserving all complaint text.
+- [ ] Complete the pending 12-record post-adjudication human spot check; the
+  other 107 records were not individually reviewed in Stage 1B.
 - [ ] Approve, hash, and freeze the short-English benchmark; not started. The
   recorded draft review hash is not a final benchmark hash.
 - [ ] Train or evaluate a candidate model; not started.

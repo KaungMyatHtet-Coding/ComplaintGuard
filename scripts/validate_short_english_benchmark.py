@@ -10,7 +10,7 @@ import re
 import sys
 import unicodedata
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -48,6 +48,18 @@ REQUIRED_FIELDS = frozenset(
 )
 DIFFICULTY_COUNTS = {"easy": 60, "medium": 72, "hard": 48}
 PER_LABEL_DIFFICULTY = {"easy": 10, "medium": 12, "hard": 8}
+PROTECTED_SOURCE_SHA256 = (
+    "f9ae2ab171c51b630a081c770e6db48bc06d0924f3823da4827643c2562553f7"
+)
+PROTECTED_ADJUDICATION_SHA256 = (
+    "2ebfc8696767aca54c56334cf8d432b5368c40be7faf5d201912ae0967bfd90b"
+)
+SOURCE_RELATIVE = Path(
+    "evaluation/model_hunting/short_english_benchmark_draft_v1.jsonl"
+)
+ADJUDICATION_RELATIVE = Path(
+    "evaluation/model_hunting/short_english_benchmark_stage1b_completed_adjudication.json"
+)
 VARIATION_COUNTS = {"typo": 18, "abbreviation": 18, "informal": 27}
 ALLOWED_VARIATION_TAGS = frozenset({"typo", "abbreviation", "informal"})
 ID_PATTERN = re.compile(r"^SEB-(\d{4})$")
@@ -93,6 +105,15 @@ class Finding:
             "message": self.message,
             "example_ids": list(self.example_ids),
         }
+
+
+@dataclass(frozen=True)
+class CandidateEvidenceValidation:
+    expected_label_counts: Mapping[str, int]
+    expected_label_difficulty: Mapping[str, Mapping[str, int]]
+    authorized_changes: tuple[dict[str, str], ...]
+    text_change_count: int
+    leakage_carry_forward_allowed: bool
 
 
 def normalize_text(text: str) -> str:
@@ -149,6 +170,204 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _unique_records(
+    records: list[dict[str, Any]], id_field: str, source: str
+) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    for record in records:
+        record_id = record.get(id_field)
+        if not isinstance(record_id, str) or not record_id:
+            raise ValueError(f"{source} contains a missing record ID")
+        if record_id in result:
+            raise ValueError(f"{source} contains duplicate record ID {record_id}")
+        result[record_id] = record
+    return result
+
+
+def _load_adjudication(path: Path) -> list[dict[str, Any]]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"completed adjudication is invalid JSON: {exc}") from exc
+    if not isinstance(value, dict) or not isinstance(value.get("entries"), list):
+        raise TypeError("completed adjudication entries are invalid")
+    entries = value["entries"]
+    if any(not isinstance(entry, dict) for entry in entries):
+        raise ValueError("completed adjudication contains a non-object entry")
+    return entries
+
+
+def _validate_adjudication_entry(
+    entry: dict[str, Any], source: dict[str, Any]
+) -> tuple[str | None, str | None]:
+    record_id = source["example_id"]
+    immutable = {
+        "complaint_text": source["text"],
+        "original_department": source["expected_department"],
+        "original_difficulty": source["difficulty"],
+        "controlled_variation_flags": source["variation_tags"],
+    }
+    for field, expected in immutable.items():
+        if entry.get(field) != expected:
+            raise ValueError(f"adjudication {field} differs for {record_id}")
+    reviewer = entry.get("reviewer_department")
+    final = entry.get("final_department")
+    decision = entry.get("adjudication_decision")
+    revised = entry.get("revised_text")
+    note = entry.get("adjudication_note")
+    if reviewer not in LABELS:
+        raise ValueError(f"adjudication reviewer department is invalid for {record_id}")
+    if not isinstance(note, str) or not note.strip():
+        raise ValueError(f"adjudication note is missing for {record_id}")
+    if not isinstance(revised, str):
+        raise TypeError(f"adjudication revised text is invalid for {record_id}")
+    if decision == "keep_original":
+        if final != source["expected_department"] or revised:
+            raise ValueError(f"keep_original contract is invalid for {record_id}")
+        return final, None
+    if decision == "use_reviewer":
+        if final != reviewer or revised:
+            raise ValueError(f"use_reviewer contract is invalid for {record_id}")
+        return final, None
+    if decision == "revise_and_relabel":
+        normalized = normalize_text(revised)
+        if final not in LABELS or not 3 <= len(normalized.split()) <= 20:
+            raise ValueError(f"revise_and_relabel contract is invalid for {record_id}")
+        if not 15 <= len(normalized) <= 140 or normalized == normalize_text(
+            source["text"]
+        ):
+            raise ValueError(f"revise_and_relabel contract is invalid for {record_id}")
+        return final, revised
+    if decision == "remove_from_benchmark":
+        if final != "unresolved" or revised:
+            raise ValueError(
+                f"remove_from_benchmark contract is invalid for {record_id}"
+            )
+        return None, None
+    if decision == "needs_second_review":
+        raise ValueError(f"unresolved adjudication blocks validation for {record_id}")
+    raise ValueError(f"adjudication decision is invalid for {record_id}")
+
+
+def validate_reviewed_candidate_evidence(
+    candidate_records: list[dict[str, Any]],
+    *,
+    source_path: Path,
+    adjudication_path: Path,
+    expected_source_sha256: str = PROTECTED_SOURCE_SHA256,
+    expected_adjudication_sha256: str = PROTECTED_ADJUDICATION_SHA256,
+    expected_source_count: int = 180,
+) -> CandidateEvidenceValidation:
+    source_hash = sha256_file(source_path)
+    if source_hash.casefold() != expected_source_sha256.casefold():
+        raise ValueError(f"protected source SHA-256 is {source_hash}")
+    adjudication_hash = sha256_file(adjudication_path)
+    if adjudication_hash.casefold() != expected_adjudication_sha256.casefold():
+        raise ValueError(f"completed adjudication SHA-256 is {adjudication_hash}")
+    source_records = load_jsonl(source_path)
+    if len(source_records) != expected_source_count:
+        raise ValueError(
+            f"protected source record count is {len(source_records)}, expected {expected_source_count}"
+        )
+    if len(candidate_records) != len(source_records):
+        raise ValueError("candidate record count differs from protected source")
+    source_by_id = _unique_records(source_records, "example_id", "protected source")
+    candidate_by_id = _unique_records(candidate_records, "example_id", "candidate")
+    source_ids = [record["example_id"] for record in source_records]
+    candidate_ids = [record["example_id"] for record in candidate_records]
+    if set(candidate_by_id) != set(source_by_id):
+        missing = sorted(set(source_by_id) - set(candidate_by_id))
+        extra = sorted(set(candidate_by_id) - set(source_by_id))
+        raise ValueError(
+            f"candidate membership differs: missing={missing}, extra={extra}"
+        )
+    if candidate_ids != source_ids:
+        raise ValueError("candidate ordering differs from protected source")
+
+    entries = _load_adjudication(adjudication_path)
+    adjudication_by_id = _unique_records(entries, "record_id", "completed adjudication")
+    expected_records = [dict(record) for record in source_records]
+    expected_by_id = {record["example_id"]: record for record in expected_records}
+    authorized_changes: list[dict[str, str]] = []
+    revised_count = 0
+    removed_ids: set[str] = set()
+    for record_id, entry in adjudication_by_id.items():
+        source = source_by_id.get(record_id)
+        if source is None:
+            raise ValueError(f"adjudication references unknown record {record_id}")
+        final, revised = _validate_adjudication_entry(entry, source)
+        if final is None:
+            removed_ids.add(record_id)
+            continue
+        expected = expected_by_id[record_id]
+        if final != source["expected_department"]:
+            expected["expected_department"] = final
+            authorized_changes.append(
+                {
+                    "record_id": record_id,
+                    "before_department": source["expected_department"],
+                    "after_department": final,
+                }
+            )
+        if revised is not None:
+            expected["text"] = revised
+            expected["word_count"] = word_count(revised)
+            expected["character_count"] = character_count(revised)
+            revised_count += 1
+    if removed_ids:
+        raise ValueError(
+            "remove_from_benchmark evidence requires a separately specified candidate contract"
+        )
+
+    text_change_count = 0
+    for source, expected, candidate in zip(
+        source_records, expected_records, candidate_records, strict=True
+    ):
+        record_id = source["example_id"]
+        if candidate != expected:
+            changed_fields = sorted(
+                key
+                for key in set(candidate) | set(expected)
+                if candidate.get(key) != expected.get(key)
+            )
+            raise ValueError(
+                f"candidate has unauthorized or missing changes for {record_id}: {changed_fields}"
+            )
+        if candidate["text"] != source["text"]:
+            text_change_count += 1
+    if revised_count or text_change_count:
+        raise ValueError(
+            "candidate complaint text changed; fresh leakage screening is required"
+        )
+
+    expected_label_counts = Counter(
+        record["expected_department"] for record in expected_records
+    )
+    actual_label_counts = Counter(
+        record["expected_department"] for record in candidate_records
+    )
+    if actual_label_counts != expected_label_counts:
+        raise ValueError("candidate label distribution differs from adjudication plan")
+    expected_label_difficulty = {
+        label: {
+            difficulty: sum(
+                record["expected_department"] == label
+                and record["difficulty"] == difficulty
+                for record in expected_records
+            )
+            for difficulty in DIFFICULTY_COUNTS
+        }
+        for label in LABELS
+    }
+    return CandidateEvidenceValidation(
+        expected_label_counts=dict(expected_label_counts),
+        expected_label_difficulty=expected_label_difficulty,
+        authorized_changes=tuple(authorized_changes),
+        text_change_count=text_change_count,
+        leakage_carry_forward_allowed=True,
+    )
+
+
 def _add(
     findings: list[Finding],
     severity: str,
@@ -159,7 +378,12 @@ def _add(
     findings.append(Finding(severity, code, message, tuple(example_ids)))
 
 
-def validate_records(records: list[dict[str, Any]]) -> list[Finding]:
+def validate_records(
+    records: list[dict[str, Any]],
+    *,
+    expected_label_counts: Mapping[str, int] | None = None,
+    expected_label_difficulty: Mapping[str, Mapping[str, int]] | None = None,
+) -> list[Finding]:
     findings: list[Finding] = []
     if len(records) != 180:
         _add(findings, "error", "record_count", f"expected 180, found {len(records)}")
@@ -416,7 +640,10 @@ def validate_records(records: list[dict[str, Any]]) -> list[Finding]:
 
     if len(ids) != len(set(ids)):
         _add(findings, "error", "duplicate_id", "example IDs are not unique")
-    if label_counts != Counter({label: 30 for label in LABELS}):
+    required_label_counts = Counter(
+        expected_label_counts or {label: 30 for label in LABELS}
+    )
+    if label_counts != required_label_counts:
         _add(
             findings, "error", "label_balance", f"label counts are {dict(label_counts)}"
         )
@@ -432,8 +659,18 @@ def validate_records(records: list[dict[str, Any]]) -> list[Finding]:
             difficulty: label_difficulty[(label, difficulty)]
             for difficulty in DIFFICULTY_COUNTS
         }
-        if actual != PER_LABEL_DIFFICULTY:
-            _add(findings, "error", "label_difficulty_balance", f"{label}: {actual}")
+        required_difficulty = (
+            expected_label_difficulty[label]
+            if expected_label_difficulty is not None
+            else PER_LABEL_DIFFICULTY
+        )
+        if actual != required_difficulty:
+            _add(
+                findings,
+                "error",
+                "label_difficulty_balance",
+                f"{label}: {actual}",
+            )
     if length_bands != Counter({"3-6": 45, "7-13": 90, "14-20": 45}):
         _add(
             findings,
@@ -766,6 +1003,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mapped-corpus", type=Path)
     parser.add_argument("--review-report", type=Path)
     parser.add_argument("--review-queue", type=Path)
+    parser.add_argument(
+        "--reviewed-candidate",
+        action="store_true",
+        help="accept the adjudicated 29/31 label distribution while retaining draft checks",
+    )
     return parser.parse_args()
 
 
@@ -773,21 +1015,50 @@ def main() -> int:
     args = parse_args()
     try:
         records = load_jsonl(args.dataset)
-        findings = validate_records(records)
+        candidate_evidence = None
+        if args.reviewed_candidate:
+            canonical_root = Path(__file__).resolve().parents[1]
+            candidate_evidence = validate_reviewed_candidate_evidence(
+                records,
+                source_path=canonical_root / SOURCE_RELATIVE,
+                adjudication_path=canonical_root / ADJUDICATION_RELATIVE,
+            )
+            findings = validate_records(
+                records,
+                expected_label_counts=candidate_evidence.expected_label_counts,
+                expected_label_difficulty=candidate_evidence.expected_label_difficulty,
+            )
+        else:
+            findings = validate_records(records)
         findings.extend(near_duplicate_findings(records))
         excluded = {args.dataset.resolve()}
         if args.review_report:
             excluded.add(args.review_report.resolve())
         if args.review_queue:
             excluded.add(args.review_queue.resolve())
-        repository_findings, repository_scan = repository_leakage_findings(
-            records, args.repository_root, excluded
-        )
-        findings.extend(repository_findings)
-        corpus_findings, corpus_scan = corpus_leakage_findings(
-            records, args.mapped_corpus
-        )
-        findings.extend(corpus_findings)
+        if candidate_evidence is not None:
+            if not candidate_evidence.leakage_carry_forward_allowed:
+                raise ValueError("reviewed candidate requires fresh leakage screening")
+            repository_scan = {
+                "status": "carried_forward",
+                "reason": (
+                    "protected source identity, exact membership/order, and zero "
+                    "complaint-text changes were verified record by record"
+                ),
+            }
+            corpus_scan = {
+                "status": "carried_forward",
+                "reason": "full-corpus exact and near-duplicate scans were not rerun",
+            }
+        else:
+            repository_findings, repository_scan = repository_leakage_findings(
+                records, args.repository_root, excluded
+            )
+            findings.extend(repository_findings)
+            corpus_findings, corpus_scan = corpus_leakage_findings(
+                records, args.mapped_corpus
+            )
+            findings.extend(corpus_findings)
         leakage = {
             "sources_checked": [repository_scan, corpus_scan],
             "sources_not_checked": [
@@ -810,6 +1081,16 @@ def main() -> int:
         f"Draft validation {report['structural_validation']}: records={len(records)} "
         f"errors={report['blocking_error_count']} warnings={report['human_review_warning_count']}"
     )
+    if candidate_evidence is not None:
+        changes = ", ".join(
+            f"{item['record_id']}:{item['before_department']}->{item['after_department']}"
+            for item in candidate_evidence.authorized_changes
+        )
+        print(
+            "Reviewed-candidate evidence verified: "
+            f"changes={changes or 'none'} text_changes={candidate_evidence.text_change_count} "
+            "leakage=carried_forward_partial_limitations"
+        )
     return 0 if report["blocking_error_count"] == 0 else 1
 
 
