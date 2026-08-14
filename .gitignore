@@ -66,6 +66,9 @@ data/downloads/
 # Completed Stage 1B adjudication evidence may be deliberately tracked
 !evaluation/model_hunting/short_english_benchmark_stage1b_completed_adjudication.json
 
+# Incomplete Stage 1B spot-check answers stay local
+evaluation/model_hunting/short_english_benchmark_stage1b_completed_spot_check.json
+
 # Generated model artifacts (allow only by deliberate force-add/review)
 *.joblib
 *.pickle
