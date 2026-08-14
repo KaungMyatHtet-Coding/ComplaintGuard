@@ -63,8 +63,8 @@ data/downloads/
 !evaluation/model_hunting/short_english_benchmark_stage1b_review_worksheet.csv
 !evaluation/model_hunting/short_english_benchmark_stage1b_completed_review.csv
 
-# Local Stage 1B adjudication progress; never commit incomplete decisions
-evaluation/model_hunting/short_english_benchmark_stage1b_completed_adjudication.json
+# Completed Stage 1B adjudication evidence may be deliberately tracked
+!evaluation/model_hunting/short_english_benchmark_stage1b_completed_adjudication.json
 
 # Generated model artifacts (allow only by deliberate force-add/review)
 *.joblib
