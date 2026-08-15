@@ -11,69 +11,69 @@ export function ManagerAnalyticsOverview({ analytics }: ManagerAnalyticsOverview
   const { t } = useApp();
 
   return (
-    <div className="space-y-6">
+    <div className="cust-layout" style={{ gap: '2rem' }}>
       <header>
-        <p className="text-xs font-semibold tracking-wider text-blue-600 uppercase">
+        <p className="eyebrow">
           {t("managerExecutiveOperations")}
         </p>
-        <h2 className="text-2xl font-bold text-gray-900">{t("managerAnalyticsTitle")}</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0.25rem 0 0 0' }}>{t("managerAnalyticsTitle")}</h2>
       </header>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">{t("managerTotalTickets")}</p>
-          <p className="mt-2 text-3xl font-extrabold text-gray-900">{analytics.totalTickets}</p>
+      <div className="mng-kpi-grid">
+        <div className="mng-kpi-card">
+          <p className="mng-kpi-label">{t("managerTotalTickets")}</p>
+          <p className="mng-kpi-val">{analytics.totalTickets}</p>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">{t("managerActiveTickets")}</p>
-          <p className="mt-2 text-3xl font-extrabold text-blue-600">{analytics.activeTickets}</p>
+        <div className="mng-kpi-card">
+          <p className="mng-kpi-label">{t("managerActiveTickets")}</p>
+          <p className="mng-kpi-val">{analytics.activeTickets}</p>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">{t("managerResolvedTickets")}</p>
-          <p className="mt-2 text-3xl font-extrabold text-emerald-600">{analytics.resolvedTickets}</p>
+        <div className="mng-kpi-card">
+          <p className="mng-kpi-label">{t("managerResolvedTickets")}</p>
+          <p className="mng-kpi-val">{analytics.resolvedTickets}</p>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-amber-200 bg-amber-50/30 shadow-sm">
-          <p className="text-xs font-medium text-amber-700">{t("managerLowConfidenceCount")}</p>
-          <p className="mt-2 text-3xl font-extrabold text-amber-600">{analytics.lowConfidenceCount}</p>
+        <div className="mng-kpi-card accent">
+          <p className="mng-kpi-label">{t("managerLowConfidenceCount")}</p>
+          <p className="mng-kpi-val">{analytics.lowConfidenceCount}</p>
         </div>
 
-        <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">{t("managerAvgSla")}</p>
-          <p className="mt-2 text-3xl font-extrabold text-purple-600">
+        <div className="mng-kpi-card">
+          <p className="mng-kpi-label">{t("managerAvgSla")}</p>
+          <p className="mng-kpi-val">
             {analytics.avgResolutionHours} {t("managerHoursShort")}
           </p>
         </div>
       </div>
 
       {/* Department Workload Breakdown */}
-      <section className="p-5 bg-white rounded-xl border border-gray-200 shadow-sm space-y-4">
-        <h3 className="text-lg font-bold text-gray-900">{t("managerDepartmentLoad")}</h3>
+      <section className="mng-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>{t("managerDepartmentLoad")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {analytics.departmentMetrics.map((dept) => (
-            <div key={dept.departmentId} className="p-4 bg-gray-50 rounded-lg border border-gray-100 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-900 text-sm">{dept.label}</span>
-                <span className="px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800 rounded-full">
+            <div key={dept.departmentId} style={{ padding: '1rem', background: 'var(--canvas)', borderRadius: '0.75rem', border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{dept.label}</span>
+                <span className="cust-status-pill is-triaged">
                   {dept.total} {t("managerTotalShort")}
                 </span>
               </div>
 
-              <div className="space-y-1 text-xs text-gray-600">
-                <div className="flex justify-between">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--muted)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>{t("managerInProgress")}:</span>
-                  <span className="font-semibold text-blue-700">{dept.inProgress}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{dept.inProgress}</span>
                 </div>
-                <div className="flex justify-between">
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>{t("managerResolvedShort")}:</span>
-                  <span className="font-semibold text-emerald-700">{dept.resolved}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{dept.resolved}</span>
                 </div>
-                <div className="flex justify-between">
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>{t("managerAvgSlaShort")}:</span>
-                  <span className="font-semibold text-purple-700">
+                  <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
                     {dept.avgResolutionHours} {t("managerHoursShort")}
                   </span>
                 </div>

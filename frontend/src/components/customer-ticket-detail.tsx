@@ -25,18 +25,22 @@ export function CustomerTicketDetailView({
   const [messageText, setMessageText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500">
-        {translate(locale, "loading")}
+      <div className="cust-detail" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+        <div className="spinner" />
+        <p style={{ marginTop: '0.75rem', color: 'var(--muted)', fontSize: '0.875rem' }}>
+          {translate(locale, "loading")}
+        </p>
       </div>
     );
   }
 
   if (!ticket) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-sm text-gray-500">
+      <div className="cust-empty">
         {translate(locale, "customerHistorySelect")}
       </div>
     );
@@ -70,174 +74,181 @@ export function CustomerTicketDetailView({
     const order = ["submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"];
     const currentIdx = order.indexOf(ticket.status);
     const stepIdx = order.indexOf(stepKey);
-
-    if (currentIdx >= stepIdx) return "completed";
-    return "pending";
+    return currentIdx >= stepIdx ? "completed" : "pending";
   };
 
   const isResolvedOrClosed = ticket.status === "resolved" || ticket.status === "closed";
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
-      {/* Header */}
-      <div className="ticket-detail-header border-b border-gray-100 pb-4">
-        <div className="min-w-0">
-          <span className="ticket-reference text-xs text-gray-400 font-mono">
-            {translate(locale, "customerTicketId")}: {ticket.id}
-          </span>
-          <h2 className="text-xl font-bold text-gray-900 mt-1">
+    <>
+      <div className="cust-detail">
+        <div className="cust-detail-header">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2>
             {translate(locale, "staffDetailTitle")}
           </h2>
         </div>
-        <div className="ticket-created-meta text-right text-xs text-gray-500">
-          <div>
-            {translate(locale, "staffCreated")}:{" "}
-            {new Date(ticket.createdAt).toLocaleString(
-              locale === "my" ? "my-MM" : "en-US"
-            )}
+          <div className="cust-detail-subrow">
+            <span className="cust-ticket-id">
+              {translate(locale, "customerTicketId")}: {ticket.id}
+            </span>
+            <span className="cust-detail-meta">
+              {translate(locale, "staffCreated")}:{" "}
+              {new Date(ticket.createdAt).toLocaleString(
+                locale === "my" ? "my-MM" : "en-US"
+              )}
+            </span>
           </div>
         </div>
-      </div>
 
-      {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">
-          {errorMsg}
-        </div>
-      )}
+        <div className="cust-scroll-area">
+          {errorMsg && (
+            <div className="cust-error" role="alert" style={{ marginBottom: '1rem' }}>{errorMsg}</div>
+          )}
 
-      {/* Visual Timeline */}
-      <div className="ticket-timeline-wrapper">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          {translate(locale, "customerTimelineTitle")}
-        </h3>
-        <div className="ticket-timeline flex items-center justify-between w-full max-w-xl mx-auto py-2">
-          {steps.map((step, idx) => {
-            const status = getStepStatus(step.key);
-            const isLast = idx === steps.length - 1;
-            return (
-              <React.Fragment key={step.key}>
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                      status === "completed"
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-400 border border-gray-300"
-                    }`}
-                  >
-                    {idx + 1}
+        {/* Visual Timeline */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <span className="cust-section-label">
+            {translate(locale, "customerTimelineTitle")}
+          </span>
+          <div className="cust-timeline">
+            {steps.map((step, idx) => {
+              const status = getStepStatus(step.key);
+              const isLast = idx === steps.length - 1;
+              return (
+                <React.Fragment key={step.key}>
+                  <div className="cust-step">
+                    <div className={`cust-step-dot ${status === "completed" ? "done" : "pending"}`}>
+                      {idx + 1}
+                    </div>
+                    <span className="cust-step-label">{step.label}</span>
                   </div>
-                  <span className="text-xs font-medium text-gray-700 mt-1 max-w-[80px]">
-                    {step.label}
-                  </span>
-                </div>
-                {!isLast && (
-                  <div
-                    className={`flex-1 h-0.5 mx-2 ${
-                      status === "completed" ? "bg-blue-600" : "bg-gray-200"
-                    }`}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
+                  {!isLast && (
+                    <div className={`cust-step-connector ${status === "completed" ? "done" : "pending"}`} />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        <DatasetEvidencePanel
+          predictedDepartmentId={ticket.predictedDepartmentId}
+          predictionConfidence={ticket.predictionConfidence}
+          routingSource={ticket.routingSource}
+          assignedDepartmentId={ticket.assignedDepartmentId}
+        />
+
+        {/* Complaint Body */}
+        <div style={{ marginTop: '1.5rem' }}>
+          <span className="cust-section-label">
+            {translate(locale, "complaintTextLabel")}
+          </span>
+          <div className="cust-body-block">
+            {ticket.complaintText}
+          </div>
+        
+          <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <button className="cust-refresh-btn" onClick={() => setIsChatOpen(true)} style={{ background: 'var(--ink)', color: 'white', border: 'none' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              {translate(locale, "staffMessages")}
+            </button>
+          </div>
+        </div>
         </div>
       </div>
 
-      <DatasetEvidencePanel
-        predictedDepartmentId={ticket.predictedDepartmentId}
-        predictionConfidence={ticket.predictionConfidence}
-        routingSource={ticket.routingSource}
-        assignedDepartmentId={ticket.assignedDepartmentId}
-      />
+      {isChatOpen && (
+        <div className="cust-modal-overlay">
+          <div className="cust-modal-content">
+            <div className="cust-modal-header">
+              <h2 className="cust-compose-title" style={{ margin: 0 }}>{translate(locale, "staffMessages")}</h2>
+              <button className="icon-button" onClick={() => setIsChatOpen(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="cust-compose">
+              
+              <div className="cust-messages">
 
-      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          {translate(locale, "complaintTextLabel")}
-        </h4>
-        <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
-          {ticket.complaintText}
-        </p>
-      </div>
-
-      {/* Message Thread */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold text-gray-900">
-          {translate(locale, "staffMessages")}
-        </h3>
-
-        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
           {ticket.messages.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">
+            <p className="cust-no-messages">
               {translate(locale, "staffNoMessages")}
             </p>
           ) : (
-            ticket.messages.map((m) => {
-              const isMe = m.senderRole === "customer";
-              return (
-                <div
-                  key={m.id}
-                  className={`flex flex-col ${
-                    isMe ? "items-end" : "items-start"
-                  }`}
-                >
-                  <div
-                    className={`ticket-message-bubble max-w-md rounded-lg p-3 text-sm ${
-                      isMe
-                        ? "bg-blue-600 text-white rounded-br-none"
-                        : "bg-gray-100 text-gray-900 rounded-bl-none border border-gray-200"
-                    }`}
-                  >
-                    <div className="text-[10px] opacity-75 mb-1 font-semibold">
-                      {isMe
-                        ? translate(locale, "customerMessageYou")
-                        : translate(locale, "customerMessageStaff")}
+            <div style={{ display: 'grid', gap: '0.75rem', maxHeight: '20rem', overflowY: 'auto' }}>
+              {ticket.messages.map((m) => {
+                const isMe = m.senderRole === "customer";
+                return (
+                  <div key={m.id} className={`cust-msg ${isMe ? "is-mine" : "is-theirs"}`}>
+                    <div className="cust-msg-bubble">
+                      <div className="cust-msg-sender">
+                        {isMe
+                          ? translate(locale, "customerMessageYou")
+                          : translate(locale, "customerMessageStaff")}
+                      </div>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.text}</p>
                     </div>
-                    <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                    <span className="cust-msg-time">
+                      {new Date(m.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-gray-400 mt-1">
-                    {new Date(m.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
+          )}
+
+          {/* Message Input Form */}
+          {!isResolvedOrClosed && (
+            <form onSubmit={handleSend} className="cust-msg-composer">
+              <input
+                type="text"
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder={translate(locale, "customerSendMessage")}
+                disabled={sendingMsg}
+                className="cust-msg-input"
+              />
+              <button
+                type="submit"
+                disabled={sendingMsg || !messageText.trim()}
+                className="cust-send-btn flex items-center justify-center p-3"
+                aria-label={translate(locale, "customerSend")}
+                title={translate(locale, "customerSend")}
+              >
+                {sendingMsg ? (
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                )}
+              </button>
+            </form>
           )}
         </div>
-
-        {/* Message Input Form */}
-        {!isResolvedOrClosed && (
-          <form onSubmit={handleSend} className="ticket-message-composer flex gap-2 pt-2">
-            <input
-              type="text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder={translate(locale, "customerSendMessage")}
-              disabled={sendingMsg}
-              className="ticket-message-input flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              disabled={sendingMsg || !messageText.trim()}
-              className="ticket-message-send bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
-            >
-              {sendingMsg
-                ? translate(locale, "customerSending")
-                : translate(locale, "customerSend")}
-            </button>
-          </form>
-        )}
-      </div>
+        </div>
+        </div>
+        </div>
+      )}
 
       {/* Rating & Feedback Section (When Resolved) */}
       {isResolvedOrClosed ? (
-        <CustomerFeedbackPanel
-          locale={locale}
-          feedback={ticket.feedback ?? null}
-          onSubmitFeedback={onSubmitFeedback}
-        />
+        <div className="cust-detail" style={{ gridColumn: '1 / -1', marginTop: '1.5rem' }}>
+          <CustomerFeedbackPanel
+            locale={locale}
+            feedback={ticket.feedback ?? null}
+            onSubmitFeedback={onSubmitFeedback}
+          />
+        </div>
       ) : null}
-    </div>
+    </>
   );
 }

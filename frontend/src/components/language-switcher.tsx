@@ -11,15 +11,19 @@ export function LanguageSwitcher() {
         type="button"
         aria-pressed={locale === "en"}
         onClick={() => setLocale("en")}
+        title={t("english")}
       >
-        {t("english")}
+        <span aria-hidden="true">🇺🇸</span>
+        <span className="sr-only">{t("english")}</span>
       </button>
       <button
         type="button"
         aria-pressed={locale === "my"}
         onClick={() => setLocale("my")}
+        title={t("myanmar")}
       >
-        {t("myanmar")}
+        <span aria-hidden="true">🇲🇲</span>
+        <span className="sr-only">{t("myanmar")}</span>
       </button>
     </fieldset>
   );

@@ -58,49 +58,57 @@ export function ManagerLowConfidenceReview({
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-bold text-gray-900">{t("managerLowConfidenceQueue")}</h3>
+    <section className="analytics-card flex flex-col gap-5 overflow-hidden w-full">
+      <div className="section-heading" style={{ marginBottom: 0 }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>{t("managerLowConfidenceQueue")}</h3>
+      </div>
 
       {tickets.length === 0 ? (
-        <p className="p-4 text-sm text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-          {t("managerNoLowConfidence")}
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', background: 'var(--surface)', borderRadius: '1rem', border: '1px dashed var(--line)' }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1rem', opacity: 0.7 }}>
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <p style={{ color: 'var(--ink)', fontWeight: 600, fontSize: '1rem', margin: 0, textAlign: 'center' }}>
+            {t("managerNoLowConfidence")}
+          </p>
+        </div>
       ) : (
         <div
-          className="overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm"
+          className="mng-table-wrap"
           tabIndex={0}
           aria-label={t("managerLowConfidenceQueue")}
+          style={{ border: 'none', background: 'transparent', borderRadius: 0 }}
         >
-          <table className="manager-review-table divide-y divide-gray-200 text-left text-xs">
-            <thead className="bg-gray-50 text-gray-700 font-semibold uppercase">
+          <table className="mng-table">
+            <thead>
               <tr>
-                <th className="px-4 py-3">{t("managerTicketId")}</th>
-                <th className="px-4 py-3">{t("managerComplaintSnippet")}</th>
-                <th className="px-4 py-3">{t("managerPredictedDepartment")}</th>
-                <th className="px-4 py-3">{t("managerConfidence")}</th>
-                <th className="px-4 py-3">{t("managerCurrentDepartment")}</th>
-                <th className="px-4 py-3">{t("managerAction")}</th>
+                <th>{t("managerTicketId")}</th>
+                <th>{t("managerComplaintSnippet")}</th>
+                <th>{t("managerPredictedDepartment")}</th>
+                <th>{t("managerConfidence")}</th>
+                <th>{t("managerCurrentDepartment")}</th>
+                <th>{t("managerAction")}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 text-gray-800 font-medium">
+            <tbody>
               {tickets.map((ticket) => (
-                <tr key={ticket.id} className="hover:bg-gray-50">
-                  <td className="ticket-reference px-4 py-3 font-mono text-gray-900 font-bold">
+                <tr key={ticket.id}>
+                  <td className="ticket-reference" style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
                     {ticket.id}
                   </td>
-                  <td className="px-4 py-3 max-w-xs truncate" title={ticket.complaintText}>
+                  <td style={{ maxWidth: '16rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={ticket.complaintText}>
                     {ticket.complaintText}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {departmentName(ticket.predictedDepartmentId)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        ticket.predictionConfidence !== null &&
-                        ticket.predictionConfidence < modelEvaluation.confidence.threshold
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-emerald-100 text-emerald-800"
+                      className={`cust-status-pill ${
+                        ticket.predictionConfidence !== null && ticket.predictionConfidence < modelEvaluation.confidence.threshold
+                          ? 'is-awaiting'
+                          : 'is-resolved'
                       }`}
                     >
                       {ticket.predictionConfidence !== null
@@ -108,13 +116,13 @@ export function ManagerLowConfidenceReview({
                         : t("managerManualRouting")}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{departmentName(ticket.departmentId)}</td>
-                  <td className="px-4 py-3">
+                  <td>{departmentName(ticket.departmentId)}</td>
+                  <td>
                     <button
                       type="button"
                       onClick={() => handleOpenModal(ticket)}
                       aria-haspopup="dialog"
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition"
+                      style={{ background: 'var(--ink)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '0.5rem', border: 'none', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer' }}
                     >
                       {t("managerReassignBtn")}
                     </button>
@@ -128,12 +136,24 @@ export function ManagerLowConfidenceReview({
 
       {/* Override Modal */}
       {selectedTicket && (
-        <div className="manager-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="manager-override-title" className="manager-dialog w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl p-6 space-y-4 shadow-xl border border-gray-200">
-            <h4 id="manager-override-title" className="text-lg font-bold text-gray-900">{t("managerOverrideModalTitle")}</h4>
-            <p className="ticket-reference text-xs text-gray-500 font-mono">
-              {t("managerTicketLabel")}: {selectedTicket.id}
-            </p>
+        <div className="cust-modal-overlay">
+          <div className="cust-modal-content" role="dialog" aria-modal="true" aria-labelledby="manager-override-title" style={{ maxWidth: '42rem' }}>
+            <div className="cust-modal-header" style={{ paddingBottom: 0 }}>
+              <div>
+                <h4 id="manager-override-title" style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>{t("managerOverrideModalTitle")}</h4>
+                <p className="ticket-reference" style={{ fontSize: '0.75rem', color: 'var(--muted)', fontFamily: 'monospace', margin: '0.25rem 0 0 0' }}>
+                  {t("managerTicketLabel")}: {selectedTicket.id}
+                </p>
+              </div>
+              <button className="icon-button" onClick={() => setSelectedTicket(null)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <div className="cust-scroll-area" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
 
             <DatasetEvidencePanel
               predictedDepartmentId={selectedTicket.predictedDepartmentId}
@@ -142,15 +162,15 @@ export function ManagerLowConfidenceReview({
               assignedDepartmentId={selectedTicket.departmentId}
             />
 
-            <div className="space-y-1">
-              <label htmlFor="dept-select" className="text-xs font-semibold text-gray-700">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="dept-select" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted)' }}>
                 {t("managerSelectDepartment")}
               </label>
               <select
                 id="dept-select"
                 value={targetDeptId}
                 onChange={(e) => setTargetDeptId(e.target.value)}
-                className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                style={{ width: '100%', padding: '0.5rem', fontSize: '0.875rem', borderRadius: '0.5rem', border: '1px solid var(--line)', background: 'var(--background)' }}
               >
                 {departmentIds.map((departmentId) => (
                   <option key={departmentId} value={departmentId}>
@@ -160,8 +180,8 @@ export function ManagerLowConfidenceReview({
               </select>
             </div>
 
-            <div className="space-y-1">
-              <label htmlFor="override-reason" className="text-xs font-semibold text-gray-700">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label htmlFor="override-reason" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted)' }}>
                 {t("managerOverrideReason")}
               </label>
               <textarea
@@ -171,18 +191,18 @@ export function ManagerLowConfidenceReview({
                 onChange={(e) => setReason(e.target.value)}
                 placeholder={t("managerReasonPlaceholder")}
                 aria-describedby="override-reason-help"
-                className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                style={{ width: '100%', padding: '0.5rem', fontSize: '0.875rem', borderRadius: '0.5rem', border: '1px solid var(--line)', background: 'var(--background)', resize: 'vertical' }}
               />
             </div>
             <p id="override-reason-help" className="field-help">{t("managerOverrideReasonRequired")}</p>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '0.5rem' }}>
               <button
                 type="button"
                 ref={cancelRef}
                 onClick={() => setSelectedTicket(null)}
                 disabled={submitting}
-                className="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '0.5rem', background: '#f4f4f4', border: 'none', cursor: 'pointer' }}
               >
                 {t("managerCancel")}
               </button>
@@ -190,14 +210,15 @@ export function ManagerLowConfidenceReview({
                 type="button"
                 onClick={handleConfirmOverride}
                 disabled={submitting || !reason.trim()}
-                className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '0.5rem', background: 'var(--ink)', color: 'white', border: 'none', cursor: submitting || !reason.trim() ? 'not-allowed' : 'pointer' }}
               >
                 {submitting ? t("managerSaving") : t("managerConfirmOverride")}
               </button>
             </div>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

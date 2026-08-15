@@ -40,21 +40,16 @@ export function ProtectedDashboard() {
   return (
     <>
       <AppHeader />
-      <main className="dashboard-shell">
-        <aside className="dashboard-nav">
-          <p className="eyebrow">{profile.role}</p>
-          <strong>{profile.displayName}</strong>
-          {profile.departmentId ? (
-            <span>{getDepartmentLabel(profile.departmentId, locale) ?? t("evidenceUnavailable")}</span>
-          ) : null}
-          <a href="#overview" aria-current="page">
-            {t("dashboard")}
-          </a>
-        </aside>
-        <section id="overview" className="dashboard-content">
-          <p className="eyebrow">ComplaintGuard System</p>
-          <h1>{t(shellKeys[profile.role])}</h1>
-          <div className="security-note mb-6">{t("securityBoundary")}</div>
+      <main className="dashboard-shell-customer">
+        <section id="overview" className="dashboard-content" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+          {profile.role !== "customer" && (
+            <div className="cust-page-header-row">
+              <div className="cust-page-header">
+                <h1>Dashboard</h1>
+                <span>{profile.role}</span>
+              </div>
+            </div>
+          )}
           {profile.role === "customer" ? <CustomerDashboardWorkflow /> : null}
           {profile.role === "staff" ? <StaffTicketQueue /> : null}
           {canViewManagerAnalytics(profile.role) ? <ManagerDashboardWorkflow /> : null}

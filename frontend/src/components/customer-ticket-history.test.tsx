@@ -26,9 +26,9 @@ describe("CustomerTicketHistory", () => {
     );
 
     expect(markup).toContain(longTicketId);
-    expect(markup).toContain("ticket-summary-header");
-    expect(markup).toContain("ticket-reference");
-    expect(markup).toContain("ticket-status-badge");
+    expect(markup).toContain("cust-ticket-top");
+    expect(markup).toContain("cust-ticket-id");
+    expect(markup).toContain("cust-status-pill");
     expect(markup).toContain("In progress");
   });
 

@@ -27,6 +27,7 @@ export function ManagerDashboardWorkflow() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "review" | "model">("overview");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -73,32 +74,55 @@ export function ManagerDashboardWorkflow() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center space-y-3">
-        <div className="spinner mx-auto" />
-        <p className="text-sm text-gray-500 font-medium">{t("managerDashboardLoading")}</p>
+      <div className="cust-layout" style={{ textAlign: 'center', padding: '3rem' }}>
+        <p style={{ color: 'var(--muted)' }}>{t("managerDashboardLoading")}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto p-4 sm:p-6">
+    <div className="cust-layout" style={{ maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
       {error && (
-        <div className="p-4 bg-red-50 text-red-700 text-sm font-semibold rounded-xl border border-red-200">
+        <div className="cust-error" role="alert">
           {error}
         </div>
       )}
 
       {successMsg && (
-        <div className="p-4 bg-emerald-50 text-emerald-800 text-sm font-semibold rounded-xl border border-emerald-200">
+        <div className="success-panel" role="status">
           {successMsg}
         </div>
       )}
 
-      {analytics && <ManagerAnalyticsOverview analytics={analytics} />}
+      <div className="cust-tabs">
+        <button
+          type="button"
+          className={`cust-tab ${activeTab === "overview" ? "active" : ""}`}
+          onClick={() => setActiveTab("overview")}
+        >
+          {t("managerExecutiveOperations")}
+        </button>
+        <button
+          type="button"
+          className={`cust-tab ${activeTab === "review" ? "active" : ""}`}
+          onClick={() => setActiveTab("review")}
+        >
+          {t("managerLowConfidenceQueue")}
+        </button>
+        <button
+          type="button"
+          className={`cust-tab ${activeTab === "model" ? "active" : ""}`}
+          onClick={() => setActiveTab("model")}
+        >
+          {t("modelAnalyticsTitle")}
+        </button>
+      </div>
 
-      <ManagerLowConfidenceReview tickets={tickets} onOverride={handleOverride} />
-
-      <ModelAnalyticsDashboard />
+      <div className="cust-tab-content">
+        {activeTab === "overview" && analytics && <ManagerAnalyticsOverview analytics={analytics} />}
+        {activeTab === "review" && <ManagerLowConfidenceReview tickets={tickets} onOverride={handleOverride} />}
+        {activeTab === "model" && <ModelAnalyticsDashboard />}
+      </div>
     </div>
   );
 }

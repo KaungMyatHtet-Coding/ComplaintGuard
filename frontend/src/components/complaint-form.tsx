@@ -23,7 +23,7 @@ const errorKeys = {
   unexpected: "complaintUnexpectedError",
 } as const;
 
-export function ComplaintForm() {
+export function ComplaintForm({ onSuccess, hideTitle }: { onSuccess?: (ticketId: string) => void; hideTitle?: boolean }) {
   const { locale, profile, t } = useApp();
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
@@ -64,6 +64,7 @@ export function ComplaintForm() {
         setSuccess(result);
         setText("");
         actionId.current = null;
+        onSuccess?.();
       } catch (error) {
         setErrorCode(
           error instanceof ComplaintSubmissionError ? error.code : "unexpected",
@@ -77,48 +78,53 @@ export function ComplaintForm() {
   const fieldError = errorCode === "required" || errorCode === "too_long";
 
   return (
-    <section className="complaint-card" aria-labelledby="complaint-title">
-      <p className="eyebrow">{t("complaintEyebrow")}</p>
-      <h2 id="complaint-title">{t("complaintTitle")}</h2>
-      <p>{t("complaintLead")}</p>
-      <div className="security-note">{t("sensitiveWarning")}</div>
+    <section className="cust-compose" aria-labelledby="complaint-title">
+      {!hideTitle && (
+        <h2 id="complaint-title" className="cust-compose-title">
+          {t("complaintTitle")}
+        </h2>
+      )}
       {success ? (
         <div className="success-panel" role="status">
           <strong>{t("complaintSuccess")}</strong>
           <span className="ticket-reference">{t("complaintReference")}: {success.complaintId}</span>
-          <span>{t("complaintStatus")}: {t("statusSubmitted")}</span>
         </div>
       ) : null}
       {errorCode && !fieldError ? (
-        <div className="error-panel" role="alert">{t(errorKeys[errorCode])}</div>
+        <div className="cust-error" role="alert">{t(errorKeys[errorCode])}</div>
       ) : null}
-      <form onSubmit={handleSubmit} noValidate>
-        <label htmlFor="complaint-text">{t("complaintTextLabel")}</label>
-        <textarea
-          id="complaint-text"
-          aria-describedby={fieldError ? "complaint-error complaint-count" : "complaint-count"}
-          aria-invalid={fieldError}
-          maxLength={MAX_COMPLAINT_LENGTH}
-          required
-          rows={8}
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value);
-            actionId.current = null;
-            if (fieldError) setErrorCode(null);
-          }}
-        />
-        <div className="field-meta">
-          <span id="complaint-count">{text.length}/{MAX_COMPLAINT_LENGTH}</span>
-          {fieldError ? (
-            <span id="complaint-error" className="field-error" role="alert">
-              {t(errorKeys[errorCode])}
+      <form onSubmit={handleSubmit} noValidate className="cust-compose-form">
+        <div className="cust-compose-input-wrap">
+          <textarea
+            id="complaint-text"
+            aria-describedby={fieldError ? "complaint-error complaint-count" : "complaint-count"}
+            aria-invalid={fieldError}
+            maxLength={MAX_COMPLAINT_LENGTH}
+            required
+            rows={3}
+            placeholder={t("complaintLead")}
+            value={text}
+            className="cust-compose-textarea"
+            onChange={(event) => {
+              setText(event.target.value);
+              actionId.current = null;
+              if (fieldError) setErrorCode(null);
+            }}
+          />
+          <div className="cust-compose-footer">
+            <span id="complaint-count" className="cust-compose-count">
+              {text.length}/{MAX_COMPLAINT_LENGTH}
             </span>
-          ) : null}
+            {fieldError ? (
+              <span id="complaint-error" className="field-error" role="alert">
+                {t(errorKeys[errorCode])}
+              </span>
+            ) : null}
+            <button className="cust-compose-submit" disabled={pending} type="submit">
+              {pending ? t("complaintSubmitting") : t("complaintSubmit")}
+            </button>
+          </div>
         </div>
-        <button className="primary-button" disabled={pending} type="submit">
-          {pending ? t("complaintSubmitting") : t("complaintSubmit")}
-        </button>
       </form>
     </section>
   );
