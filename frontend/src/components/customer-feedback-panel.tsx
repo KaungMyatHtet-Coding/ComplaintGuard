@@ -34,22 +34,18 @@ export function CustomerFeedbackPanel({
   }
 
   return (
-    <div className="border-t border-gray-200 pt-6 mt-6">
-      <h3 className="text-md font-bold text-gray-900 mb-2">
-        {translate(locale, "customerFeedbackTitle")}
-      </h3>
-      {error ? <div className="error-panel" role="alert">{translate(locale, "customerFeedbackError")}</div> : null}
+    <div className="cust-feedback">
+      <h3>{translate(locale, "customerFeedbackTitle")}</h3>
+      {error ? <div className="cust-error" role="alert">{translate(locale, "customerFeedbackError")}</div> : null}
       {feedback ? (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm font-medium">
+        <div className="cust-feedback-done">
           ✓ {translate(locale, "customerFeedbackSuccess")}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <form onSubmit={handleSubmit} className="cust-feedback-form">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              {translate(locale, "customerRatingLabel")}
-            </label>
-            <div className="flex items-center gap-2">
+            <label>{translate(locale, "customerRatingLabel")}</label>
+            <div className="cust-stars">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -57,19 +53,22 @@ export function CustomerFeedbackPanel({
                   onClick={() => setRating(star)}
                   aria-label={translate(locale, "customerStarRating").replace("{rating}", String(star))}
                   aria-pressed={star === rating}
-                  className={`rating-star text-2xl transition-transform ${star <= rating ? "text-yellow-500 scale-110" : "text-gray-400"}`}
+                  className={`cust-star-btn ${star <= rating ? "is-active" : ""}`}
                 >★</button>
               ))}
-              <span className="text-xs text-gray-500 ml-2 font-medium">{rating} / 5</span>
+              <span className="cust-star-count">{rating} / 5</span>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">
-              {translate(locale, "customerCommentsLabel")}
-            </label>
-            <textarea value={comments} onChange={(event) => setComments(event.target.value)} rows={2} className="w-full rounded-lg border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <label>{translate(locale, "customerCommentsLabel")}</label>
+            <textarea
+              value={comments}
+              onChange={(event) => setComments(event.target.value)}
+              rows={2}
+              className="cust-feedback-textarea"
+            />
           </div>
-          <button type="submit" disabled={submitting} className="bg-green-600 hover:bg-green-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors">
+          <button type="submit" disabled={submitting} className="cust-feedback-submit">
             {submitting ? translate(locale, "customerSubmittingFeedback") : translate(locale, "customerSubmitFeedback")}
           </button>
         </form>

@@ -24,6 +24,7 @@ async function currentToken(): Promise<string> {
 
 export function CustomerDashboardWorkflow() {
   const { locale, t } = useApp();
+  const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [tickets, setTickets] = useState<CustomerTicketSummary[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [ticketDetail, setTicketDetail] = useState<CustomerTicketDetail | null>(null);
@@ -103,13 +104,44 @@ export function CustomerDashboardWorkflow() {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Complaint Submission Section */}
-      <ComplaintForm />
+    <div className="cust-layout">
+      {/* Top action bar and title */}
+      <div className="cust-page-header-row">
+        <div className="cust-page-header">
+          <h1>Dashboard</h1>
+          <span>customer</span>
+        </div>
+        <button className="cust-compose-submit" onClick={() => setIsComposeOpen(true)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New Complaint
+        </button>
+      </div>
 
-      {/* History and Detail Section */}
-      <div className="customer-ticket-workspace">
-        <div>
+      {isComposeOpen && (
+        <div className="cust-modal-overlay">
+          <div className="cust-modal-content">
+            <div className="cust-modal-header">
+              <h2 className="cust-compose-title" style={{ margin: 0 }}>
+                {t("complaintTitle")}
+              </h2>
+              <button className="icon-button" onClick={() => setIsComposeOpen(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <ComplaintForm onSuccess={loadTickets} hideTitle={true} />
+          </div>
+        </div>
+      )}
+
+      {/* Master-detail: sidebar list + detail */}
+      <div className="cust-split">
+        <aside className="cust-sidebar">
           <CustomerTicketHistory
             locale={locale}
             tickets={tickets}
@@ -119,16 +151,14 @@ export function CustomerDashboardWorkflow() {
             error={error}
             onRefresh={loadTickets}
           />
-        </div>
-        <div>
-          <CustomerTicketDetailView
-            locale={locale}
-            ticket={ticketDetail}
-            loading={loadingDetail}
-            onSendMessage={handleSendMessage}
-            onSubmitFeedback={handleSubmitFeedback}
-          />
-        </div>
+        </aside>
+        <CustomerTicketDetailView
+          locale={locale}
+          ticket={ticketDetail}
+          loading={loadingDetail}
+          onSendMessage={handleSendMessage}
+          onSubmitFeedback={handleSubmitFeedback}
+        />
       </div>
     </div>
   );

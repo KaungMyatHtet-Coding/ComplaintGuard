@@ -131,7 +131,7 @@ export function ModelAnalyticsDashboard() {
           <table className="analytics-table matrix-table">
             <caption>{t("confusionMatrixCaption")}</caption>
             <thead><tr><th scope="col">{t("truePredicted")}</th>{departmentIds.map((id) => <th scope="col" key={id}>{departmentName(id)}</th>)}</tr></thead>
-            <tbody>{departmentIds.map((trueId, rowIndex) => <tr key={trueId}><th scope="row">{departmentName(trueId)}</th>{evaluation.metrics.confusionMatrix.values[rowIndex].map((value, columnIndex) => <td key={departmentIds[columnIndex]} style={{ backgroundColor: `rgb(21 94 239 / ${0.05 + (value / maxMatrix) * 0.72})` }}><span>{count(value)}</span></td>)}</tr>)}</tbody>
+            <tbody>{departmentIds.map((trueId, rowIndex) => <tr key={trueId}><th scope="row">{departmentName(trueId)}</th>{evaluation.metrics.confusionMatrix.values[rowIndex].map((value, columnIndex) => <td key={departmentIds[columnIndex]} style={{ backgroundColor: `rgb(246 247 237 / ${0.1 + (value / maxMatrix) * 0.9})` }}><span>{count(value)}</span></td>)}</tr>)}</tbody>
           </table>
         </div>
       </section>
@@ -156,7 +156,7 @@ export function ModelAnalyticsDashboard() {
         </section>
       </div>
 
-      <section className="analytics-card limitations-card" aria-labelledby="limitations-title"><h3 id="limitations-title">{t("limitationsTitle")}</h3><ul>{evaluation.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></section>
+      <details className="analytics-card limitations-card"><summary className="cursor-pointer font-semibold select-none outline-none focus-visible:ring" id="limitations-title"><h3 className="inline-block m-0 ml-1">{t("limitationsTitle")}</h3></summary><ul className="mt-4">{evaluation.limitations.map((limitation) => <li key={limitation} className="mb-1">{limitation}</li>)}</ul></details>
     </section>
   );
 }

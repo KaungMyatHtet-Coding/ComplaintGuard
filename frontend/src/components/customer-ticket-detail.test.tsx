@@ -47,14 +47,14 @@ describe("CustomerTicketDetailView", () => {
     );
 
     expect(markup).toContain(longTicketId);
-    expect(markup).toContain("ticket-detail-header");
-    expect(markup).toContain("ticket-reference");
-    expect(markup).toContain("break-words");
-    expect(markup).toContain("ticket-message-bubble");
-    expect(markup).toContain("ticket-message-composer");
-    expect(markup).toContain("ticket-message-input");
-    expect(markup).toContain("ticket-message-send");
-    expect(markup).toContain("ticket-timeline-wrapper");
+    expect(markup).toContain("cust-detail-header");
+    expect(markup).toContain("cust-ticket-id");
+    expect(markup).toContain("break-word");
+    expect(markup).toContain("cust-msg-bubble");
+    expect(markup).toContain("cust-msg-composer");
+    expect(markup).toContain("cust-msg-input");
+    expect(markup).toContain("cust-send-btn");
+    expect(markup).toContain("cust-timeline");
     expect(markup).toContain("Waiting for your reply");
     expect(markup).toContain("Department staff");
     expect(markup).toContain(longMessage);

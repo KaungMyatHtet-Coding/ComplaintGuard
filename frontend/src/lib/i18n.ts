@@ -102,7 +102,7 @@ const messages = {
     priority_normal: "Normal",
     priority_high: "High",
     priority_urgent: "Urgent",
-    customerHistoryTitle: "My complaint history",
+    customerHistoryTitle: "Complaint history",
     customerHistoryEmpty: "You have not submitted any complaints yet.",
     customerHistorySelect: "Select a complaint ticket to view details and status.",
     customerRefreshHistory: "Refresh",
