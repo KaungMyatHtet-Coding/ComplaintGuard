@@ -938,3 +938,415 @@ automatic Myanmar routing.
 - [x] Keep Myanmar and mixed-language automatic routing blocked.
 - [x] Preserve the frozen Day 18 artifact and held-out test set unchanged.
 - [ ] Keep production Firebase deployment verification explicitly incomplete.
+
+---
+
+## Post-Day-32 Controlled Staging Upgrade
+
+This section is the current planning boundary after the verified Day 31/Day 32
+local-emulator work. It does not replace the historical schedule above and does
+not authorize technical implementation until the relevant phase is approved.
+
+### Current verified baseline
+
+- Baseline commit: `96b7bdc0c12c317a6d9d74eafe59b480345fee53`.
+- Annotated local baseline tag: `post-day32-local-baseline`.
+- Upgrade branch: `upgrade/cloud-firebase-staging`.
+- Verified operating mode: local Firebase Auth and Firestore Emulator
+  prototype using synthetic identities and operational records.
+- Day 31 and Day 32 evidence remains local-emulator evidence. It is not Cloud
+  Firebase verification, production security certification, or public deployment
+  evidence.
+- Cloud Firebase is not configured or verified.
+- The runtime classifier remains frozen and the research/model-hunting branch
+  remains paused and isolated. Its preservation commit is
+  `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
+
+Frozen evidence:
+
+- Model version: `v1`.
+- Algorithm: TF-IDF plus Multinomial Naive Bayes.
+- Classifier alpha: `0.5`.
+- Operational routing threshold: `0.60`.
+- Model SHA-256:
+  `BAFC086FE5B11BDCC5CBC4F04F3F3F222DE8CBAD27FE66D62A6685CC30F953D5`.
+- Source evaluation SHA-256:
+  `F6B3A872396BA8A8DB874BDB0CA00F839A4515C1C77E935CE13CD02D488DAE06`.
+- Generated evaluation SHA-256:
+  `F6B3A872396BA8A8DB874BDB0CA00F839A4515C1C77E935CE13CD02D488DAE06`.
+- Department IDs and fixed order remain:
+  `transfer_payment`, `account_support`, `card_atm`, `fraud_security`,
+  `loan_credit`, `general_support`.
+- Myanmar and mixed-language input remains manual-review-only.
+
+### Phase status summary
+
+| Phase | Status | Scope boundary |
+|---|---|---|
+| 0. Repository reconciliation and baseline freeze | Completed locally, not pushed | Baseline tag and upgrade branch exist locally; no Cloud work started. |
+| 1. Master plan and architecture documentation | In progress | Documentation reconciliation only. |
+| 2. Cloud Firebase staging migration | Approved roadmap, not implemented | Cost-controlled staging only; no production claim. |
+| 3. Registration, login, and account lifecycle | Approved roadmap, not implemented | Public registration creates customers only. |
+| 4. Roles and System Admin functionality | Approved roadmap, not implemented | Trusted provisioning and least privilege are required. |
+| 5. Secure & Approachable UI/UX upgrade | Approved roadmap, not implemented | Starts after Cloud/auth/role contracts stabilize. |
+| 6. Model, dataset, equations, and analytics presentation | Approved roadmap, not implemented | Read-only evidence with separate data boundaries. |
+| 7. Controlled six-department user testing | Approved roadmap, not implemented | Small-sample evidence, not formal model accuracy. |
+| 8. Controlled model-hunting resumption | Paused and approval-gated | Cannot resume before staging and Phase 7 gates. |
+| 9. Future production readiness | Future work, not implemented | Separate from staging and local verification. |
+
+Each phase below records its objective, dependencies, tasks, risks, evidence,
+acceptance criteria, rollback point, owner approvals, and relative effort.
+
+### Phase 0 — Repository reconciliation and baseline freeze
+
+- **Status:** Completed locally, not pushed.
+- **Objective:** Preserve the verified local baseline and isolate paused
+  model-hunting work before documentation or technical upgrades.
+- **Dependencies:** Day 31/Day 32 evidence, frozen artifact hashes, owner
+  approval of `main` as the base.
+- **Main tasks:** Verify `main`, preserve the model-hunting spot-check artifact
+  on `research/model-hunting`, create the local annotated baseline tag, and
+  create `upgrade/cloud-firebase-staging` from the approved commit.
+- **Security risks:** Confusing local emulator evidence with Cloud evidence or
+  carrying research artifacts into staging work.
+- **Data-loss risks:** Overwriting the untracked research artifact or altering
+  emulator state while preparing the baseline.
+- **Tests/evidence:** Git ancestry/status checks, model/evaluation hash checks,
+  contract checks, and isolated preservation commit.
+- **Acceptance criteria:** Baseline commit and hashes match; research remains
+  isolated; local tag and upgrade branch point to the approved commit; nothing
+  is pushed.
+- **Rollback point:** `post-day32-local-baseline` at the approved commit.
+- **Required owner approvals:** Baseline tag, upgrade branch, and preservation
+  of the research artifact.
+- **Relative effort:** Small.
+
+### Phase 1 — Master plan and architecture documentation
+
+- **Status:** In progress.
+- **Objective:** Keep `PROJECT_PLAN.md` as the single master plan and reconcile
+  current local behavior, approved staging work, paused research, and future
+  production work.
+- **Dependencies:** Phase 0 baseline and owner decisions recorded in this
+  section.
+- **Main tasks:** Add this post-Day-32 roadmap, update the task board, separate
+  implemented/planned/future behavior, document phase gates and rollback
+  points, and resolve stale terminology without rewriting historical evidence.
+- **Security risks:** Documentation may accidentally imply Cloud or production
+  readiness, or describe planned Admin permissions as implemented.
+- **Data-loss risks:** None from documentation alone; preserve historical
+  records and do not expose secrets or local credentials.
+- **Tests/evidence:** Documentation consistency review, link checks, secret
+  signature scan, forbidden-artifact scan, `git diff --check`, and exactly two
+  changed-file verification.
+- **Acceptance criteria:** The master plan distinguishes local emulator, Cloud
+  staging, paused research, and future production; every phase has an owner
+  gate and evidence requirement; no planned work is claimed as implemented.
+- **Rollback point:** Phase 0 baseline tag.
+- **Required owner approvals:** Approval of this documentation-only update
+  before any Phase 2 work.
+- **Relative effort:** Medium.
+
+### Phase 2 — Cloud Firebase staging migration
+
+- **Status:** Approved roadmap, not implemented.
+- **Objective:** Establish a separate, synthetic-only Firebase staging
+  environment while retaining the emulator as the default local backup and
+  test environment.
+- **Dependencies:** Phase 1 approval, staging project ownership, environment
+  separation, secret-handling design, and final role model.
+- **Main tasks:** Create a separate staging project; target cost-controlled
+  Firebase staging, initially targeting the no-cost tier; configure Auth and
+  Firestore separately from the emulator; review rules and indexes; configure
+  Admin SDK secrets outside Git; add safe staging logging and quota controls;
+  and add project-ID guards so emulator seed scripts fail closed against Cloud
+  project IDs.
+- **Security risks:** Service-account leakage, wrong-project writes, broad
+  rules, destructive test scripts against Cloud, and mixed staging/emulator
+  credentials.
+- **Data-loss risks:** Accidental writes or deletes in the wrong project,
+  unclear staging retention, and confusing emulator restart loss with Cloud
+  persistence.
+- **Tests/evidence:** Staging Auth/rules tests, ownership and department
+  isolation tests, invalid-token tests, index/query tests, project-ID seed
+  guard tests, secret scans, quota review, and emulator regression checks.
+- **Acceptance criteria:** Staging and emulator projects are distinct; no
+  secrets are committed; seed scripts cannot target Cloud; rules and indexes
+  are reviewed and evidenced; staging uses synthetic data only; the emulator
+  remains runnable; no production claim is made.
+- **Rollback point:** Emulator-only configuration and the Phase 0 tag.
+- **Required owner approvals:** Staging project creation, project ID, secret
+  storage, rules/index deployment, quota limits, and staging data policy.
+- **Relative effort:** Large.
+
+### Phase 3 — Registration, login, and account lifecycle
+
+- **Status:** Approved roadmap, not implemented.
+- **Objective:** Add a secure customer account lifecycle without allowing
+  public users to select privileged roles or departments.
+- **Dependencies:** Stable staging Auth, profile creation contract, email
+  verification policy, and Phase 2 environment separation.
+- **Main tasks:** Add customer-only registration, email/password login, logout,
+  email verification, password reset, duplicate-email handling,
+  disabled-account behavior, profile consistency/recovery, and loading,
+  validation, and network-error states. Reject role and department fields from
+  public clients. Provision staff, manager, and System Admin accounts through
+  trusted processes only.
+- **Security risks:** Role self-selection, account enumeration, unverified
+  access, partial Auth/profile creation, disabled-session access, and password
+  reset abuse.
+- **Data-loss risks:** Auth/profile inconsistency and incorrect recovery or
+  disable/delete behavior.
+- **Tests/evidence:** Registration, duplicate-email, verification, reset,
+  logout, disabled-account, invalid-profile, partial-failure, and
+  self-promotion rejection tests.
+- **Acceptance criteria:** Public registration creates only customers; no
+  client can select role, department, or active status; verification and reset
+  behavior is explicit; disabled accounts cannot use protected workflows; and
+  profiles recover safely from partial creation.
+- **Rollback point:** Disable registration routes and retain seeded/local login.
+- **Required owner approvals:** Password policy, verification enforcement,
+  customer profile fields, and terms/privacy wording if used.
+- **Relative effort:** Medium to Large.
+
+### Phase 4 — Roles and System Admin functionality
+
+- **Status:** Approved roadmap, not implemented.
+- **Objective:** Implement least-privilege trusted account and department
+  administration.
+- **Dependencies:** Final role matrix, Phase 2 Auth, Phase 3 profile contract,
+  and reviewed audit design.
+- **Approved staging roles:** Customer, six Department Staff accounts (one per
+  department), one Manager, and one System Administrator. Separate six
+  Department Lead/Admin accounts are not part of the staging MVP. A lead role
+  requires future distinct permission justification and approval.
+- **Main tasks:** Add trusted creation/disable/reactivation of staff accounts,
+  department assignment, department metadata management, role/status audit
+  logs, system-health information, routing/service-failure visibility, and
+  platform-wide usage analytics. Customers cannot select or promote roles.
+  Manager cannot create privileged accounts unless separately approved.
+- **Security risks:** Privilege escalation, self-role changes, Admin overreach,
+  cross-department access, and un-audited account changes.
+- **Data-loss risks:** Deleting users, orphaning tickets, hiding queues after
+  department changes, or disabling the only System Admin.
+- **Tests/evidence:** Every-role authorization tests, six-department isolation,
+  disabled-account tests, audited role changes, Admin endpoint restrictions,
+  and preservation of original model evidence.
+- **Acceptance criteria:** Trusted provisioning is enforced by backend and
+  rules; role changes are audited; the System Admin cannot rewrite original
+  prediction or evaluation evidence; six staff accounts cover all departments;
+  and no unnecessary lead role is introduced.
+- **Rollback point:** Disable Admin routes/endpoints while retaining existing
+  customer/staff/manager workflows.
+- **Required owner approvals:** Final role matrix, System Admin ownership and
+  bootstrap, account disable/delete policy, and Admin analytics visibility.
+- **Relative effort:** Large.
+
+### Phase 5 — Secure & Approachable UI/UX upgrade
+
+- **Status:** Approved roadmap, not implemented.
+- **Objective:** Improve accessibility and clarity after Cloud staging,
+  authentication, and role contracts stabilize without changing workflow or
+  authorization behavior.
+- **Dependencies:** Stable Phase 2–4 contracts and a reviewed UI acceptance
+  baseline.
+- **Design direction:** Deep Forest `#064E3B`, Emerald accent `#10B981`, and
+  Warm White `#FAFAF9`, expressed through semantic tokens for background,
+  surface, primary, hover, accent, text, muted text, border, success, warning,
+  error, and focus ring. WCAG contrast must be verified. If white normal text
+  on `#10B981` fails, use a darker accessible emerald for buttons and retain
+  `#10B981` for accents, charts, indicators, or larger elements.
+- **Main tasks:** Hide customer-facing raw confidence, threshold, model
+  version, and technical evidence while retaining plain-language routing,
+  status, timeline, history, messages, resolution, and feedback. Reduce staff
+  detail scrolling with accessible Overview, Messages, Workflow, and Model &
+  Audit tabs or justified accordions. Improve manager typography, confusion
+  matrix readability, emerald charts, keyboard/mouse tooltips, accessible
+  tables, login autofill, focus/error states, hero overlay, and mobile layout.
+- **Security risks:** Hiding UI elements must not replace backend/rules
+  authorization; technical evidence must remain role-scoped.
+- **Data-loss risks:** UI-only work should not mutate ticket or evaluation data.
+- **Tests/evidence:** Component, keyboard, focus, contrast, mobile, bilingual,
+  long-text, Playwright workflow, and role-visibility tests.
+- **Acceptance criteria:** Customers see no technical model metrics; staff
+  workflow and audit evidence remain available; manager analytics are legible;
+  WCAG results are recorded; and Day 31 workflows remain intact.
+- **Rollback point:** Revert UI-only changes while retaining backend and data
+  state.
+- **Required owner approvals:** Customer wording, token palette, evidence
+  visibility, accessibility scope, and screenshot/demo acceptance.
+- **Relative effort:** Medium to Large.
+
+### Phase 6 — Model, dataset, equations, and analytics presentation
+
+- **Status:** Approved roadmap, not implemented.
+- **Objective:** Add read-only, role-scoped technical explanation without
+  changing the frozen model or recalculating historical evaluation from live
+  tickets.
+- **Dependencies:** Frozen artifact contract, stable roles, Phase 5 UI
+  patterns, and controlled-test data contract.
+- **Access:** Customers receive no technical ML analysis. Staff may receive
+  only approved ticket-level evidence. Managers receive operational summaries
+  and simplified ML analysis. System Administrators receive complete model,
+  dataset, equations, and controlled-testing analysis.
+- **Main tasks:** Separate Frozen Model Evaluation, Current Operational
+  Analytics, and Controlled User-Test Analytics. Explain dataset source,
+  partitions, imbalance, TF, IDF, TF-IDF, Multinomial Naive Bayes, additive
+  smoothing with `alpha=0.5`, routing at `0.60`, accuracy, precision, recall,
+  F1, macro-F1, confusion matrix, confidence distribution, per-department
+  metrics, and limitations in plain language with accessible equation text.
+- **Security risks:** Exposing customer text or platform-wide analytics to the
+  wrong role, or presenting confidence as calibrated correctness.
+- **Data-loss risks:** Mutating committed evaluation artifacts or mixing live
+  tickets into historical evidence.
+- **Tests/evidence:** Artifact hash/schema tests, role authorization, equation
+  accessibility, metric reconciliation, responsive tables, and explicit
+  source-separation checks.
+- **Acceptance criteria:** Historical metrics come only from committed frozen
+  artifacts; live operational values are not called model accuracy; user-test
+  values are labelled small-sample evidence; and technical analysis is
+  inaccessible to customers.
+- **Rollback point:** Remove new read-only views while retaining existing
+  Dataset Evidence and manager analytics.
+- **Required owner approvals:** Analysis audience, staff evidence scope,
+  controlled-test retention, and equation wording.
+- **Relative effort:** Medium.
+
+### Phase 7 — Controlled six-department user testing
+
+- **Status:** Approved roadmap, not implemented.
+- **Objective:** Establish a labelled synthetic testing process with at least
+  one approved complaint for each department.
+- **Dependencies:** Stable staging roles/workflows, frozen model contract,
+  Phase 6 data contract, and owner-approved synthetic cases.
+- **Main tasks:** Record Test-case ID, expected department, predicted
+  department, confidence, automatic/manual result, manager override, final
+  verified department, correctness, model version, language, and text-length
+  category. Calculate small-test accuracy, auto-routing rate, manual-review
+  rate, override rate, per-department correctness, high-confidence error rate,
+  and confidence distribution.
+- **Security risks:** Real data entering the test set, reviewer changes after
+  seeing predictions, or test results being mistaken for production evidence.
+- **Data-loss risks:** Mixing controlled-test data with Day 18 evaluation or
+  losing original prediction evidence during override.
+- **Tests/evidence:** Six-department coverage, immutable expected labels,
+  routing/override reconciliation, model-version capture, synthetic-data scan,
+  and privacy-reviewed aggregate reporting.
+- **Acceptance criteria:** All six departments are represented; original and
+  final routing are distinct; overrides are audited; and the report states:
+  **Six-complaint demonstration results are small-sample user-test evidence,
+  not formal model accuracy.**
+- **Rollback point:** Disable controlled-test views and retain only approved
+  aggregate evidence.
+- **Required owner approvals:** Test complaints, expected labels, testers,
+  retention, and Manager/System Admin visibility.
+- **Relative effort:** Medium.
+
+### Phase 8 — Controlled model-hunting resumption
+
+- **Status:** Paused and approval-gated.
+- **Objective:** Resume research only after staging, authentication, roles,
+  UI/UX, analysis, and six-department testing are stable.
+- **Dependencies:** Phases 2–7 complete, frozen baseline reverified, and
+  explicit owner approval.
+- **Main tasks:** Keep research on `research/model-hunting`; freeze approved
+  benchmark inputs; use candidate-specific outputs; compare candidates under
+  predeclared metrics; and prepare a separate promotion proposal if needed.
+- **Security risks:** Candidate artifacts replacing v1, benchmark leakage,
+  unsafe downloads, or new dependencies and caches.
+- **Data-loss risks:** Overwriting v1, held-out evidence, or benchmark files.
+- **Tests/evidence:** Frozen hashes, label/order checks, leakage checks,
+  calibration, latency/resource tests, and unchanged application regressions.
+- **Acceptance criteria:** No candidate changes runtime without a separate
+  promotion decision; no held-out-test tuning occurs; and the v1 control stays
+  runnable.
+- **Rollback point:** Frozen baseline tag and v1 runtime.
+- **Required owner approvals:** Research continuation, benchmark freeze,
+  candidate acquisition, dependencies, evaluation, and promotion.
+- **Relative effort:** Large.
+
+### Phase 9 — Future production readiness
+
+- **Status:** Future work, not implemented.
+- **Objective:** Track public production requirements separately from Cloud
+  staging and the verified local prototype.
+- **Dependencies:** Completed staging acceptance, security ownership, and an
+  explicit production release decision.
+- **Main tasks:** Public frontend/backend deployment, production Firebase,
+  monitoring, rate limiting, retention/deletion, disaster recovery,
+  multi-browser/device and screen-reader testing, security review, cost
+  monitoring, custom domain, and incident response.
+- **Security risks:** Public abuse, credential leakage, weak monitoring,
+  excessive privilege, and unbounded retention.
+- **Data-loss risks:** Failed backups, retention jobs, migrations, or recovery.
+- **Tests/evidence:** Deployment smoke tests, rules/security review, backup
+  restore, incident drill, rate-limit, accessibility, browser/device, and cost
+  checks.
+- **Acceptance criteria:** Production is not declared ready until recovery,
+  retention, monitoring, security review, and public claims are evidenced.
+- **Rollback point:** Cloud staging and local emulator remain independently
+  runnable.
+- **Required owner approvals:** Production project, hosting, billing/cost
+  policy, retention, security sign-off, and public release.
+- **Relative effort:** Large.
+
+### Approved role model
+
+- Public registration creates customer accounts only.
+- Staging MVP accounts are six Department Staff accounts, one per department,
+  one Manager, and one System Administrator, in addition to customers.
+- Six separate Department Lead/Admin accounts are not part of the staging MVP.
+  A department-lead role requires a future distinct permission justification.
+- Customers cannot select or promote roles.
+- Staff, Manager, and System Administrator accounts require trusted
+  provisioning.
+- The System Administrator cannot rewrite original model prediction evidence.
+- The Manager cannot create privileged accounts unless separately approved.
+
+### Cloud staging policy
+
+Cloud work means **cost-controlled Firebase staging, initially targeting the
+no-cost tier**. This does not guarantee that Firebase staging will always be
+free. Staging must use a separate Firebase project, clearly separated
+configuration, synthetic-only data, no committed secrets or service-account
+files, reviewed Firestore rules and indexes, and no production claim.
+
+The emulator remains the default local backup and test environment. Emulator
+seed scripts must fail closed for Cloud project IDs, and destructive emulator
+test scripts must never run against Cloud staging. Real user data requires a
+separate approval.
+
+### Registration and account lifecycle policy
+
+Public clients may submit only customer registration fields. They must not be
+able to provide role, department, active status, or privileged profile fields.
+The approved plan includes email/password login, email verification, password
+reset, duplicate-email handling, disabled-account behavior, profile
+consistency/recovery, and clear loading, validation, and network-error states.
+Privileged accounts are provisioned through trusted processes.
+
+### Frozen assets and do-not-touch list
+
+- Frozen model artifact and SHA-256.
+- Day 18 source and generated evaluation artifacts and hashes.
+- Model version `v1`, TF-IDF plus MultinomialNB, and `alpha=0.5`.
+- Six labels and fixed order.
+- Operational threshold `0.60`.
+- Myanmar/mixed manual-review policy.
+- Held-out partition.
+- Prediction and audit fields.
+- Customer ownership isolation.
+- Staff department isolation.
+- Manager override preservation of original evidence.
+- Existing emulator project identity and seed behavior.
+- Day 31 and Day 32 evidence.
+- `research/model-hunting` and preservation commit
+  `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
+
+### Approval gates
+
+Explicit approval is required before creating or configuring Cloud Firebase
+resources, deploying rules or indexes, adding dependencies, creating
+privileged Cloud accounts, changing schemas or authorization, pushing branches
+or tags, deploying frontend/backend services, using real data, resuming model
+hunting, or changing the model, threshold, labels, or evaluation evidence.

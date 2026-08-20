@@ -339,6 +339,162 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
   regression, offline/free, and no-replacement entry criteria. Model Hunting is
   the next planned phase and has not started.
 
+---
+
+## Post-Day-32 Controlled Staging Upgrade
+
+This section tracks the approved roadmap after the verified local-emulator
+baseline. It does not replace historical Day 1–32 records. Planned work is not
+implemented until a corresponding evidence-backed completion entry is added.
+
+### Completed — Phase 0: repository reconciliation and baseline freeze
+
+- [x] Preserve the model-hunting spot-check artifact on
+  `research/model-hunting`.
+- [x] Record preservation commit
+  `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
+- [x] Verify the `main` baseline and frozen model/evaluation hashes.
+- [x] Create local annotated tag `post-day32-local-baseline`.
+- [x] Create local `upgrade/cloud-firebase-staging` from commit
+  `96b7bdc0c12c317a6d9d74eafe59b480345fee53`.
+- [x] Confirm no tag or branch was pushed.
+- [x] Confirm no Cloud Firebase connection was performed.
+- Phase 0 status: Completed locally, not pushed.
+
+### In Progress — Phase 1: master plan and architecture documentation
+
+- [ ] Reconcile `PROJECT_PLAN.md` with the post-Day-32 controlled staging
+  roadmap.
+- [ ] Reconcile this task board with current phase status and approval gates.
+- [ ] Review terminology for local emulator, Cloud staging, paused research,
+  and future production.
+- [ ] Review historical evidence links and avoid rewriting historical records.
+- [ ] Obtain owner review and approval of the documentation-only update.
+- [ ] Prepare a documentation-only commit after approval.
+- Phase 1 status: In progress; drafting these two files does not complete the
+  phase.
+
+### Approved backlog — not implemented
+
+#### Phase 2: Cloud Firebase staging migration
+
+- [ ] Create a separate staging Firebase project under a cost-controlled plan,
+  initially targeting the no-cost tier.
+- [ ] Separate emulator and staging configuration and secrets.
+- [ ] Make emulator seed scripts fail closed against Cloud project IDs.
+- [ ] Review and evidence Firestore rules and indexes in staging.
+- [ ] Verify synthetic-only data, quotas, logging, rollback, and emulator
+  fallback.
+
+#### Phase 3: registration, login, and account lifecycle
+
+- [ ] Add customer-only public registration.
+- [ ] Add email/password login, logout, verification, and password reset.
+- [ ] Define duplicate-email, disabled-account, profile-recovery, and
+  loading/error behavior.
+- [ ] Reject role and department fields from public clients.
+- [ ] Keep privileged accounts under trusted provisioning.
+
+#### Phase 4: roles and System Admin functionality
+
+- [ ] Provision six Department Staff accounts, one Manager, and one System
+  Administrator through trusted processes.
+- [ ] Define and test exact least-privilege permissions.
+- [ ] Add safe staff creation, disable/reactivate, department assignment, and
+  role/status audit operations.
+- [ ] Add reviewed department metadata, system-health, service-failure, and
+  platform-usage views.
+- [ ] Preserve original model prediction and evaluation evidence from Admin
+  mutation.
+- [ ] Do not add six Department Lead/Admin accounts unless distinct
+  operational permissions are justified and approved.
+
+#### Phase 5: Secure & Approachable UI/UX upgrade
+
+- [ ] Stabilize Cloud, authentication, and role contracts first.
+- [ ] Define semantic design tokens using Deep Forest `#064E3B`, Emerald
+  accent `#10B981`, and Warm White `#FAFAF9`.
+- [ ] Perform WCAG contrast checks and use a darker accessible emerald for
+  white-text buttons if needed.
+- [ ] Simplify customer-facing routing and status language.
+- [ ] Refactor staff detail into accessible Overview, Messages, Workflow, and
+  Model & Audit sections.
+- [ ] Improve manager analytics, confusion matrix, charts, tooltips, and
+  accessible text/table alternatives.
+- [ ] Improve login/landing autofill, focus, error, overlay, contrast, and
+  mobile behavior.
+
+#### Phase 6: model, dataset, equations, and analytics presentation
+
+- [ ] Separate Frozen Model Evaluation, Current Operational Analytics, and
+  Controlled User-Test Analytics.
+- [ ] Provide role-scoped manager simplified analysis and System Admin complete
+  technical analysis.
+- [ ] Explain dataset partitions, class imbalance, TF, IDF, TF-IDF,
+  Multinomial Naive Bayes, `alpha=0.5`, threshold `0.60`, metrics, matrix,
+  confidence, and limitations.
+- [ ] Keep historical metrics sourced from committed artifacts, never live
+  ticket recalculation.
+
+#### Phase 7: controlled six-department user testing
+
+- [ ] Approve at least one synthetic labelled complaint for every department.
+- [ ] Record expected/predicted/final departments, confidence, routing mode,
+  override, correctness, model version, language, and text-length category.
+- [ ] Calculate small-test accuracy, auto/manual rates, override rate,
+  per-department correctness, high-confidence errors, and confidence
+  distribution.
+- [ ] State clearly that six-complaint demonstration results are small-sample
+  user-test evidence, not formal model accuracy.
+
+### Paused — Phase 8: controlled model-hunting resumption
+
+- [x] Keep `research/model-hunting` isolated.
+- [x] Keep the frozen runtime model unchanged.
+- [x] Keep candidate promotion disabled.
+- [ ] Resume only after Cloud staging, authentication, roles, UI/UX, analysis,
+  and Phase 7 testing gates pass and the owner explicitly approves.
+- Phase 8 status: Paused and approval-gated.
+
+### Future — Phase 9: production readiness
+
+- [ ] Public frontend/backend deployment.
+- [ ] Production Firebase and environment separation.
+- [ ] Monitoring and alerting.
+- [ ] Rate limiting.
+- [ ] Retention and deletion.
+- [ ] Backup and disaster recovery.
+- [ ] Security review.
+- [ ] Browser, device, screen-reader, and accessibility coverage.
+- [ ] Cost monitoring.
+- [ ] Incident response.
+- Phase 9 status: Future work, not implemented.
+
+### Open decisions
+
+- Staging Firebase project ID.
+- Email verification enforcement policy.
+- Account disable/delete and retention policy.
+- System Administrator ownership and bootstrap process.
+- Whether staff should see ticket-level model evidence.
+- Exact staging quota and budget limits.
+- Whether controlled-test analytics are visible to Manager and System Admin or
+  System Admin only.
+- Production hosting choices, deferred to Phase 9.
+
+### Frozen assets and approval gates
+
+- Do not change the frozen model, model hash, version, algorithm, alpha,
+  threshold, labels/order, held-out partition, prediction/audit fields, or
+  Day 18 source/generated evaluation artifacts.
+- Preserve customer ownership, staff department isolation, manager override
+  evidence, emulator identity/seed behavior, and Day 31/Day 32 evidence.
+- Do not alter `research/model-hunting` or preservation commit
+  `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
+- Require explicit approval before Cloud resources, rules/indexes,
+  dependencies, privileged Cloud accounts, schema/authorization changes,
+  pushes/deployments, real data, model hunting, or frozen-model changes.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.
