@@ -9,6 +9,12 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
+from app.firebase_environment import (
+    CloudStagingEnvironment,
+    FirebaseEnvironmentSafetyError,
+    LocalEmulatorEnvironment,
+    validate_firebase_environment,
+)
 from app.schemas import DepartmentId, SubmitComplaintRequest
 
 if TYPE_CHECKING:
@@ -59,42 +65,31 @@ class TicketBackend(Protocol):
 
 
 def firebase_admin_clients() -> tuple[Any, Any, object]:
-    """Create production clients or an explicitly isolated local-emulator pair."""
+    """Create only an explicitly validated local-emulator client pair."""
+
+    try:
+        environment = validate_firebase_environment(os.environ)
+    except FirebaseEnvironmentSafetyError as exc:
+        raise PersistenceError(f"firebase_environment_blocked:{exc}") from exc
+    if isinstance(environment, CloudStagingEnvironment):
+        raise PersistenceError("cloud_staging_not_adopted")
+    if not isinstance(environment, LocalEmulatorEnvironment):
+        raise PersistenceError("firebase_environment_blocked:unsupported_environment")
 
     import firebase_admin
     from firebase_admin import auth, firestore
-
-    firestore_emulator = os.getenv("FIRESTORE_EMULATOR_HOST")
-    auth_emulator = os.getenv("FIREBASE_AUTH_EMULATOR_HOST")
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
-    if firestore_emulator or auth_emulator:
-        if not firestore_emulator or not auth_emulator:
-            raise PersistenceError("both Firebase emulators must be configured")
-        if project_id != "demo-complaintguard":
-            raise PersistenceError("emulators require the isolated demo project")
-        try:
-            firebase_admin.get_app()
-        except ValueError:
-            try:
-                firebase_admin.initialize_app(options={"projectId": project_id})
-            except ValueError:
-                firebase_admin.get_app()
-        from google.auth.credentials import AnonymousCredentials
-        from google.cloud import firestore as google_firestore
-
-        db = google_firestore.Client(
-            project=project_id, credentials=AnonymousCredentials()
-        )
-        return auth, db, firestore.SERVER_TIMESTAMP
-
     try:
-        firebase_admin.get_app()
+        app = firebase_admin.get_app()
     except ValueError:
-        try:
-            firebase_admin.initialize_app()
-        except ValueError:
-            firebase_admin.get_app()
-    return auth, firestore.client(), firestore.SERVER_TIMESTAMP
+        from google.auth.credentials import AnonymousCredentials
+
+        app = firebase_admin.initialize_app(
+            credential=AnonymousCredentials(),
+            options={"projectId": environment.project_id},
+        )
+    if app.project_id != environment.project_id:
+        raise PersistenceError("firebase_app_project_id_mismatch")
+    return auth.Client(app=app), firestore.client(app=app), firestore.SERVER_TIMESTAMP
 
 
 def run_firestore_transaction(db: Any, operation: Any) -> Any:

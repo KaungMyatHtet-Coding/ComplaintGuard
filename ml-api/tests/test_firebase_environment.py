@@ -6,15 +6,23 @@ import builtins
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
+# The test supports direct repository-root execution by adding ml-api to sys.path.
+# Keep this intentionally ordered import block outside isort reordering.
+# isort: off
 from app.firebase_environment import (
+    CANDIDATE_CLOUD_PROJECT_ID,
+    CloudStagingEnvironment,
     FirebaseEnvironmentSafetyError,
+    validate_firebase_environment,
     validate_local_emulator_environment,
 )
+# isort: on
 
 
 VALID = {
@@ -30,6 +38,11 @@ def rejected(environment: dict[str, str | None]) -> None:
         validate_local_emulator_environment(environment)
 
 
+def rejected_application(environment: dict[str, str | None]) -> None:
+    with pytest.raises(FirebaseEnvironmentSafetyError):
+        validate_firebase_environment(environment)
+
+
 def test_valid_local_environment() -> None:
     result = validate_local_emulator_environment(VALID)
     assert result.project_id == "demo-complaintguard"
@@ -37,9 +50,161 @@ def test_valid_local_environment() -> None:
     assert result.firestore_emulator_host == "127.0.0.1:8185"
 
 
+def test_valid_cloud_staging_environment_is_structural_only() -> None:
+    result = validate_firebase_environment(
+        {
+            "APP_ENV": "cloud-staging",
+            "GCLOUD_PROJECT": CANDIDATE_CLOUD_PROJECT_ID,
+        }
+    )
+    assert isinstance(result, CloudStagingEnvironment)
+    assert result.project_id == CANDIDATE_CLOUD_PROJECT_ID
+
+
 @pytest.mark.parametrize("mode", [None, "", "unknown", "cloud-staging", "staging", "production"])
 def test_invalid_modes_fail(mode: str | None) -> None:
     rejected({**VALID, "APP_ENV": mode})
+
+
+@pytest.mark.parametrize(
+    "environment",
+    [
+        {"APP_ENV": "cloud-staging", "GCLOUD_PROJECT": "demo-complaintguard"},
+        {
+            "APP_ENV": "cloud-staging",
+            "GCLOUD_PROJECT": "complaintguard",
+            "FIRESTORE_EMULATOR_HOST": "127.0.0.1:8185",
+        },
+        {
+            "APP_ENV": "cloud-staging",
+            "GCLOUD_PROJECT": "complaintguard",
+            "FIREBASE_USE_EMULATORS": "true",
+        },
+        {
+            "APP_ENV": "cloud-staging",
+            "GCLOUD_PROJECT": "complaintguard",
+            "GOOGLE_CLOUD_PROJECT": "other-project",
+        },
+        {
+            "APP_ENV": "cloud-staging",
+            "GCLOUD_PROJECT": "complaintguard",
+            "GOOGLE_APPLICATION_CREDENTIALS": "not-read",
+        },
+        {
+            "APP_ENV": "cloud-staging",
+            "GCLOUD_PROJECT": "complaintguard",
+            "FIREBASE_CONFIG": '{"projectId":"complaintguard"}',
+        },
+    ],
+)
+def test_invalid_staging_configurations_fail(environment: dict[str, str]) -> None:
+    rejected_application(environment)
+
+
+def test_staging_admin_creation_is_blocked_before_firebase_import(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app import ticketing
+
+    monkeypatch.setenv("APP_ENV", "cloud-staging")
+    monkeypatch.setenv("GCLOUD_PROJECT", "complaintguard")
+    original_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "firebase_admin" or name.startswith("firebase_admin."):
+            raise AssertionError("Firebase must not be imported for blocked staging")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    with pytest.raises(ticketing.PersistenceError, match="cloud_staging_not_adopted"):
+        ticketing.firebase_admin_clients()
+
+
+def test_local_admin_factory_uses_explicit_app_and_clients(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app import ticketing
+
+    calls: list[tuple[str, object]] = []
+    app = SimpleNamespace(project_id="demo-complaintguard")
+
+    class FakeFirebaseAdmin:
+        @staticmethod
+        def get_app():
+            raise ValueError("not initialized")
+
+        @staticmethod
+        def initialize_app(*, credential, options):
+            calls.append(("initialize", (credential, options)))
+            return app
+
+    class FakeAuth:
+        class Client:
+            def __init__(self, *, app):
+                calls.append(("auth", app))
+
+    class FakeFirestore:
+        SERVER_TIMESTAMP = object()
+
+        @staticmethod
+        def client(*, app):
+            calls.append(("firestore", app))
+            return "db"
+
+    FakeFirebaseAdmin.auth = FakeAuth
+    FakeFirebaseAdmin.firestore = FakeFirestore
+
+    monkeypatch.setenv("APP_ENV", "local-emulator")
+    monkeypatch.setenv("GCLOUD_PROJECT", "demo-complaintguard")
+    monkeypatch.setenv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099")
+    monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:8185")
+    monkeypatch.setitem(sys.modules, "firebase_admin", FakeFirebaseAdmin)
+    monkeypatch.setitem(sys.modules, "firebase_admin.auth", FakeAuth)
+    monkeypatch.setitem(sys.modules, "firebase_admin.firestore", FakeFirestore)
+    monkeypatch.setitem(sys.modules, "google.auth.credentials", SimpleNamespace(AnonymousCredentials=object))
+
+    _auth_client, db, _ = ticketing.firebase_admin_clients()
+    assert db == "db"
+    assert calls[0][0] == "initialize"
+    assert calls[0][1][1] == {"projectId": "demo-complaintguard"}
+    assert calls[1:] == [("auth", app), ("firestore", app)]
+
+
+def test_local_admin_factory_rejects_mismatched_existing_app(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app import ticketing
+
+    mismatch = SimpleNamespace(project_id="unexpected-project")
+
+    class FakeFirebaseAdmin:
+        @staticmethod
+        def get_app():
+            return mismatch
+
+        @staticmethod
+        def initialize_app(*_args, **_kwargs):
+            raise AssertionError("mismatched app must not be replaced")
+
+    class FakeAuth:
+        class Client:
+            def __init__(self, **_kwargs):
+                raise AssertionError("auth client must not be created")
+
+    class FakeFirestore:
+        SERVER_TIMESTAMP = object()
+
+        @staticmethod
+        def client(**_kwargs):
+            raise AssertionError("Firestore client must not be created")
+
+    FakeFirebaseAdmin.auth = FakeAuth
+    FakeFirebaseAdmin.firestore = FakeFirestore
+    monkeypatch.setenv("APP_ENV", "local-emulator")
+    monkeypatch.setenv("GCLOUD_PROJECT", "demo-complaintguard")
+    monkeypatch.setenv("FIREBASE_AUTH_EMULATOR_HOST", "127.0.0.1:9099")
+    monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", "127.0.0.1:8185")
+    monkeypatch.setitem(sys.modules, "firebase_admin", FakeFirebaseAdmin)
+    monkeypatch.setitem(sys.modules, "firebase_admin.auth", FakeAuth)
+    monkeypatch.setitem(sys.modules, "firebase_admin.firestore", FakeFirestore)
+    with pytest.raises(ticketing.PersistenceError, match="firebase_app_project_id_mismatch"):
+        ticketing.firebase_admin_clients()
 
 
 @pytest.mark.parametrize(
