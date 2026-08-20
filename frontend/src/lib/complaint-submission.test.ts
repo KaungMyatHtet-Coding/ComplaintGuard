@@ -19,6 +19,7 @@ describe("complaint validation", () => {
 
 describe("trusted complaint API client", () => {
   it("sends only allowed input and returns the reference ID", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://localhost:8000/");
     const fetcher = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
       expect(init?.headers).toEqual({ Authorization: "Bearer synthetic-token", "Content-Type": "application/json" });
@@ -29,9 +30,19 @@ describe("trusted complaint API client", () => {
   });
 
   it.each([[401, "authentication"], [403, "permission"], [503, "backend"]] as const)("maps HTTP %s to %s", async (status, code) => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://localhost:8000");
     const fetcher = vi.fn(async () => new Response("{}", { status }));
     await expect(submitComplaint({ complaintText: "Synthetic complaint", inputLocale: "my", actionId: "submission-action-001" }, "token", fetcher)).rejects.toMatchObject({ code });
+  });
+
+  it("does not fetch when the API URL is missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", undefined);
+    const fetcher = vi.fn();
+    await expect(
+      submitComplaint({ complaintText: "Synthetic complaint", inputLocale: "en", actionId: "action" }, "secret-token", fetcher),
+    ).rejects.toMatchObject({ code: "backend" });
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("prevents duplicate actions while submission is pending", async () => {

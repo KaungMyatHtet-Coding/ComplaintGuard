@@ -1,4 +1,5 @@
 import type { Locale } from "./i18n";
+import { resolveLocalMlApiBaseUrl } from "./runtime-environment";
 
 export type DepartmentMetric = {
   departmentId: string;
@@ -55,8 +56,11 @@ export class ManagerWorkflowError extends Error {
 type Fetcher = typeof fetch;
 
 function getApiUrl(): string {
-  const apiUrl = process.env.NEXT_PUBLIC_ML_API_URL || "http://localhost:8000";
-  return apiUrl.replace(/\/$/u, "");
+  try {
+    return resolveLocalMlApiBaseUrl();
+  } catch {
+    throw new ManagerWorkflowError("backend");
+  }
 }
 
 async function request<T>(

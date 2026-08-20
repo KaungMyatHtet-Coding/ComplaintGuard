@@ -11,6 +11,7 @@ describe("Customer Workflow Client Library", () => {
   const originalEnv = process.env.NEXT_PUBLIC_ML_API_URL;
 
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_APP_ENV = "local-emulator";
     process.env.NEXT_PUBLIC_ML_API_URL = "http://localhost:8000";
   });
 
@@ -50,6 +51,14 @@ describe("Customer Workflow Client Library", () => {
     await expect(
       fetchCustomerTickets("invalid_token", mockFetcher as unknown as typeof fetch)
     ).rejects.toThrow(CustomerWorkflowError);
+  });
+
+  it("does not fetch when the application environment is staging", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "cloud-staging");
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "https://api.example.test");
+    const fetcher = vi.fn();
+    await expect(fetchCustomerTickets("token", fetcher as unknown as typeof fetch)).rejects.toMatchObject({ code: "backend" });
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("fetches ticket detail and timeline", async () => {

@@ -6,6 +6,12 @@ import {
   type Firestore,
 } from "firebase/firestore";
 
+import {
+  FirebaseEnvironmentError,
+  validateFirebaseEnvironment,
+} from "./firebase-environment";
+import type { RuntimeEnvironment } from "./runtime-environment";
+
 const firebaseOptions: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,25 +21,36 @@ const firebaseOptions: FirebaseOptions = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const requiredKeys: (keyof FirebaseOptions)[] = [
-  "apiKey",
-  "authDomain",
-  "projectId",
-  "appId",
-];
-
-export function hasFirebaseConfig(options = firebaseOptions): boolean {
-  return requiredKeys.every((key) => {
-    const value = options[key];
-    return typeof value === "string" && value.length > 0 && !value.startsWith("replace_");
-  });
+export function hasFirebaseConfig(
+  options = firebaseOptions,
+  environment: RuntimeEnvironment = process.env,
+): boolean {
+  try {
+    validateFirebaseEnvironment(environment, options);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function getFirebaseServices(): { auth: Auth; db: Firestore } {
-  if (!hasFirebaseConfig()) {
+export function getFirebaseServices(
+  options = firebaseOptions,
+  environmentValues: RuntimeEnvironment = process.env,
+): { auth: Auth; db: Firestore } {
+  let environment;
+  try {
+    environment = validateFirebaseEnvironment(environmentValues, options);
+  } catch (error) {
+    if (error instanceof FirebaseEnvironmentError) throw new Error(error.code);
     throw new Error("firebase_configuration_missing");
   }
-  const app = getApps().length ? getApp() : initializeApp(firebaseOptions);
+  if (environment.mode !== "local-emulator") {
+    throw new Error("cloud_staging_not_adopted");
+  }
+  const app = getApps().length ? getApp() : initializeApp(options);
+  if (app.options.projectId !== environment.projectId) {
+    throw new Error("firebase_app_project_mismatch");
+  }
   const auth = getAuth(app);
   const db = getFirestore(app);
   connectLocalEmulators(auth, db);

@@ -55,11 +55,16 @@ export class CustomerWorkflowError extends Error {
   }
 }
 
+import { resolveLocalMlApiBaseUrl } from "./runtime-environment";
+
 type Fetcher = typeof fetch;
 
 function getApiUrl(): string {
-  const apiUrl = process.env.NEXT_PUBLIC_ML_API_URL || "http://localhost:8000";
-  return apiUrl.replace(/\/$/u, "");
+  try {
+    return resolveLocalMlApiBaseUrl();
+  } catch {
+    throw new CustomerWorkflowError("backend");
+  }
 }
 
 export async function fetchCustomerTickets(

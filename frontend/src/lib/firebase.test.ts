@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { hasFirebaseConfig, shouldUseFirebaseEmulators } from "./firebase";
+import { getFirebaseServices, hasFirebaseConfig, shouldUseFirebaseEmulators } from "./firebase";
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Firebase configuration boundary", () => {
+  const localEnvironment = {
+    NEXT_PUBLIC_APP_ENV: "local-emulator",
+    NEXT_PUBLIC_USE_FIREBASE_EMULATORS: "true",
+  };
+
   it("rejects missing and placeholder configuration", () => {
     expect(hasFirebaseConfig({})).toBe(false);
     expect(
@@ -21,10 +26,10 @@ describe("Firebase configuration boundary", () => {
     expect(
       hasFirebaseConfig({
         apiKey: "synthetic-public-web-key",
-        authDomain: "synthetic-project.firebaseapp.com",
-        projectId: "synthetic-project",
+        authDomain: "demo-complaintguard.firebaseapp.com",
+        projectId: "demo-complaintguard",
         appId: "1:000:web:synthetic",
-      }),
+      }, localEnvironment),
     ).toBe(true);
   });
 
@@ -40,5 +45,22 @@ describe("Firebase configuration boundary", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
     vi.stubEnv("NEXT_PUBLIC_USE_FIREBASE_EMULATORS", "true");
     expect(shouldUseFirebaseEmulators()).toBe(false);
+  });
+
+  it("blocks candidate staging before Firebase service creation", () => {
+    expect(() =>
+      getFirebaseServices(
+        {
+          apiKey: "synthetic-public-web-key",
+          authDomain: "complaintguard.firebaseapp.com",
+          projectId: "complaintguard",
+          appId: "1:000:web:synthetic",
+        },
+        {
+          NEXT_PUBLIC_APP_ENV: "cloud-staging",
+          NEXT_PUBLIC_USE_FIREBASE_EMULATORS: "false",
+        },
+      ),
+    ).toThrow("cloud_staging_not_adopted");
   });
 });

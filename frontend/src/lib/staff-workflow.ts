@@ -1,4 +1,5 @@
 import type { Locale } from "./i18n";
+import { resolveLocalMlApiBaseUrl } from "./runtime-environment";
 
 export type StaffTicketStatus =
   | "triaged"
@@ -74,8 +75,11 @@ export class StaffWorkflowError extends Error {
 type Fetcher = typeof fetch;
 
 function apiBase(): string {
-  const value = process.env.NEXT_PUBLIC_ML_API_URL || "http://localhost:8000";
-  return value.replace(/\/$/u, "");
+  try {
+    return resolveLocalMlApiBaseUrl();
+  } catch {
+    throw new StaffWorkflowError("backend");
+  }
 }
 
 async function request<T>(

@@ -1,4 +1,5 @@
 import type { Locale } from "./i18n";
+import { resolveLocalMlApiBaseUrl } from "./runtime-environment";
 
 export const MAX_COMPLAINT_LENGTH = 5_000;
 
@@ -45,11 +46,16 @@ export async function submitComplaint(
   idToken: string,
   fetcher: Fetcher = fetch,
 ): Promise<ComplaintSuccess> {
-  const apiUrl = process.env.NEXT_PUBLIC_ML_API_URL || "http://localhost:8000";
+  let apiUrl: string;
+  try {
+    apiUrl = resolveLocalMlApiBaseUrl();
+  } catch {
+    throw new ComplaintSubmissionError("backend");
+  }
 
   let response: Response;
   try {
-    response = await fetcher(`${apiUrl.replace(/\/$/u, "")}/tickets`, {
+    response = await fetcher(`${apiUrl}/tickets`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${idToken}`,
