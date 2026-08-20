@@ -2,14 +2,14 @@
 
 ## Source of Truth and Current Phase
 
-`PROJECT_PLAN.md` is the source of truth for scope, architecture, schedule, and success criteria. The project is currently in Day 20 finalization after Days 1–19 were implemented and merged. Day-specific documents are historical evidence; current operating instructions live in the root README and `docs/local_setup.md`. Preserve the frozen model, Day 18 evidence, Firebase/role boundaries, and completed complaint workflows. Day 20 is documentation, verification, demo-readiness, and academic-delivery work—not authorization for retraining, new infrastructure, deployment, or major features.
+`PROJECT_PLAN.md` is the source of truth for scope, architecture, schedule, and success criteria. Phase 0 baseline reconciliation and freeze is complete locally, and Phase 1 documentation reconciliation is in progress. Phase 2 Cloud Firebase staging migration is approved as a roadmap but has not started; registration, Admin functions, UI/UX upgrades, model/data analysis presentation, and controlled user testing are approved future phases but are not implemented. Model hunting is paused and isolated on `research/model-hunting`. The `PROJECT_PLAN.md` Post-Day-32 Controlled Staging Upgrade section is the authoritative current roadmap, and the corresponding `docs/task_board.md` section is the authoritative task-status record. Day-specific older sections remain historical evidence and must not be treated as the current implementation order. The verified current application remains a local Firebase Emulator prototype. Cloud staging and future production must not be described as verified until corresponding evidence exists. Preserve the frozen model, Day 18 evidence, Firebase/role boundaries, and completed complaint workflows.
 
 One developer is currently active even though the official team has five members. Optimize decisions for a small, demonstrable MVP and a short deadline. The active developer owns each task and performs a documented self-review before marking it done; the other official members may review or present later but are not assumed to be available for implementation.
 
 ## Non-Negotiable Constraints
 
-- Total project cost must remain USD 0. Do not add paid APIs, paid hosting, billing-required Firebase features, SMS authentication, paid GPUs, or a custom domain.
-- Use Firebase Cloud Firestore on the Spark plan for operational application data. Do not import the full historical dataset into Firestore or attach a billing account.
+- ComplaintGuard must use cost-controlled Firebase staging, initially targeting the no-cost tier. Do not enable billing, upgrade a plan, use a paid API/service, incur paid hosting usage, purchase a custom domain, or create any chargeable resource without separate explicit owner approval. Prefer Firebase Spark/no-cost capabilities where technically sufficient; Cloud staging is not guaranteed to remain free. Review quotas and cost exposure before creating Cloud resources, and stop and ask before any action that may incur cost.
+- Do not attach a billing account during the initial staging phase unless separately approved. Do not import the full historical dataset into Firestore. Existing no-paid-API, privacy, synthetic-data, and secret-handling restrictions remain active.
 - Use historical CFPB complaint data in CSV or Parquet form for analysis and training.
 - Use TF-IDF with Multinomial Naive Bayes as the required classification approach.
 - Support English and Myanmar; document translation quality and free-tier limitations honestly.
