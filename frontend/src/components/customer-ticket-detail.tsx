@@ -89,7 +89,7 @@ export function CustomerTicketDetailView({
           </h2>
         </div>
           <div className="cust-detail-subrow">
-            <span className="cust-ticket-id">
+            <span className="cust-ticket-id" style={{ overflowWrap: "anywhere" }}>
               {translate(locale, "customerTicketId")}: {ticket.id}
             </span>
             <span className="cust-detail-meta">

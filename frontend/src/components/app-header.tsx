@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useApp } from "@/components/app-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
+const roleLabelKeys = {
+  customer: "customerShell",
+  staff: "staffShell",
+  manager: "managerShell",
+  admin: "adminShell",
+} as const;
+
 export function AppHeader() {
   const { profile, signOut, t } = useApp();
   return (
@@ -18,6 +25,11 @@ export function AppHeader() {
         <span className="hidden sm:inline-block text-lg">{t("brand")}</span>
       </Link>
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        {profile ? (
+          <span className="text-xs sm:text-sm text-gray-600 whitespace-nowrap" aria-label={t(roleLabelKeys[profile.role])}>
+            {t(roleLabelKeys[profile.role])}
+          </span>
+        ) : null}
         <LanguageSwitcher />
         {profile ? (
           <button className="flex items-center justify-center p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-black transition-colors shrink-0" type="button" onClick={() => void signOut()} aria-label={t("signOut")} title={t("signOut")}>

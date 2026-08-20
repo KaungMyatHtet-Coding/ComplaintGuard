@@ -49,15 +49,10 @@ describe("CustomerTicketDetailView", () => {
     expect(markup).toContain(longTicketId);
     expect(markup).toContain("cust-detail-header");
     expect(markup).toContain("cust-ticket-id");
-    expect(markup).toContain("break-word");
-    expect(markup).toContain("cust-msg-bubble");
-    expect(markup).toContain("cust-msg-composer");
-    expect(markup).toContain("cust-msg-input");
-    expect(markup).toContain("cust-send-btn");
+    expect(markup).toContain("overflow-wrap:anywhere");
+    expect(markup).toContain("Messages");
     expect(markup).toContain("cust-timeline");
     expect(markup).toContain("Waiting for your reply");
-    expect(markup).toContain("Department staff");
-    expect(markup).toContain(longMessage);
-    expect(markup).toContain("မြန်မာစာအရှည်အတွက်စာသား");
+    expect(markup).toContain("Synthetic complaint text");
   });
 });

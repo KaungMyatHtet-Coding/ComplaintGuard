@@ -11,13 +11,6 @@ import { StaffTicketQueue } from "@/components/staff-ticket-queue";
 import { canViewManagerAnalytics } from "@/lib/auth-policy";
 import { getDepartmentLabel } from "@/lib/department-labels";
 
-const shellKeys = {
-  customer: "customerShell",
-  staff: "staffShell",
-  manager: "managerShell",
-  admin: "adminShell",
-} as const;
-
 export function ProtectedDashboard() {
   const router = useRouter();
   const { locale, profile, status, t } = useApp();
@@ -47,6 +40,9 @@ export function ProtectedDashboard() {
               <div className="cust-page-header">
                 <h1>Dashboard</h1>
                 <span>{profile.role}</span>
+                {profile.role === "staff" && profile.departmentId ? (
+                  <span>{getDepartmentLabel(profile.departmentId, locale) ?? t("evidenceUnavailable")}</span>
+                ) : null}
               </div>
             </div>
           )}
