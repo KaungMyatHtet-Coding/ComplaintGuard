@@ -56,11 +56,22 @@ Wait for Auth on `127.0.0.1:9099` and Firestore on `127.0.0.1:8185`.
 
 ### Terminal 2 — deterministic-role seed
 
+> **Local-emulator-only warning:** Deliberately start the Auth and Firestore
+> emulators first. The following command must never target the Cloud candidate
+> project `complaintguard`; the seeder fails closed unless the mode is exactly
+> `local-emulator`, the project is exactly `demo-complaintguard`, and both
+> emulator hosts are loopback. Remove Cloud credentials from this PowerShell
+> session before local mutation. Never paste service-account credentials into
+> commands or documentation.
+
 ```powershell
 Set-Location D:\ComplaintGuard
+Remove-Item Env:GOOGLE_APPLICATION_CREDENTIALS, Env:GOOGLE_APPLICATION_CREDENTIALS_JSON, Env:FIREBASE_ADMIN_CREDENTIALS, Env:FIREBASE_SERVICE_ACCOUNT_JSON -ErrorAction SilentlyContinue
+$env:APP_ENV = "local-emulator"
 $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8185"
 $env:FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099"
 $env:GCLOUD_PROJECT = "demo-complaintguard"
+$env:GOOGLE_CLOUD_PROJECT = "demo-complaintguard"
 node.exe firebase\seed-emulator.mjs
 ```
 
@@ -75,8 +86,11 @@ account. Open the credential file only locally. Never project, record,
 screenshot, print, paste, or commit it.
 
 The automated emulator test harness uses the explicit `--reset-firestore` flag
-between isolated test phases. Do not use that flag for an ordinary demo reseed;
-the default command above preserves existing emulator tickets.
+between isolated test phases. That flag deletes local emulator Firestore state;
+do not use it against valued emulator history unless loss is intended. Reset
+does not restore previous complaints, messages, or feedback. The default
+command above preserves existing emulator tickets. Cloud credentials must be
+removed or unset before any local mutation.
 
 ## Local demo accounts
 
@@ -268,6 +282,13 @@ does not authorize production import or deployment. The existing immutable and
 non-overwrite contract remains in force.
 
 ### Preserve emulator data across a restart
+
+> **Reset/import warning:** This procedure is local-emulator-only and must never
+> target `complaintguard`. `--reset-firestore` deletes local emulator Firestore
+> state and must not be used with valued history unless loss is intended. It
+> does not restore previous complaints, messages, or feedback. Remove Cloud
+> credentials from the shell first, and never paste service-account credentials
+> into commands or documentation.
 
 Normal `emulators:start` without `--import` starts an empty Auth/Firestore
 session. The normal seed recreates synthetic identities and matching profiles,

@@ -135,6 +135,7 @@ test("contract digest and public summaries remain stable and secret-free", () =>
 
 test("environment validation accepts only explicit loopback demo-emulator settings", () => {
   const base = {
+    APP_ENV: "local-emulator",
     GCLOUD_PROJECT: "demo-complaintguard",
     FIRESTORE_EMULATOR_HOST: "127.0.0.1:8185",
     FIREBASE_AUTH_EMULATOR_HOST: "localhost:9099",

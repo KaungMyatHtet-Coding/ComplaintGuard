@@ -3,15 +3,20 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { validateLocalEmulatorMutation } from "./environment-contract.mjs";
 
-const projectId = process.env.GCLOUD_PROJECT || "demo-complaintguard";
-const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
-const firestoreHost = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8185";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const output = resolve(root, "firebase", ".firebase", "seeded-identities.json");
 const resetFirestore = process.argv.includes("--reset-firestore");
+
+const environment = validateLocalEmulatorMutation(process.env, { resetFirestore });
+const projectId = environment.projectId;
+const authHost = environment.auth.authority;
+const firestoreHost = environment.firestore.authority;
+const [{ initializeTestEnvironment }, { doc, getDoc, serverTimestamp, setDoc }] = await Promise.all([
+  import("@firebase/rules-unit-testing"),
+  import("firebase/firestore"),
+]);
 const identities = [
   { key: "customer", email: "customer@complaintguard.test", role: "customer", locale: "en" },
   { key: "customerTwo", email: "customer.two@complaintguard.test", role: "customer", locale: "en" },

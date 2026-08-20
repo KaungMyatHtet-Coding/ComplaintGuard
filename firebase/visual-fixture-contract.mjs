@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 
+import {
+  DEMO_PROJECT_ID,
+  validateLocalEmulatorEnvironment,
+} from "./environment-contract.mjs";
+
 export const FIXTURE_VERSION = "day25-visual-fixture-v1";
-export const DEMO_PROJECT_ID = "demo-complaintguard";
+export { DEMO_PROJECT_ID } from "./environment-contract.mjs";
 
 export const DEPARTMENT_IDS = Object.freeze([
   "transfer_payment",
@@ -445,30 +450,12 @@ export function isValidFirestoreDocumentId(value) {
 }
 
 export function validateFixtureEnvironment(environment = process.env) {
-  const projectValues = [environment.GCLOUD_PROJECT, environment.GOOGLE_CLOUD_PROJECT]
-    .filter((value) => typeof value === "string" && value.trim());
-  if (!projectValues.length) throw new Error("fixture_project_id_required");
-  if (new Set(projectValues).size !== 1 || projectValues[0] !== DEMO_PROJECT_ID) {
-    throw new Error("fixture_project_id_invalid");
-  }
-  const firestore = parseLoopbackEmulatorHost(environment.FIRESTORE_EMULATOR_HOST, "firestore");
-  const auth = parseLoopbackEmulatorHost(environment.FIREBASE_AUTH_EMULATOR_HOST, "auth");
-  if (firestore.port === auth.port) throw new Error("fixture_emulator_hosts_conflict");
+  const validated = validateLocalEmulatorEnvironment(environment);
   return Object.freeze({
-    projectId: DEMO_PROJECT_ID,
-    firestore,
-    auth,
+    projectId: validated.projectId,
+    firestore: validated.firestore,
+    auth: validated.auth,
   });
-}
-
-export function parseLoopbackEmulatorHost(value, name) {
-  if (typeof value !== "string" || !value || value !== value.trim()) throw new Error(`fixture_${name}_emulator_host_required`);
-  const match = /^(?<host>127\.0\.0\.1|localhost):(?<port>\d{1,5})$/u.exec(value)
-    ?? /^\[(?<host>::1)\]:(?<port>\d{1,5})$/u.exec(value);
-  if (!match?.groups) throw new Error(`fixture_${name}_emulator_host_invalid`);
-  const port = Number(match.groups.port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`fixture_${name}_emulator_port_invalid`);
-  return Object.freeze({ host: match.groups.host, port, authority: value });
 }
 
 export function assertSafeCommandOptions(argv, allowedOptions) {

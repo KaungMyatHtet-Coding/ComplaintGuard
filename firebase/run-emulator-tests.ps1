@@ -89,6 +89,7 @@ try {
 
     $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:$emulatorPort"
     $env:FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:$authPort"
+    $env:APP_ENV = "local-emulator"
     $env:GCLOUD_PROJECT = "demo-complaintguard"
     Push-Location $firebaseDirectory
     try {
