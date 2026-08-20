@@ -27,6 +27,13 @@ System သည် အောက်ပါ real-world problems များကို
 
 ### 2.1 System architecture
 
+The Vercel, Hugging Face Spaces, and Cloud Firestore entries below are
+original planned deployment options, not currently verified deployments. The
+current verified topology is local Next.js, local FastAPI, Firebase Auth
+Emulator, Firestore Emulator, and the frozen local model. Cloud Firebase
+staging is planned for Phase 2 and has not started. The Post-Day-32 Controlled
+Staging Upgrade section is authoritative for current sequencing.
+
 | Layer | Technology | Cost | Purpose |
 |---|---|---:|---|
 | Frontend | Next.js + Tailwind CSS | Free | Responsive bilingual web application |
@@ -122,6 +129,15 @@ Project တွင် OpenAI API, Claude API, Google Translate paid API, SMS auth
 
 ### 4.3 Manager/Admin
 
+The following is original design context and includes capabilities that exceed
+the current implementation. The current Manager role provides operational
+analytics, low-confidence/manual-review access, and department override. The
+current Admin role is an authenticated shell without an operational Admin
+API/UI. Account provisioning, department management, system-health functions,
+and broader Admin operations are planned, not implemented. The approved
+staging role model is defined in the Post-Day-32 Controlled Staging Upgrade
+section.
+
 1. Complaint အားလုံးနှင့် department workload ကြည့်နိုင်မည်။
 2. Total, open, resolved, high-priority နှင့် overdue complaint များကြည့်နိုင်မည်။
 3. Department/category အလိုက် trend နှင့် average resolution time ကြည့်နိုင်မည်။
@@ -160,6 +176,13 @@ Dataset ၏ `Product` နှင့် `Issue` fields မှ `department_label` �
 ---
 
 ## 6. Firestore NoSQL Design
+
+This section preserves the original schema and authority design. Current
+locally verified authorization includes customer ownership, department staff
+isolation, manager review/override, and deny-by-default direct mutations.
+Reopen, close, priority, assignment, broader escalation management, and Admin
+operations are not all implemented. Future schema or rules changes require
+separate review and approval in Phases 2–4.
 
 ### 6.1 Collections
 
@@ -900,7 +923,11 @@ Expected route: `Transfer & Payment Department` or `General Support` if confiden
 
 ---
 
-## 18. Immediate Next Actions
+## 18. Immediate Next Actions (Historical Day 20 Record)
+
+This historical Day 20 checklist is preserved for project evidence. It is
+superseded for current sequencing by **Post-Day-32 Controlled Staging
+Upgrade**.
 
 Today, the team should complete these actions before starting implementation:
 
@@ -984,8 +1011,8 @@ Frozen evidence:
 | Phase | Status | Scope boundary |
 |---|---|---|
 | 0. Repository reconciliation and baseline freeze | Completed locally, not pushed | Baseline tag and upgrade branch exist locally; no Cloud work started. |
-| 1. Master plan and architecture documentation | In progress | Documentation reconciliation only. |
-| 2. Cloud Firebase staging migration | Approved roadmap, not implemented | Cost-controlled staging only; no production claim. |
+| 1. Master plan and architecture documentation | Completed with this reconciliation commit | Documentation reconciliation only. |
+| 2. Cloud Firebase staging migration | Not started; approved roadmap, not implemented | Cost-controlled staging only; no production claim. |
 | 3. Registration, login, and account lifecycle | Approved roadmap, not implemented | Public registration creates customers only. |
 | 4. Roles and System Admin functionality | Approved roadmap, not implemented | Trusted provisioning and least privilege are required. |
 | 5. Secure & Approachable UI/UX upgrade | Approved roadmap, not implemented | Starts after Cloud/auth/role contracts stabilize. |
@@ -1023,7 +1050,7 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 
 ### Phase 1 — Master plan and architecture documentation
 
-- **Status:** In progress.
+- **Status:** Completed with this reconciliation commit.
 - **Objective:** Keep `PROJECT_PLAN.md` as the single master plan and reconcile
   current local behavior, approved staging work, paused research, and future
   production work.

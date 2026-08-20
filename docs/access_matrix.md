@@ -2,6 +2,25 @@
 
 This Day 4 matrix was owner-approved on 21 July 2026. Authorization must be enforced by Firestore rules and trusted backend code, never by frontend visibility alone.
 
+## Implementation-status boundary
+
+The tables below preserve the original access design. The current scope is
+classified as follows:
+
+- **Implemented and locally verified:** customer ownership, department staff
+  isolation, manager review/override, and deny-by-default direct mutations.
+- **Recognized role but operational feature not implemented:** the `admin` role
+  resolves through authentication and has a dashboard shell, but no operational
+  Admin dashboard or API exists.
+- **Designed/planned:** broader assignment, priority, escalation, reopen/close,
+  role management, and department administration.
+- **Future Cloud staging work:** trusted provisioning, Cloud rules/indexes,
+  deployment configuration, and production-equivalent security evidence.
+
+Public self-registration is planned and, when implemented, will create only
+customer accounts. Privileged accounts and department membership require
+trusted provisioning.
+
 ## Access predicates
 
 - **Own ticket:** authenticated UID equals `ticket.customerId`.
@@ -66,12 +85,43 @@ Managers have broad operational visibility but do not administer identities. Adm
 
 The customer, assigned-department staff, and manager boundaries are implemented
 in frontend visibility, trusted FastAPI checks, and Firestore rules, and are
-verified locally with emulator and browser tests. Manager operations currently
-include operational analytics, low-confidence review, and department override;
-the broader designed priority/reopen/close workspace is not implemented.
+verified locally with emulator and browser tests.
+
+### Customer — implemented locally
+
+- Authenticates through the current local setup, submits complaints, views only
+  owned tickets, exchanges participant messages, views resolution, and submits
+  feedback.
+- Cannot view another customer's tickets.
+- Public self-registration is planned, not implemented.
+
+### Department Staff — implemented locally within department scope
+
+- Sees only tickets assigned to the staff member's department, views authorized
+  details, sends replies, uses currently implemented workflow transitions, and
+  resolves complaints with required resolution information.
+- Cannot see null-department manual-review tickets or tickets in other
+  departments.
+- Designed assignment, priority, escalation, reopen, and close operations are
+  not all implemented.
+
+### Manager — limited operational implementation
+
+- Can view operational analytics and low-confidence/manual-review tickets,
+  override department routing, preserve original prediction evidence, and view
+  manager-authorized operational data.
+- General account provisioning, full staff assignment management, complete
+  priority management, general reopen/close administration, and system
+  administration are not implemented.
+- The current UI requires a non-empty manager override reason, while the
+  backend request schema permits the reason to be optional. Backend enforcement
+  is planned for a later implementation phase.
 
 The `admin` role currently has only authenticated profile resolution and an
 administration dashboard shell. No admin UI, administration endpoint, demo seed
 identity, role management, department management, or emergency correction
 workflow is implemented. Rows above that describe future authority boundaries,
-not delivered admin functionality. Production Firebase deployment is unverified.
+not delivered admin functionality. Trusted staff/manager/admin provisioning and
+platform management are planned for Phase 4. The Admin must never rewrite
+original model prediction evidence. Production Firebase deployment is
+unverified.

@@ -2,6 +2,10 @@
 
 This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` remains the schedule and source of truth.
 
+Day-specific sections are historical checkpoint records. The Post-Day-32
+Controlled Staging Upgrade section is the current authoritative task status.
+Older unchecked items are not automatically the current next tasks.
+
 ## Backlog
 
 - Confirm which official team members, if any, will review or present later.
@@ -339,6 +343,11 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
   regression, offline/free, and no-replacement entry criteria. Model Hunting is
   the next planned phase and has not started.
 
+This statement was accurate at the historical Pre-Model-Hunting checkpoint.
+Model Hunting is now paused and approval-gated under the Post-Day-32 roadmap;
+research documentation remains isolated on `research/model-hunting` and is not
+copied into this branch.
+
 ---
 
 ## Post-Day-32 Controlled Staging Upgrade
@@ -361,18 +370,22 @@ implemented until a corresponding evidence-backed completion entry is added.
 - [x] Confirm no Cloud Firebase connection was performed.
 - Phase 0 status: Completed locally, not pushed.
 
-### In Progress — Phase 1: master plan and architecture documentation
+### Completed — Phase 1: master plan and architecture documentation
 
-- [ ] Reconcile `PROJECT_PLAN.md` with the post-Day-32 controlled staging
-  roadmap.
-- [ ] Reconcile this task board with current phase status and approval gates.
-- [ ] Review terminology for local emulator, Cloud staging, paused research,
+- [x] Commit the post-Day-32 master-plan checkpoint.
+- [x] Reconcile and commit active `AGENTS.md` phase guidance.
+- [x] Complete the five-file factual reconciliation.
+- [x] Clarify historical/current task status and sequencing.
+- [x] Clarify the architecture current/future deployment boundary.
+- [x] Clarify access-matrix implemented versus designed permissions.
+- [x] Clarify Firestore lifecycle implemented versus designed behavior.
+- [x] Review terminology for local emulator, Cloud staging, paused research,
   and future production.
-- [ ] Review historical evidence links and avoid rewriting historical records.
-- [ ] Obtain owner review and approval of the documentation-only update.
-- [ ] Prepare a documentation-only commit after approval.
-- Phase 1 status: In progress; drafting these two files does not complete the
-  phase.
+- [x] Review historical evidence links and avoid rewriting historical records.
+- [x] Complete final documentation review.
+- [x] Run safe documentation checks.
+- Phase 1 status: Completed with this reconciliation commit. Phase 2 has not
+  started.
 
 ### Approved backlog — not implemented
 

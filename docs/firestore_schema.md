@@ -8,6 +8,10 @@ department scope, manager reads, trusted workflow adapters, and denied direct
 client writes. This is emulator evidence, not production rules-deployment
 verification or an independent security audit.
 
+Lifecycle and action descriptions below distinguish implemented local behavior
+from the original design. Future schema or rules changes require separate
+review and approval in Phases 2–4.
+
 Firestore is the source of truth for live application tickets and their workflow. It must never contain the historical CFPB dataset, historical narratives, training or evaluation data, model-normalized text, translated text, prompts, feature data, or model artifacts. Dashboard summaries, if later needed, are derived operational data and are never authoritative.
 
 The application may retain only the minimum PII-redacted complaint text submitted directly to ComplaintGuard, preserved in the original submitted language. A trusted backend must redact PII before persistence. Production deployment requires an approved configurable retention and deletion policy; Day 4 intentionally does not invent a retention duration.
@@ -141,22 +145,47 @@ Allowed transitions:
 | `submitted` | `triaged` | trusted routing backend, manager; requires a valid non-null department |
 | `triaged` | `in_progress` | assigned-department staff, manager |
 | `in_progress` | `awaiting_customer` | assigned staff, manager |
-| `awaiting_customer` | `in_progress` | customer reply through trusted backend, assigned staff, manager |
+| `awaiting_customer` | `in_progress` | assigned staff or manager through trusted backend; a customer reply creates a participant message but does not itself perform this full status transition |
 | `in_progress` | `resolved` | assigned staff, manager |
 | `resolved` | `in_progress` | manager only (reopen) |
 | `resolved` | `closed` | manager or trusted expiry workflow |
 
 No other transitions are allowed. Customers cannot directly change status. Admin is not a routine workflow operator; emergency administrative correction must use an audited trusted-backend path rather than broad direct writes.
 
+### Current implementation status
+
+- **Implemented and locally verified:** initial ticket submission; model
+  auto-routing for qualifying English complaints; low-confidence English manual
+  review; Myanmar/mixed manual review; staff department visibility; staff and
+  customer participant messaging; currently implemented staff transitions;
+  resolution; feedback; and manager routing override with original prediction
+  evidence preserved.
+- **Implemented through a limited trusted route:** staff workflow resumption
+  after a customer reply, which is performed by the staff transition endpoint.
+  The customer reply itself only creates the participant message.
+- **Designed but not implemented:** manager reopen, manager close, broad
+  priority management, broad assignment management, full escalation
+  administration, and Admin-controlled lifecycle operations.
+- **Planned for Cloud staging:** trusted provisioning, Cloud rules/indexes,
+  deployment configuration, and corresponding security evidence.
+
 ## Controlled actions
 
-- Assignment/reassignment: manager through a trusted backend; staff may claim only if a later transactional backend safely proves same-department eligibility.
+- Assignment/reassignment: designed for manager use through a trusted backend;
+  broad assignment management is not currently implemented. Staff may claim
+  only if a later transactional backend safely proves same-department eligibility.
 - Department rerouting: manager through a trusted backend; model output may set initial routing through the inference backend.
-- Priority and escalation: manager through a trusted backend.
+- Priority and escalation: designed for manager use through a trusted backend;
+  broad management is not currently implemented.
 - Resolve: assigned-department staff or manager through a trusted backend; a resolution event is required.
-- Reopen: manager through a trusted backend.
+- Reopen: designed for manager use through a trusted backend; not currently
+  implemented.
+- Manager override reason: the frontend requires a non-empty reason, while the
+  backend schema currently permits an optional reason. This contract must be
+  reconciled before Cloud staging acceptance.
 - Prediction fields: inference backend only and immutable to ordinary clients. A manager override changes routing fields but does not rewrite the original prediction.
-- Role/department administration: admin through a trusted backend, with minimal scope and audit records.
+- Role/department administration: designed for Admin use through a trusted
+  backend, with minimal scope and audit records; not currently implemented.
 
 ## Privacy and retention controls
 

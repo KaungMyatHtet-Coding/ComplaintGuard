@@ -2,7 +2,10 @@
 
 ## Architecture goals
 
-ComplaintGuard uses a small, zero-cost architecture that one developer can build and demonstrate before 10 August 2026. It separates historical data mining from the live complaint workflow, keeps operational data in Firebase Cloud Firestore, and uses no paid API.
+ComplaintGuard uses a small, cost-controlled architecture for a demonstrable
+prototype. It separates historical data mining from the live complaint
+workflow, keeps verified local operational data in the Firestore Emulator, and
+uses no paid API.
 
 ## Verified local architecture and unverified deployment options
 
@@ -25,7 +28,7 @@ must not be presented as delivered architecture.
 
 No billing account, paid cloud function, paid model API, paid translation API, paid GPU, or custom domain is permitted.
 
-## System diagram
+## Current verified system diagram
 
 ```mermaid
 flowchart LR
@@ -38,10 +41,12 @@ flowchart LR
         Evaluate --> Artifacts[Versioned vectorizer, model, labels, metadata]
     end
 
-    subgraph Live[Live complaint prediction pipeline]
-        User[Customer browser] --> Web[Next.js and Tailwind frontend]
-        Web --> Auth[Firebase Authentication]
-        Web --> API[FastAPI on Hugging Face Spaces CPU]
+    subgraph Live[Verified local emulator complaint workflow]
+        User[Customer, staff, and manager browser] --> Web[Local Next.js frontend]
+        Web --> Auth[Firebase Auth Emulator]
+        Auth -. ID token .-> API[Local FastAPI backend]
+        Web -. rules-governed client reads .-> Store[(Firestore Emulator)]
+        API -->|authenticated, authorized trusted operations| Store
         API --> Detect{Input language}
         Detect -->|English| Clean[Privacy-aware normalization]
         Detect -->|Myanmar| Translate[Open-source Myanmar-to-English translation]
@@ -53,14 +58,23 @@ flowchart LR
         Decision -->|Low or Myanmar/mixed| Review[Unassigned manual review]
         Department --> Web
         Review --> Web
-        Web --> Store[(Cloud Firestore Spark)]
         Store --> Web
     end
-
-    Vercel[Vercel Hobby] -. hosts .-> Web
 ```
 
-The browser communicates directly with Firebase Authentication and Firestore only under security rules. It calls the FastAPI service for prediction. The model service does not train during a user request and does not use Firestore as a training-data store.
+The browser authenticates through the Firebase Auth Emulator and sends the ID
+token to the local FastAPI backend. The backend performs authentication,
+authorization, trusted workflow operations, model inference, routing, and
+persistence. Where currently applicable, browser reads go to the Firestore
+Emulator under security rules. The model service does not train during a user
+request and does not use Firestore as a training-data store.
+
+## Future and unverified deployment options
+
+Vercel, Hugging Face Spaces, and Cloud Firebase remain original or approved
+future options, not implementation evidence. Cloud Firebase staging belongs to
+Phase 2 and has not started. Future production is a separate Phase 9 target;
+no final hosting decision or production deployment is implied here.
 
 ## Offline training pipeline
 
