@@ -64,7 +64,7 @@ export function ComplaintForm({ onSuccess, hideTitle }: { onSuccess?: (ticketId:
         setSuccess(result);
         setText("");
         actionId.current = null;
-        onSuccess?.();
+        onSuccess?.(result.complaintId);
       } catch (error) {
         setErrorCode(
           error instanceof ComplaintSubmissionError ? error.code : "unexpected",
