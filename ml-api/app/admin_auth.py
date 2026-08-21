@@ -123,7 +123,8 @@ class FirebaseAdminAuthBackend:
 
     def __init__(self, clients: tuple[Any, Any, object] | None = None) -> None:
         try:
-            self._auth, self._db, _timestamp = clients or firebase_admin_clients()
+            self._auth, self._db, timestamp = clients or firebase_admin_clients()
+            self._server_timestamp = timestamp
         except PersistenceError:
             raise
         except Exception as exc:

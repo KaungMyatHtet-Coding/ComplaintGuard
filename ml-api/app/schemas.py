@@ -28,7 +28,7 @@ DepartmentId = Literal[
 ]
 
 AdminProvisioningRole = Literal["staff", "manager"]
-AdminProvisioningStatus = Literal["created", "existing", "pending"]
+AdminProvisioningStatus = Literal["pending_setup"]
 
 
 class AdminProvisioningRequest(BaseModel):

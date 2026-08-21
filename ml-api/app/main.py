@@ -12,6 +12,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.admin_auth import AdminPermissionError, require_active_admin
+from app.admin_workflow import (
+    AdminProvisioningBackend,
+    AdminProvisioningService,
+    FirebaseAdminProvisioningBackend,
+    ProvisioningEmailExists,
+    ProvisioningIdempotencyConflict,
+    ProvisioningIncomplete,
+    ProvisioningProfileConflict,
+)
 from app.auth_workflow import (
     CustomerProfileBackend,
     CustomerProfileConflict,
@@ -41,6 +51,8 @@ from app.manager_workflow import (
 from app.model import FrozenDepartmentClassifier, ModelArtifactError
 from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
+    AdminProvisioningRequest,
+    AdminProvisioningResponse,
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
     CustomerMessageItem,
@@ -128,6 +140,7 @@ def create_app(
     customer_backend: CustomerBackend | None = None,
     manager_backend: ManagerBackend | None = None,
     customer_profile_backend: CustomerProfileBackend | None = None,
+    admin_provisioning_backend: AdminProvisioningBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -329,6 +342,107 @@ def create_app(
             ) from None
         response.status_code = 201 if status == "created" else 200
         return CustomerProfileResponse(status=status, profile=profile)
+
+    @api.post(
+        "/admin/users",
+        response_model=AdminProvisioningResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            409: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def provision_admin_user(
+        payload: AdminProvisioningRequest,
+        response: Response,
+        authorization: str | None = Header(default=None),
+    ) -> AdminProvisioningResponse:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        if not authorization.split(" ", 1)[1].strip():
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        try:
+            backend = admin_provisioning_backend or FirebaseAdminProvisioningBackend()
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Account provisioning is temporarily unavailable.",
+            ) from None
+        try:
+            actor = require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except AdminPermissionError:
+            raise ApiError(
+                status_code=403,
+                code="admin_required",
+                message="Active administrative access is required.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Account provisioning is temporarily unavailable.",
+            ) from None
+        try:
+            result = AdminProvisioningService(backend).provision(actor, payload)
+        except ProvisioningEmailExists:
+            raise ApiError(
+                status_code=409,
+                code="email_exists",
+                message="That email address is already in use.",
+            ) from None
+        except ProvisioningProfileConflict:
+            raise ApiError(
+                status_code=409,
+                code="profile_conflict",
+                message="The account profile requires support.",
+            ) from None
+        except ProvisioningIdempotencyConflict:
+            raise ApiError(
+                status_code=409,
+                code="idempotency_conflict",
+                message="This request key was already used for different details.",
+            ) from None
+        except ProvisioningIncomplete:
+            raise ApiError(
+                status_code=503,
+                code="provisioning_incomplete",
+                message="Account setup is temporarily incomplete. Try again.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Account provisioning is temporarily unavailable.",
+            ) from None
+        response.status_code = 201 if result.created else 200
+        return AdminProvisioningResponse(
+            status=result.status,
+            uid=result.identity.uid,
+            email=result.identity.email,
+            displayName=result.identity.display_name,
+            locale=result.request.locale,
+            role=result.request.role,
+            departmentId=result.request.department_id,
+            active=False,
+            setupRequired=True,
+        )
 
     @api.post(
         "/tickets",

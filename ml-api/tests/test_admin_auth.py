@@ -272,7 +272,7 @@ def test_request_normalization_is_deterministic() -> None:
 def test_response_has_only_safe_operational_fields() -> None:
     response = AdminProvisioningResponse.model_validate(
         {
-            "status": "pending",
+            "status": "pending_setup",
             "uid": "synthetic-uid",
             "email": "staff@example.test",
             "displayName": "Synthetic Staff",
