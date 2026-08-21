@@ -1585,6 +1585,131 @@ a {
   gap: 1.5rem;
 }
 
+.controlled-evidence {
+  display: grid;
+  gap: 1rem;
+}
+
+.controlled-source-note,
+.controlled-disclosure {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.controlled-source-badge {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: var(--ink);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.controlled-sections {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.controlled-section {
+  min-width: 0;
+  padding: 0;
+}
+
+.controlled-section-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 1rem 1.25rem;
+}
+
+.controlled-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.controlled-section-summary > span:last-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.controlled-section-summary small {
+  color: var(--muted);
+}
+
+.controlled-section-body {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.controlled-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.controlled-metric {
+  min-width: 0;
+  border-radius: 0.8rem;
+  background: var(--canvas);
+  padding: 0.75rem;
+}
+
+.controlled-metric dt,
+.controlled-metric dd,
+.controlled-metric small {
+  display: block;
+}
+
+.controlled-metric dt,
+.controlled-metric small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.controlled-metric dd {
+  margin: 0.3rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.controlled-metric small {
+  margin-top: 0.2rem;
+}
+
+.controlled-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.controlled-case-table {
+  min-width: 72rem;
+}
+
+.controlled-case-table th small {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+  text-transform: capitalize;
+}
+
+.controlled-case-table code {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.controlled-boolean {
+  font-weight: 800;
+}
+
 .distribution-list,
 .confidence-bins {
   display: grid;
@@ -1965,12 +2090,19 @@ details[open] > .evidence-heading {
   .model-kpi-grid,
   .analytics-split,
   .threshold-grid,
-  .evidence-grid {
+  .evidence-grid,
+  .controlled-metrics {
     grid-template-columns: 1fr;
   }
 
   .held-out-badge {
     min-width: 0;
+  }
+
+  .controlled-section-summary,
+  .controlled-section-body {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 

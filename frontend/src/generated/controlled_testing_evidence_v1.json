@@ -1,0 +1,76 @@
+{
+  "contractVersion": "controlled-testing-evidence-v1",
+  "sourceArtifacts": {
+    "v1": {
+      "path": "evaluation/controlled/six_department_synthetic_v1.json",
+      "sha256": "D6D732C976CEA277F8A8E66CF97763A30371A4B841C0469D91C2607F5BAD1A1A"
+    },
+    "v2a": {
+      "path": "evaluation/controlled/six_department_long_english_v2a_manifest.json",
+      "sha256": "6043166A0C5660B201D6AECCCB997FB2CAA2FAC50164415E06190119F38E62C7"
+    },
+    "v2b": {
+      "path": "evaluation/controlled/six_department_long_english_supported_use_v2b.json",
+      "sha256": "C7D45A8E72EEBBC911DDB2587A1F5D5D39C6919AB908DD8E91D5700D2E32CC63"
+    }
+  },
+  "v1": {
+    "profile": "short_english_challenge",
+    "caseShape": "five short cases and one medium-length case",
+    "summary": {
+      "totalCases": 6,
+      "classifierPredictionMatchCount": 2,
+      "classifierPredictionMatchRate": 33.3333,
+      "automaticRouteCount": 1,
+      "correctAutomaticRouteCount": 0,
+      "automaticRoutingSuccessRate": 0,
+      "manualReviewCount": 5,
+      "correctPredictionsSentToManualReview": 2,
+      "incorrectPredictionsSentToManualReview": 3,
+      "managerOverrideCount": 0
+    },
+    "cases": [
+      {"caseId":"synthetic-transfer-payment-001","textLengthCategory":"short","expectedDepartmentId":"transfer_payment","predictedDepartmentId":"account_support","predictionConfidence":0.5790474123192416,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false},
+      {"caseId":"synthetic-account-support-001","textLengthCategory":"short","expectedDepartmentId":"account_support","predictedDepartmentId":"account_support","predictionConfidence":0.5573550855082329,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":true,"correctAutomaticRoute":false},
+      {"caseId":"synthetic-card-atm-001","textLengthCategory":"short","expectedDepartmentId":"card_atm","predictedDepartmentId":"account_support","predictionConfidence":0.8452084476002719,"routingSource":"model","manualReview":false,"manualReviewReason":null,"finalRouteDepartmentId":"account_support","classifierPredictionMatches":false,"correctAutomaticRoute":false},
+      {"caseId":"synthetic-fraud-security-001","textLengthCategory":"short","expectedDepartmentId":"fraud_security","predictedDepartmentId":"card_atm","predictionConfidence":0.456409234668711,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false},
+      {"caseId":"synthetic-loan-credit-001","textLengthCategory":"short","expectedDepartmentId":"loan_credit","predictedDepartmentId":"loan_credit","predictionConfidence":0.5880914125587249,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":true,"correctAutomaticRoute":false},
+      {"caseId":"synthetic-general-support-001","textLengthCategory":"medium","expectedDepartmentId":"general_support","predictedDepartmentId":"loan_credit","predictionConfidence":0.27793686501547,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false}
+    ]
+  },
+  "v2": {
+    "profile": "long_english_supported_use",
+    "caseShape": "six predefined long-English cases",
+    "summary": {
+      "totalCases": 6,
+      "classifierPredictionMatchCount": 2,
+      "classifierPredictionMatchRate": 33.3333,
+      "automaticRouteCount": 2,
+      "automaticRouteCoverage": 33.3333,
+      "correctAutomaticRouteCount": 2,
+      "automaticRoutingSuccessRate": 100,
+      "manualReviewCount": 4,
+      "manualReviewRate": 66.6667,
+      "confidentIncorrectAutomaticRouteCount": 0,
+      "managerOverrideCount": 0
+    },
+    "cases": [
+      {"caseId":"v2a-transfer-payment-001","textLengthCategory":"long","expectedDepartmentId":"transfer_payment","predictedDepartmentId":"account_support","predictionConfidence":0.5424889291475634,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false},
+      {"caseId":"v2a-account-support-001","textLengthCategory":"long","expectedDepartmentId":"account_support","predictedDepartmentId":"card_atm","predictionConfidence":0.4861111963343953,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false},
+      {"caseId":"v2a-card-atm-001","textLengthCategory":"long","expectedDepartmentId":"card_atm","predictedDepartmentId":"card_atm","predictionConfidence":0.6675389656791093,"routingSource":"model","manualReview":false,"manualReviewReason":null,"finalRouteDepartmentId":"card_atm","classifierPredictionMatches":true,"correctAutomaticRoute":true},
+      {"caseId":"v2a-fraud-security-001","textLengthCategory":"long","expectedDepartmentId":"fraud_security","predictedDepartmentId":"card_atm","predictionConfidence":0.5626379814292479,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false},
+      {"caseId":"v2a-loan-credit-001","textLengthCategory":"long","expectedDepartmentId":"loan_credit","predictedDepartmentId":"loan_credit","predictionConfidence":0.9784257944916201,"routingSource":"model","manualReview":false,"manualReviewReason":null,"finalRouteDepartmentId":"loan_credit","classifierPredictionMatches":true,"correctAutomaticRoute":true},
+      {"caseId":"v2a-general-support-001","textLengthCategory":"long","expectedDepartmentId":"general_support","predictedDepartmentId":"card_atm","predictionConfidence":0.38858017988135574,"routingSource":"manual_review","manualReview":true,"manualReviewReason":"low_prediction_confidence","finalRouteDepartmentId":null,"classifierPredictionMatches":false,"correctAutomaticRoute":false}
+    ]
+  },
+  "disclosures": [
+    "Controlled synthetic demonstrations; one predefined case per department.",
+    "Not official held-out evaluation or live-user performance.",
+    "Confidence values are uncalibrated.",
+    "Manual-review classifier mismatches are not automatic-routing failures because no automatic route occurred.",
+    "Final routes remain unset when no Manager assignment was simulated.",
+    "Expected labels use the project's deterministic department-label policy.",
+    "V1 and V2 are separate six-case demonstrations and cannot establish overall performance.",
+    "No complaint text or private identifiers are included."
+  ]
+}

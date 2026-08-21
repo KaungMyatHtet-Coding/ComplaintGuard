@@ -9,6 +9,7 @@ import {
 } from "@/lib/model-evaluation";
 import { getDepartmentLabel } from "@/lib/department-labels";
 import { ModelEquations } from "@/components/model-equations";
+import { ControlledTestingEvidence } from "@/components/controlled-testing-evidence";
 
 export function ModelAnalyticsDashboard() {
   const { locale, t } = useApp();
@@ -52,6 +53,7 @@ export function ModelAnalyticsDashboard() {
       </header>
 
       <ModelEquations />
+      <ControlledTestingEvidence />
 
       <div className="model-kpi-grid" aria-label={t("modelPerformanceSummary")}>
         {cards.map(([key, value]) => (
