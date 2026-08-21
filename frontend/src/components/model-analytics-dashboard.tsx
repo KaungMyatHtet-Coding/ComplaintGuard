@@ -36,6 +36,11 @@ export function ModelAnalyticsDashboard() {
   ] as const;
   const maxDistribution = Math.max(...departmentIds.map((id) => evaluation.classDistribution.heldOutTestTrue[id]));
   const maxMatrix = Math.max(...evaluation.metrics.confusionMatrix.values.flat());
+  const confusionCellDescription = (trueId: string, predictedId: string, value: number) =>
+    t("confusionCellDescription")
+      .replace("{{expected}}", departmentName(trueId))
+      .replace("{{predicted}}", departmentName(predictedId))
+      .replace("{{count}}", count(value));
 
   return (
     <section id="model-analytics" className="model-analytics" aria-labelledby="model-analytics-title">
@@ -51,6 +56,14 @@ export function ModelAnalyticsDashboard() {
           <small>{t("modelHeldOutRecords")}</small>
         </div>
       </header>
+
+      <nav className="analytics-section-nav" aria-label={t("analyticsSectionNavigation")}>
+        <a href="#model-how-it-works-title">{t("modelHowItWorksTitle")}</a>
+        <a href="#controlled-evidence-title">{t("controlledEvidenceTitle")}</a>
+        <a href="#pipeline-title">{t("datasetPipelineTitle")}</a>
+        <a href="#department-performance-title">{t("departmentPerformanceTitle")}</a>
+        <a href="#matrix-title">{t("confusionMatrixTitle")}</a>
+      </nav>
 
       <ModelEquations />
       <ControlledTestingEvidence />
@@ -98,8 +111,8 @@ export function ModelAnalyticsDashboard() {
                 const metric = evaluation.metrics.perDepartment[id];
                 return <tr key={id}>
                   <th scope="row">{departmentName(id)}</th>
-                  {[metric.precision, metric.recall, metric.f1].map((value, index) => <td key={index}><div className="metric-bar"><span style={{ width: `${value * 100}%` }} /><strong>{formatMetric(value, locale)}</strong></div></td>)}
-                  <td>{count(metric.support)}</td>
+                  {[metric.precision, metric.recall, metric.f1].map((value, index) => <td className="numeric-cell" key={index}><div className="metric-bar"><span style={{ width: `${value * 100}%` }} /><strong>{formatMetric(value, locale)}</strong></div></td>)}
+                  <td className="numeric-cell">{count(metric.support)}</td>
                 </tr>;
               })}
             </tbody>
@@ -136,7 +149,7 @@ export function ModelAnalyticsDashboard() {
           <table className="analytics-table matrix-table">
             <caption>{t("confusionMatrixCaption")}</caption>
             <thead><tr><th scope="col">{t("truePredicted")}</th>{departmentIds.map((id) => <th scope="col" key={id}>{departmentName(id)}</th>)}</tr></thead>
-            <tbody>{departmentIds.map((trueId, rowIndex) => <tr key={trueId}><th scope="row">{departmentName(trueId)}</th>{evaluation.metrics.confusionMatrix.values[rowIndex].map((value, columnIndex) => <td key={departmentIds[columnIndex]} style={{ backgroundColor: `rgb(246 247 237 / ${0.1 + (value / maxMatrix) * 0.9})` }}><span>{count(value)}</span></td>)}</tr>)}</tbody>
+            <tbody>{departmentIds.map((trueId, rowIndex) => <tr key={trueId}><th scope="row">{departmentName(trueId)}</th>{evaluation.metrics.confusionMatrix.values[rowIndex].map((value, columnIndex) => { const predictedId = departmentIds[columnIndex]; const description = confusionCellDescription(trueId, predictedId, value); return <td className="numeric-cell matrix-cell" key={predictedId} aria-label={description} title={description} style={{ backgroundColor: `rgb(16 185 129 / ${0.08 + (value / maxMatrix) * 0.32})` }}><span>{count(value)}</span></td>; })}</tr>)}</tbody>
           </table>
         </div>
       </section>

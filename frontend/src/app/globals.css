@@ -1568,6 +1568,34 @@ a {
   display: grid;
   gap: 1.5rem;
   padding-top: 1rem;
+  min-width: 0;
+}
+
+.analytics-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.analytics-section-nav a {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  color: var(--ink);
+  background: var(--canvas);
+  font-size: 0.85rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.analytics-section-nav a:hover {
+  border-color: var(--emerald);
+  color: var(--forest);
 }
 
 .analytics-hero,
@@ -1741,7 +1769,7 @@ a {
   width: 100%;
   min-width: 48rem;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
 }
 
 .analytics-table caption {
@@ -1753,8 +1781,13 @@ a {
 .analytics-table th,
 .analytics-table td {
   border-bottom: 1px solid var(--line);
-  padding: 0.7rem;
+  padding: 0.85rem 0.75rem;
   text-align: left;
+}
+
+.analytics-table .numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .analytics-table thead th {
@@ -1778,10 +1811,10 @@ a {
   overflow: hidden;
 }
 
-.metric-bar span {
+.model-analytics .metric-bar span {
   position: absolute;
   inset: 0 auto 0 0;
-  background: var(--muted);
+  background: var(--emerald);
 }
 
 .metric-bar strong {
@@ -2031,8 +2064,13 @@ a {
 
 .matrix-table th,
 .matrix-table td {
-  min-width: 7rem;
+  min-width: 8rem;
   text-align: center;
+}
+
+.matrix-table td {
+  height: 4.25rem;
+  font-size: 1rem;
 }
 
 .matrix-table td {
@@ -2052,11 +2090,17 @@ a {
 }
 
 .matrix-table td span {
-  padding: 0.2rem;
+  display: inline-block;
+  min-width: 2.25rem;
+  padding: 0.4rem 0.55rem;
   border-radius: 0.25rem;
   background: rgb(255 255 255 / 72%);
   color: var(--ink);
   font-weight: 800;
+}
+
+.model-analytics .distribution-track > span {
+  background: var(--emerald);
 }
 
 .metadata-card dl,
