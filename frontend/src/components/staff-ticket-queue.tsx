@@ -125,7 +125,7 @@ export function StaffTicketQueue() {
           ))}
         </div>
       </div>
-      {selectedId ? <StaffTicketDetail ticketId={selectedId} getToken={currentToken} onChanged={reload} /> : <div className="staff-detail-panel empty-state">{t("staffSelectTicket")}</div>}
+      {selectedId ? <StaffTicketDetail key={selectedId} ticketId={selectedId} getToken={currentToken} onChanged={reload} /> : <div className="staff-detail-panel empty-state">{t("staffSelectTicket")}</div>}
     </section>
   );
 }
