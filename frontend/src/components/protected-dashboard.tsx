@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import { AdminUserProvisioning } from "@/components/admin-user-provisioning";
 import { useApp } from "@/components/app-provider";
 import { CustomerDashboardWorkflow } from "@/components/customer-dashboard-workflow";
 import { ManagerDashboardWorkflow } from "@/components/manager-dashboard-workflow";
@@ -46,6 +47,7 @@ export function ProtectedDashboard() {
               </div>
             </div>
           )}
+          {profile.role === "admin" ? <AdminUserProvisioning /> : null}
           {profile.role === "customer" ? <CustomerDashboardWorkflow /> : null}
           {profile.role === "staff" ? <StaffTicketQueue /> : null}
           {canViewManagerAnalytics(profile.role) ? <ManagerDashboardWorkflow /> : null}
