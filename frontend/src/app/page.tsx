@@ -94,6 +94,12 @@ export default function Home() {
               >
                 <span>{t("signIn")}</span>
               </Link>
+              <Link
+                href="/register"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-white/10 focus:outline-none sm:w-auto"
+              >
+                <span>{t("createAccount")}</span>
+              </Link>
             </div>
           </div>
           

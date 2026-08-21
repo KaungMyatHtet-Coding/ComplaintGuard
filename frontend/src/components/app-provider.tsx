@@ -69,9 +69,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [profileCompletionPending, setProfileCompletionPending] = useState(false);
   const activeUidRef = useRef<string | null>(null);
   const authStatusRef = useRef<AuthStatus>("loading");
+  const authErrorCodeRef = useRef<string | null>(null);
   const authGenerationRef = useRef(0);
   const completionRef = useRef<Promise<void> | null>(null);
   authStatusRef.current = status;
+  authErrorCodeRef.current = errorCode;
 
   useEffect(() => {
     const storedLocale = normalizeLocale(
@@ -178,7 +180,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setStatus("unauthenticated");
           return;
         }
-        if (authStatusRef.current !== "profile_incomplete") return;
+        const canCompleteProfile =
+          authStatusRef.current === "profile_incomplete" ||
+          (authStatusRef.current === "profile_unavailable" &&
+            authErrorCodeRef.current === "profile_completion_unavailable");
+        if (!canCompleteProfile) return;
         setProfileCompletionPending(true);
         setStatus("profile_completion_pending");
         try {

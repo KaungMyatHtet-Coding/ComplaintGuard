@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 
 import { AppHeader } from "@/components/app-header";
 import { useApp } from "@/components/app-provider";
@@ -27,6 +28,7 @@ export default function LoginPage() {
   const configurationMissing = status === "configuration_missing";
   const isLoading = status === "loading";
   const permissionError = errorCode?.startsWith("profile_");
+  const profileIncomplete = status === "profile_incomplete";
 
   return (
     <>
@@ -76,10 +78,19 @@ export default function LoginPage() {
               </div>
             ) : null}
 
+            {profileIncomplete ? (
+              <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+                <strong className="block font-bold">{t("setupIncomplete")}</strong>
+                <Link href="/register" className="mt-2 inline-block font-bold underline underline-offset-4">{t("finishSetup")}</Link>
+              </div>
+            ) : null}
+
             <form onSubmit={submit} noValidate className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{t("email")}</label>
-                <input
+              <label htmlFor="login-email" className="block text-sm font-bold text-gray-700 mb-2">{t("email")}</label>
+              <input
+                id="login-email"
+                name="email"
                   type="email"
                   autoComplete="username"
                   required
@@ -91,8 +102,10 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">{t("password")}</label>
-                <input
+              <label htmlFor="login-password" className="block text-sm font-bold text-gray-700 mb-2">{t("password")}</label>
+              <input
+                id="login-password"
+                name="password"
                   type="password"
                   autoComplete="current-password"
                   required
@@ -111,6 +124,13 @@ export default function LoginPage() {
                 {isLoading ? t("signingIn") : t("signIn")}
               </button>
             </form>
+
+            <div className="mt-6 text-center text-sm text-gray-600">
+              <span>{t("registerLead")} </span>
+              <Link href="/register" className="font-bold underline underline-offset-4 hover:text-black">
+                {t("createAccount")}
+              </Link>
+            </div>
 
             <div className="mt-8 pt-6 border-t border-gray-100">
               <p className="text-center text-xs font-medium text-gray-500 bg-gray-50 py-3 px-4 rounded-lg border border-gray-200">
