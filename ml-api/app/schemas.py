@@ -1,5 +1,6 @@
 """Typed API request, response, and error schemas."""
 
+import re
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
@@ -25,6 +26,75 @@ DepartmentId = Literal[
     "loan_credit",
     "general_support",
 ]
+
+AdminProvisioningRole = Literal["staff", "manager"]
+AdminProvisioningStatus = Literal["created", "existing", "pending"]
+
+
+class AdminProvisioningRequest(BaseModel):
+    """Strict future Admin input; it deliberately has no credential fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: Annotated[StrictStr, Field(min_length=3, max_length=254)]
+    display_name: Annotated[
+        StrictStr, Field(alias="displayName", min_length=1, max_length=100)
+    ]
+    locale: Literal["en", "my"]
+    role: AdminProvisioningRole
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
+    idempotency_key: Annotated[
+        StrictStr,
+        Field(alias="idempotencyKey", min_length=8, max_length=64),
+    ]
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", normalized):
+            raise ValueError("email must be valid")
+        return normalized
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized:
+            raise ValueError("display name must not be empty")
+        return normalized
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def normalize_idempotency_key(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized or not re.fullmatch(r"[A-Za-z0-9_-]+", normalized):
+            raise ValueError("idempotency key must be safe")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_role_department(self) -> "AdminProvisioningRequest":
+        if self.role == "staff" and self.department_id is None:
+            raise ValueError("staff requires a department")
+        if self.role == "manager" and self.department_id is not None:
+            raise ValueError("manager cannot have a department")
+        return self
+
+
+class AdminProvisioningResponse(BaseModel):
+    """Safe future result; credentials, tokens, claims, and timestamps are absent."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    status: AdminProvisioningStatus
+    uid: str | None = None
+    email: str
+    display_name: str = Field(alias="displayName")
+    locale: Literal["en", "my"]
+    role: AdminProvisioningRole
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    active: bool
+    setup_required: bool = Field(alias="setupRequired")
 
 
 class CustomerProfileRequest(BaseModel):
