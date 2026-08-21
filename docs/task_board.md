@@ -441,7 +441,12 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 7. [ ] Status lifecycle design and implementation: activation, disable, and
    reactivation policy with separate owner approval.
 8. [ ] UI/UX refinement and accessibility review without changing authorization.
-9. [ ] Model/data-analysis presentation from frozen evidence.
+9. [x] Manager-only model/data-analysis presentation from frozen evidence:
+   frozen TF-IDF/MultinomialNB equations plus separate aggregate-safe V1 and V2
+   controlled-testing evidence in the Model & Dataset Analytics workspace.
+   Official frozen evaluation remains separate; V1/V2 are synthetic,
+   small-sample, uncalibrated, and not live-user or production evidence.
+   Customer, Staff, and Admin access was not added.
 10. [ ] Controlled multi-user evaluation and final local packaging.
 11. [ ] Cloud deployment: deferred, not cancelled; separate budget/billing/
     hosting/keyless-identity approval required.
@@ -450,10 +455,20 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 Current verification boundary: the implementation slices above are statically
 and pure-tested, but registration E2E, live Emulator provisioning, bootstrap,
 activation, browser-to-backend Admin provisioning, and the Admin directory
-workflow remain unverified. Firebase CLI Configstore permission was safely
+workflow, and browser verification of the Manager equations/controlled-evidence
+presentation remain unverified. Firebase CLI Configstore permission was safely
 isolated with a temporary configuration; startup still stopped at
 network-dependent MOTD/auto-download behavior. No product defect was proven
 and no runtime pass may be claimed.
+
+The controlled presentation keeps the official held-out accuracy (`82.7934%`)
+separate from V1 and V2. V1 shows classifier match `2/6`, automatic coverage
+`1/6`, correct automatic routes `0/1`, and manual review `5/6`. V2 shows
+classifier match `2/6`, automatic coverage `2/6`, correctness among automatic
+routes `2/2`, and manual review `4/6`; its `100%` is routed-case correctness,
+not overall accuracy, and is always shown with the `2/6` coverage denominator.
+The two demonstrations are not combined. Operational aggregate Slice 2 remains
+deferred pending a bounded, scalable aggregation and completeness contract.
 
 ### Deferred backlog — not current execution order
 

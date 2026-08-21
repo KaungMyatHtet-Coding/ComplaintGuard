@@ -117,6 +117,14 @@ verified locally with emulator and browser tests.
 - Can view operational analytics and low-confidence/manual-review tickets,
   override department routing, preserve original prediction evidence, and view
   manager-authorized operational data.
+- Can view the Manager-only frozen model equations and separate aggregate-safe
+  controlled V1/V2 evidence in Model & Dataset Analytics. V1 and V2 are
+  synthetic, small-sample demonstrations, not official accuracy or live-user
+  performance; the V2 `2/2 (100%)` routed-case value is always paired with
+  `2/6` automatic-route coverage.
+- This technical evidence presentation does not grant access to Customers,
+  Staff, or Admins. It does not expose complaint text, case rationale, private
+  identifiers, or credentials.
 - General account provisioning, full staff assignment management, complete
   priority management, general reopen/close administration, and system
   administration are not implemented.

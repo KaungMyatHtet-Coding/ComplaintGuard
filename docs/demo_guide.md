@@ -195,8 +195,36 @@ committed Day 10 evidence rather than claiming a live translation result.
 | 4:00–4:30 | Customer submits feedback. | Persisted feedback success. |
 | 4:30–5:15 | Customer submits ambiguous example. | Unassigned manual-review state. |
 | 5:15–6:05 | Manager reviews and overrides to `card_atm`. | Review row disappears; routing source becomes manager override. |
-| 6:05–7:20 | Manager shows operational and model/dataset analytics. | Real artifact metrics, pipeline, class distribution, confidence bins, matrix. |
+| 6:05–7:20 | Manager shows operational and Model & Dataset Analytics. | Real frozen metrics, equations, pipeline, class distribution, confidence bins, matrix, and separate controlled V1/V2 evidence. |
 | 7:20–8:00 | State limitations and optional warmed Myanmar evidence. | Manual-review-only wording; similarity shown as local/not deployed. |
+
+### Planned teacher-facing evidence sequence
+
+The following is a planned explanation sequence for a teacher demonstration,
+not completed browser or Emulator runtime evidence. Use only the committed
+aggregate-safe artifacts and do not expose complaint text, case rationale,
+private identifiers, credentials, or raw dataset narratives.
+
+1. Open the Manager-only **Model & Dataset Analytics** workspace.
+2. Explain the TF, IDF, TF-IDF, vector normalization, and MultinomialNB
+   equations, including `alpha=0.5` and the `0.60` operational threshold.
+3. Show the **Frozen offline evaluation** separately, including its official
+   82.7934% held-out accuracy and macro-F1 limitation.
+4. Show **Controlled V1 — Short-English Challenge** and explain its `2/6`
+   classifier matches, `1/6` automatic coverage, `0/1` correct automatic
+   routes, and `5/6` manual review.
+5. Show **Controlled V2 — Long-English Supported-Use Demonstration** and
+   explain that `2/2 (100%)` is correctness among automatically routed cases,
+   while only `2/6` cases received automatic routing.
+6. Explain manual review as a safety policy: low-confidence or unsupported
+   language cases are not automatic-routing failures when no automatic route
+   occurred, and final routes remain unset when no Manager assignment was
+   simulated.
+
+Keep V1 and V2 separate, do not call either result model accuracy, and do not
+suggest that complaint length alone caused their difference. Confidence values
+are uncalibrated; the demonstrations are synthetic, small-sample, not official
+evaluation, not production evidence, and not live-user performance.
 
 ## Failure and recovery
 

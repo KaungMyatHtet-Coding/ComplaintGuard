@@ -190,6 +190,22 @@ a live Emulator because
 Firebase CLI startup stopped at a network-dependent MOTD/auto-download boundary;
 no product defect was proven.
 
+The Manager-only Model & Dataset Analytics workspace also presents the frozen
+TF-IDF and MultinomialNB equations plus separate aggregate-safe controlled V1
+and V2 evidence. V1 is a small short-English challenge (`2/6` classifier
+matches, `1/6` automatic coverage, `0/1` correct automatic routes, `5/6`
+manual review). V2 is a small predefined long-English demonstration (`2/6`
+classifier matches, `2/6` automatic coverage, `2/2` correctness among
+automatically routed cases, `4/6` manual review). The V2 `2/2 (100%)` value is
+routed-case correctness, never overall model accuracy, and is shown with its
+`2/6` coverage context. Official frozen evaluation remains separate with
+82.7934% held-out accuracy; V1 and V2 are not combined and are not live-user or
+production evidence. Confidence is uncalibrated and macro-F1 remains below
+the 0.70 target. This presentation is pure/frontend/static-tested, but browser
+and Emulator runtime verification remains incomplete. Operational aggregate
+Slice 2 remains deferred while bounded aggregation and completeness semantics
+are unresolved.
+
 ## Historical Day 2 boundary
 
 The original Day 2 milestone established only the toolchain and architecture.

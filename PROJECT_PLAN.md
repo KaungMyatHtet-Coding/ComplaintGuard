@@ -1020,8 +1020,8 @@ Frozen evidence:
 | 3. Registration, login, and account lifecycle | Implemented locally; runtime pending | Customer-only registration/recovery is pure-tested; Emulator E2E remains pending. |
 | 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, and Admin UI exist; execution and account listing remain pending. |
 | 5. Secure & Approachable UI/UX upgrade | Initial Admin slice implemented; broader work pending | Bilingual Admin provisioning UX exists; broader refinement and browser verification remain pending. |
-| 6. Model, dataset, equations, and analytics presentation | Approved roadmap, not implemented | Read-only evidence with separate data boundaries. |
-| 7. Controlled six-department user testing | Approved roadmap, not implemented | Small-sample evidence, not formal model accuracy. |
+| 6. Model, dataset, equations, and analytics presentation | Implemented locally; runtime pending | Manager-only read-only equations and separate frozen/controlled evidence presentation. |
+| 7. Controlled six-department user testing | V1/V2 evidence implemented locally; runtime pending | Small-sample synthetic evidence, not formal model accuracy or live-user performance. |
 | 8. Controlled model-hunting resumption | Paused and approval-gated | Cannot resume before staging and Phase 7 gates. |
 | 9. Future production readiness | Future work, not implemented | Separate from staging and local verification. |
 
@@ -1108,12 +1108,33 @@ safely bypassed with a temporary configuration, but startup stopped at
 network-dependent MOTD/auto-download behavior. No product defect was proven;
 these workflows must not be described as passed.
 
-Next local roadmap order is: documentation reconciliation; a read-only Admin
-account-list endpoint; Staff/Manager list UI; status lifecycle design and
-implementation; broader UI/UX refinement; model/data-analysis presentation;
-final local packaging and teacher-facing evidence. Cloud work remains gated on
-future budget and owner approval, and model hunting remains separately
-approval-gated.
+Next local roadmap order is: documentation reconciliation; status lifecycle
+design and implementation; broader UI/UX refinement; final local packaging and
+teacher-facing evidence. Cloud work remains gated on future budget and owner
+approval, and model hunting remains separately approval-gated.
+
+### Current model and controlled-evidence presentation checkpoint
+
+The Manager-only Model & Dataset Analytics workspace now presents the frozen
+TF-IDF plus MultinomialNB equations and aggregate-safe controlled V1/V2
+evidence. The presentation is implemented and pure/frontend/static-tested;
+Customer, Staff, and Admin access was not added. Official frozen evaluation
+remains separate from controlled testing: official held-out accuracy remains
+82.7934%, while V1 and V2 are small synthetic demonstrations, not official
+evaluation, production evidence, live-user performance, or a combined metric.
+
+V1 is the short-English challenge: classifier match `2/6`, automatic-route
+coverage `1/6`, correct automatic routes `0/1`, and manual review `5/6`. V2 is
+the predefined long-English supported-use demonstration: classifier match
+`2/6`, automatic-route coverage `2/6`, correctness among automatically routed
+cases `2/2`, and manual review `4/6`. The V2 `2/2 (100%)` value is never an
+overall accuracy claim and must remain accompanied by the `2/6` coverage
+context. V1 and V2 are not combined; confidence remains uncalibrated and
+macro-F1 remains below the `0.70` target. Browser/Emulator runtime verification
+of the presentation remains incomplete because the existing Firebase CLI
+environment blocker prevented safe Emulator readiness. Operational aggregate
+Slice 2 remains deferred while scalable aggregation and completeness semantics
+are unresolved.
 
 #### Local slice 1 — Customer registration and login lifecycle
 
