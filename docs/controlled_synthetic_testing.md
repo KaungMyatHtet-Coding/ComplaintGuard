@@ -75,6 +75,53 @@ with no prediction, confidence, routing, or correctness fields. The wording
 and expected labels are committed before any V2 inference so later V2B
 execution cannot tune them after observing results.
 
-V2 inference has not run, and no V2 success rate exists. V2A is not official
-held-out evaluation or live-user performance. A later V2B runner must require
-the finalized manifest SHA-256 before loading the model or producing results.
+At the V2A checkpoint, inference had not run and no V2 success rate existed.
+V2A is not official held-out evaluation or live-user performance. The V2B
+execution documented below required the finalized manifest SHA-256 before
+loading the model or producing results.
+
+## V2B long-English supported-use result
+
+V2B executed once offline against the committed V2A manifest after verifying
+manifest SHA-256
+`6043166A0C5660B201D6AECCCB997FB2CAA2FAC50164415E06190119F38E62C7` and the
+frozen model contract. The result artifact is
+`evaluation/controlled/six_department_long_english_supported_use_v2b.json`.
+It contains aggregate-safe results only and does not copy complaint text.
+
+| Case | Expected | Predicted | Confidence | Language | Route | Review | Final route | Classifier match | Correct automatic route |
+| --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| `v2a-transfer-payment-001` | `transfer_payment` | `account_support` | 0.542489 | `en` | manual review | low confidence | none | No | No |
+| `v2a-account-support-001` | `account_support` | `card_atm` | 0.486111 | `en` | manual review | low confidence | none | No | No |
+| `v2a-card-atm-001` | `card_atm` | `card_atm` | 0.667539 | `en` | model | — | `card_atm` | Yes | Yes |
+| `v2a-fraud-security-001` | `fraud_security` | `card_atm` | 0.562638 | `en` | manual review | low confidence | none | No | No |
+| `v2a-loan-credit-001` | `loan_credit` | `loan_credit` | 0.978426 | `en` | model | — | `loan_credit` | Yes | Yes |
+| `v2a-general-support-001` | `general_support` | `card_atm` | 0.388580 | `en` | manual review | low confidence | none | No | No |
+
+V2B summary:
+
+- Classifier match rate: **2/6 (33.3333%)**.
+- Automatic-route coverage: **2/6 (33.3333%)**.
+- Correctness among automatically routed cases: **2/2 (100%)**.
+- Manual-review rate: **4/6 (66.6667%)**.
+- Confidently incorrect automatic routes: **0**.
+
+The 100% value applies only to the two automatically routed cases. It is not
+overall model accuracy or six-case success. The four manual-review cases were
+classifier mismatches, but they are excluded from the automatic-routing
+denominator because no automatic route occurred. They are therefore not
+counted as automatic-routing failures. Their final routes remain unset because
+no Manager assignment or override was simulated. Confidence values are
+uncalibrated, the sample is a small controlled synthetic demonstration rather
+than verified live-user performance, and the official frozen held-out accuracy
+remains **82.7934%**.
+
+V1 and V2B are separate demonstrations: V1 is a short-English challenge with
+one automatic route and zero correct automatic routes, while V2B is the
+long-English supported-use profile with two automatic routes, both correct.
+This is a descriptive comparison of two six-case synthetic samples, not a
+causal claim and not a combined twelve-case accuracy.
+
+Only two of six V2B cases received automatic routing. The earlier informal
+“at least 5/6” observation is not included as verified evidence. V1 and V2
+remain separate demonstrations and are not combined.

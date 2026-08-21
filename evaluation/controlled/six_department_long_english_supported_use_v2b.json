@@ -1,0 +1,140 @@
+{
+  "evidenceType": "controlled six-case long-English supported-use demonstration",
+  "generatedAtUtc": "2026-08-21T16:06:20.607475Z",
+  "inputManifest": {
+    "path": "evaluation/controlled/six_department_long_english_v2a_manifest.json",
+    "sha256": "6043166a0c5660b201d6aecccb997fb2caa2fac50164415e06190119f38e62c7"
+  },
+  "frozenModel": {
+    "modelVersion": "v1",
+    "modelSha256": "bafc086fe5b11bdcc5cbc4f04f3f3f222de8cbad27fe66d62a6685cc30f953d5",
+    "operationalThreshold": 0.6,
+    "labelOrder": [
+      "transfer_payment",
+      "account_support",
+      "card_atm",
+      "fraud_security",
+      "loan_credit",
+      "general_support"
+    ]
+  },
+  "resultContractVersion": "controlled-result-v2b",
+  "cases": [
+    {
+      "caseId": "v2a-transfer-payment-001",
+      "expectedDepartmentId": "transfer_payment",
+      "predictedDepartmentId": "account_support",
+      "predictionConfidence": 0.5424889291475634,
+      "detectedLanguage": "en",
+      "routingSource": "manual_review",
+      "manualReview": true,
+      "manualReviewReason": "low_prediction_confidence",
+      "finalRouteDepartmentId": null,
+      "classifierPredictionMatches": false,
+      "correctAutomaticRoute": false,
+      "managerOverride": false,
+      "modelVersion": "v1",
+      "operationalThreshold": 0.6
+    },
+    {
+      "caseId": "v2a-account-support-001",
+      "expectedDepartmentId": "account_support",
+      "predictedDepartmentId": "card_atm",
+      "predictionConfidence": 0.4861111963343953,
+      "detectedLanguage": "en",
+      "routingSource": "manual_review",
+      "manualReview": true,
+      "manualReviewReason": "low_prediction_confidence",
+      "finalRouteDepartmentId": null,
+      "classifierPredictionMatches": false,
+      "correctAutomaticRoute": false,
+      "managerOverride": false,
+      "modelVersion": "v1",
+      "operationalThreshold": 0.6
+    },
+    {
+      "caseId": "v2a-card-atm-001",
+      "expectedDepartmentId": "card_atm",
+      "predictedDepartmentId": "card_atm",
+      "predictionConfidence": 0.6675389656791093,
+      "detectedLanguage": "en",
+      "routingSource": "model",
+      "manualReview": false,
+      "manualReviewReason": null,
+      "finalRouteDepartmentId": "card_atm",
+      "classifierPredictionMatches": true,
+      "correctAutomaticRoute": true,
+      "managerOverride": false,
+      "modelVersion": "v1",
+      "operationalThreshold": 0.6
+    },
+    {
+      "caseId": "v2a-fraud-security-001",
+      "expectedDepartmentId": "fraud_security",
+      "predictedDepartmentId": "card_atm",
+      "predictionConfidence": 0.5626379814292479,
+      "detectedLanguage": "en",
+      "routingSource": "manual_review",
+      "manualReview": true,
+      "manualReviewReason": "low_prediction_confidence",
+      "finalRouteDepartmentId": null,
+      "classifierPredictionMatches": false,
+      "correctAutomaticRoute": false,
+      "managerOverride": false,
+      "modelVersion": "v1",
+      "operationalThreshold": 0.6
+    },
+    {
+      "caseId": "v2a-loan-credit-001",
+      "expectedDepartmentId": "loan_credit",
+      "predictedDepartmentId": "loan_credit",
+      "predictionConfidence": 0.9784257944916201,
+      "detectedLanguage": "en",
+      "routingSource": "model",
+      "manualReview": false,
+      "manualReviewReason": null,
+      "finalRouteDepartmentId": "loan_credit",
+      "classifierPredictionMatches": true,
+      "correctAutomaticRoute": true,
+      "managerOverride": false,
+      "modelVersion": "v1",
+      "operationalThreshold": 0.6
+    },
+    {
+      "caseId": "v2a-general-support-001",
+      "expectedDepartmentId": "general_support",
+      "predictedDepartmentId": "card_atm",
+      "predictionConfidence": 0.38858017988135574,
+      "detectedLanguage": "en",
+      "routingSource": "manual_review",
+      "manualReview": true,
+      "manualReviewReason": "low_prediction_confidence",
+      "finalRouteDepartmentId": null,
+      "classifierPredictionMatches": false,
+      "correctAutomaticRoute": false,
+      "managerOverride": false,
+      "modelVersion": "v1",
+      "operationalThreshold": 0.6
+    }
+  ],
+  "summary": {
+    "totalCases": 6,
+    "classifierPredictionMatchCount": 2,
+    "classifierPredictionMatchRate": 33.3333,
+    "automaticRouteCount": 2,
+    "correctAutomaticRouteCount": 2,
+    "automaticRoutingSuccessRate": 100.0,
+    "manualReviewCount": 4,
+    "correctPredictionsSentToManualReview": 0,
+    "incorrectPredictionsSentToManualReview": 4,
+    "confidentIncorrectAutomaticRouteCount": 0
+  },
+  "limitations": [
+    "One predefined synthetic long-English case per department; the sample is too small to establish overall performance.",
+    "Not official model accuracy, frozen held-out evaluation, or live-user performance.",
+    "Expected labels and wording were committed before inference.",
+    "Confidence values are uncalibrated.",
+    "No Manager override was simulated.",
+    "Myanmar and mixed-language behavior remains governed by the manual-review policy and is not evaluated by this English manifest."
+  ]
+}
