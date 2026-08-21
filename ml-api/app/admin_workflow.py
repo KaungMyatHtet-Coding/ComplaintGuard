@@ -50,6 +50,8 @@ class PendingProvisioningResult:
 class AdminProvisioningBackend(AdminAuthBackend, Protocol):
     server_timestamp: object
 
+    def list_user_profiles(self, *, limit: int) -> list[tuple[str, dict[str, Any]]]: ...
+
     def reserve_action(
         self,
         *,
@@ -369,3 +371,18 @@ class FirebaseAdminProvisioningBackend(FirebaseAdminAuthBackend):
             run_firestore_transaction(self._db, operation)
         except Exception as exc:
             raise PersistenceError("provisioning action update failed") from exc
+
+    def list_user_profiles(self, *, limit: int) -> list[tuple[str, dict[str, Any]]]:
+        try:
+            snapshots = (
+                self._db.collection("users")
+                .where("role", "in", ["staff", "manager"])
+                .limit(limit)
+                .stream()
+            )
+            return [
+                (snapshot.id, snapshot.to_dict() or {})
+                for snapshot in snapshots
+            ]
+        except Exception as exc:
+            raise PersistenceError("directory lookup failed") from exc

@@ -29,6 +29,7 @@ DepartmentId = Literal[
 
 AdminProvisioningRole = Literal["staff", "manager"]
 AdminProvisioningStatus = Literal["pending_setup"]
+AdminDirectorySetupStatus = Literal["pending_setup", "active"]
 
 
 class AdminProvisioningRequest(BaseModel):
@@ -95,6 +96,47 @@ class AdminProvisioningResponse(BaseModel):
     department_id: DepartmentId | None = Field(alias="departmentId")
     active: bool
     setup_required: bool = Field(alias="setupRequired")
+
+
+class AdminDirectoryRequest(BaseModel):
+    """Strict bounded filters for the read-only Admin directory."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    role: AdminProvisioningRole | None = None
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
+    active: bool | None = None
+    search: Annotated[StrictStr, Field(min_length=1, max_length=80)] | None = None
+    page_size: Annotated[int, Field(ge=1, le=50)] = Field(default=25, alias="pageSize")
+    cursor: Annotated[StrictStr, Field(max_length=128)] | None = None
+
+    @field_validator("search")
+    @classmethod
+    def normalize_search(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = normalize_input(value)
+        return normalized or None
+
+
+class AdminDirectoryRow(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    email: str
+    display_name: str = Field(alias="displayName")
+    locale: Literal["en", "my"]
+    role: AdminProvisioningRole
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    active: StrictBool
+    setup_status: AdminDirectorySetupStatus = Field(alias="setupStatus")
+
+
+class AdminDirectoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rows: list[AdminDirectoryRow]
+    next_cursor: str | None = Field(alias="nextCursor")
+    has_more: StrictBool = Field(alias="hasMore")
 
 
 class CustomerProfileRequest(BaseModel):

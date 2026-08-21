@@ -7,12 +7,17 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import FastAPI, Header, Request, Response
+from fastapi import Depends, FastAPI, Header, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.admin_auth import AdminPermissionError, require_active_admin
+from app.admin_directory import (
+    AdminDirectoryBackend,
+    AdminDirectoryService,
+    DirectoryDataIntegrityError,
+)
 from app.admin_workflow import (
     AdminProvisioningBackend,
     AdminProvisioningService,
@@ -53,6 +58,8 @@ from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
     AdminProvisioningRequest,
     AdminProvisioningResponse,
+    AdminDirectoryRequest,
+    AdminDirectoryResponse,
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
     CustomerMessageItem,
@@ -141,6 +148,7 @@ def create_app(
     manager_backend: ManagerBackend | None = None,
     customer_profile_backend: CustomerProfileBackend | None = None,
     admin_provisioning_backend: AdminProvisioningBackend | None = None,
+    admin_directory_backend: AdminDirectoryBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -443,6 +451,86 @@ def create_app(
             active=False,
             setupRequired=True,
         )
+
+    @api.get(
+        "/admin/users",
+        response_model=AdminDirectoryResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def list_admin_users(
+        request: Request,
+        payload: AdminDirectoryRequest = Depends(),
+        authorization: str | None = Header(default=None),
+    ) -> AdminDirectoryResponse:
+        if set(request.query_params) - {"role", "departmentId", "active", "search", "pageSize", "cursor"}:
+            raise ApiError(
+                status_code=422,
+                code="validation_error",
+                message="The directory filters are invalid.",
+            )
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        if not authorization.split(" ", 1)[1].strip():
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        try:
+            backend = (
+                admin_directory_backend
+                or admin_provisioning_backend
+                or FirebaseAdminProvisioningBackend()
+            )
+            require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except AdminPermissionError:
+            raise ApiError(
+                status_code=403,
+                code="admin_required",
+                message="Active administrative access is required.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="The account directory is temporarily unavailable.",
+            ) from None
+        try:
+            return AdminDirectoryService(backend).list_users(payload)
+        except ValueError:
+            raise ApiError(
+                status_code=422,
+                code="validation_error",
+                message="The directory filters are invalid.",
+            ) from None
+        except DirectoryDataIntegrityError:
+            raise ApiError(
+                status_code=503,
+                code="directory_data_integrity",
+                message="The account directory is temporarily unavailable.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="The account directory is temporarily unavailable.",
+            ) from None
 
     @api.post(
         "/tickets",

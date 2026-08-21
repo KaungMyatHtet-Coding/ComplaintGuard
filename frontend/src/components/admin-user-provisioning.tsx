@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useApp } from "@/components/app-provider";
+import { AdminUserDirectory } from "@/components/admin-user-directory";
 import {
   createIdempotencyKey,
   provisionAdminUser,
@@ -49,6 +50,7 @@ export function AdminUserProvisioning() {
   const [errorCode, setErrorCode] = useState<AdminProvisioningErrorCode | null>(null);
   const [success, setSuccess] = useState<AdminProvisioningResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [directoryRefreshKey, setDirectoryRefreshKey] = useState(0);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,6 +87,7 @@ export function AdminUserProvisioning() {
     try {
       const result = await provisionAdminUser({ ...confirmed, idempotencyKey });
       setSuccess(result);
+      setDirectoryRefreshKey((value) => value + 1);
       setForm({ ...emptyForm, locale: confirmed.locale });
       setConfirmed(null);
       setIdempotencyKey(null);
@@ -193,6 +196,7 @@ export function AdminUserProvisioning() {
           </div>
         </div>
       )}
+      <AdminUserDirectory refreshKey={directoryRefreshKey} />
     </section>
   );
 }
