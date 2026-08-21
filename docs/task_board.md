@@ -384,8 +384,33 @@ implemented until a corresponding evidence-backed completion entry is added.
 - [x] Review historical evidence links and avoid rewriting historical records.
 - [x] Complete final documentation review.
 - [x] Run safe documentation checks.
-- Phase 1 status: Completed with this reconciliation commit. Phase 2 has not
-  started.
+- Phase 1 status: Completed with this reconciliation commit. Phase 2 is in
+  progress; its project adoption checkpoint is complete, but technical Cloud
+  verification and application connection remain blocked.
+
+### Completed - Phase 2A-2D documentation/adoption checkpoints
+
+- [x] Complete Phase 2A, 2B, and 2C staging preparation checkpoints.
+- [x] Complete the private Console audit for owner-controlled staging data.
+- [x] Record owner approval to adopt dedicated Cloud project `complaintguard`.
+- [x] Record Spark/no-cost posture, no billing link, default Firestore in
+  `asia-southeast1`, Auth providers/domains, identity roles, and empty
+  operational collections without private identifiers.
+- [x] Record that project adoption is distinct from application connection.
+- [x] Prepare the query/index matrix, future index proposal, rules comparison
+  limitation, read-only credential strategy, and guard-removal gates in
+  `docs/cloud_firebase_staging_adoption.md`.
+- Phase 2D status: Private Console audit and owner adoption completed;
+  technical verification remains blocked and `cloud_staging_not_adopted` stays
+  enforced.
+
+### In progress - Phase 2 technical-verification preparation
+
+- [ ] Obtain owner review of the documentation checkpoint.
+- [ ] Perform controlled read-only rules/index verification only after a new
+  owner-approved credential and operation scope are provided.
+- [ ] Connect the application only after every documented guard-removal gate
+  passes; no Cloud complaint workflow has been tested.
 
 ### Approved backlog — not implemented
 

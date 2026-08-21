@@ -30,9 +30,10 @@ System သည် အောက်ပါ real-world problems များကို
 The Vercel, Hugging Face Spaces, and Cloud Firestore entries below are
 original planned deployment options, not currently verified deployments. The
 current verified topology is local Next.js, local FastAPI, Firebase Auth
-Emulator, Firestore Emulator, and the frozen local model. Cloud Firebase
-staging is planned for Phase 2 and has not started. The Post-Day-32 Controlled
-Staging Upgrade section is authoritative for current sequencing.
+Emulator, Firestore Emulator, and the frozen local model. The owner-approved
+Cloud staging project is adopted as a project boundary, but the application is
+not connected and Cloud technical verification remains blocked. The Post-Day-32
+Controlled Staging Upgrade section is authoritative for current sequencing.
 
 | Layer | Technology | Cost | Purpose |
 |---|---|---:|---|
@@ -984,7 +985,10 @@ not authorize technical implementation until the relevant phase is approved.
 - Day 31 and Day 32 evidence remains local-emulator evidence. It is not Cloud
   Firebase verification, production security certification, or public deployment
   evidence.
-- Cloud Firebase is not configured or verified.
+- Cloud staging project `complaintguard` is adopted with owner approval, but no
+  application connection has occurred and Cloud staging remains technically
+  blocked. The approved audit record is in
+  `docs/cloud_firebase_staging_adoption.md`.
 - The runtime classifier remains frozen and the research/model-hunting branch
   remains paused and isolated. Its preservation commit is
   `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
@@ -1012,7 +1016,7 @@ Frozen evidence:
 |---|---|---|
 | 0. Repository reconciliation and baseline freeze | Completed locally, not pushed | Baseline tag and upgrade branch exist locally; no Cloud work started. |
 | 1. Master plan and architecture documentation | Completed with this reconciliation commit | Documentation reconciliation only. |
-| 2. Cloud Firebase staging migration | Not started; approved roadmap, not implemented | Cost-controlled staging only; no production claim. |
+| 2. Cloud Firebase staging migration | In progress; Phase 2A–2D audit/adoption checkpoints complete, technical verification and application connection blocked | Cost-controlled synthetic-only staging; no production claim. |
 | 3. Registration, login, and account lifecycle | Approved roadmap, not implemented | Public registration creates customers only. |
 | 4. Roles and System Admin functionality | Approved roadmap, not implemented | Trusted provisioning and least privilege are required. |
 | 5. Secure & Approachable UI/UX upgrade | Approved roadmap, not implemented | Starts after Cloud/auth/role contracts stabilize. |
@@ -1076,12 +1080,14 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 
 ### Phase 2 — Cloud Firebase staging migration
 
-- **Status:** Approved roadmap, not implemented.
+- **Status:** In progress; Phase 2A, 2B, 2C, private Console audit, and owner
+  project adoption are complete. Technical verification and application
+  connection are blocked.
 - **Objective:** Establish a separate, synthetic-only Firebase staging
   environment while retaining the emulator as the default local backup and
   test environment.
-- **Dependencies:** Phase 1 approval, staging project ownership, environment
-  separation, secret-handling design, and final role model.
+- **Dependencies:** Phase 1 approval, adopted staging project ownership,
+  environment separation, secret-handling design, and final role model.
 - **Main tasks:** Create a separate staging project; target cost-controlled
   Firebase staging, initially targeting the no-cost tier; configure Auth and
   Firestore separately from the emulator; review rules and indexes; configure
@@ -1101,6 +1107,10 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
   secrets are committed; seed scripts cannot target Cloud; rules and indexes
   are reviewed and evidenced; staging uses synthetic data only; the emulator
   remains runnable; no production claim is made.
+- **Current boundary:** Project adoption is complete, but this is not
+  application connection. Keep `cloud_staging_not_adopted` enforced until the
+  documented rules, index, credential, synthetic-data, and controlled workflow
+  gates pass.
 - **Rollback point:** Emulator-only configuration and the Phase 0 tag.
 - **Required owner approvals:** Staging project creation, project ID, secret
   storage, rules/index deployment, quota limits, and staging data policy.

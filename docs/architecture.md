@@ -71,10 +71,12 @@ request and does not use Firestore as a training-data store.
 
 ## Future and unverified deployment options
 
-Vercel, Hugging Face Spaces, and Cloud Firebase remain original or approved
-future options, not implementation evidence. Cloud Firebase staging belongs to
-Phase 2 and has not started. Future production is a separate Phase 9 target;
-no final hosting decision or production deployment is implied here.
+Vercel, Hugging Face Spaces, and Cloud Firebase remain unverified deployment
+evidence. The owner-approved `complaintguard` Cloud project is adopted as the
+Phase 2 staging boundary, but the application is not connected and technical
+Cloud verification is blocked. Future production is a separate Phase 9 target;
+no final hosting decision or production deployment is implied here. See
+`cloud_firebase_staging_adoption.md` for the audit record and gates.
 
 ## Offline training pipeline
 
