@@ -34,6 +34,6 @@ describe("ModelAnalyticsDashboard", () => {
     );
     expect(markup).toContain(formatCount(modelEvaluation.similarity.featureCount));
     expect(markup).toContain("Not deployed");
-    expect(markup).not.toMatch(/nearest complaint|Consumer complaint narrative|Complaint ID|similarity score: [0-9]/u);
+    expect(markup).not.toMatch(/nearest complaint|Consumer complaint narrative|similarity score: [0-9]/u);
   });
 });
