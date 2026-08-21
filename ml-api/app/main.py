@@ -7,11 +7,16 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import FastAPI, Header, Request
+from fastapi import FastAPI, Header, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth_workflow import (
+    CustomerProfileBackend,
+    CustomerProfileConflict,
+    FirebaseAdminCustomerProfileBackend,
+)
 from app.config import MODEL_VERSION, Settings
 from app.customer_workflow import (
     CustomerBackend,
@@ -40,6 +45,8 @@ from app.schemas import (
     CustomerFeedbackResponse,
     CustomerMessageItem,
     CustomerMessageRequest,
+    CustomerProfileRequest,
+    CustomerProfileResponse,
     CustomerTicketDetail,
     CustomerTicketListResponse,
     ErrorDetail,
@@ -76,9 +83,7 @@ from app.ticketing import (
     PersistenceError,
     TicketBackend,
 )
-from app.ticketing import (
-    PermissionError as SubmissionPermissionError,
-)
+from app.ticketing import PermissionError as SubmissionPermissionError
 
 ModelLoader = Callable[..., FrozenDepartmentClassifier]
 
@@ -122,6 +127,7 @@ def create_app(
     staff_backend: StaffBackend | None = None,
     customer_backend: CustomerBackend | None = None,
     manager_backend: ManagerBackend | None = None,
+    customer_profile_backend: CustomerProfileBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -256,6 +262,73 @@ def create_app(
             fallback=prediction.fallback,
             fallback_reason=prediction.fallback_reason,
         )
+
+    @api.post(
+        "/auth/customer-profile",
+        response_model=CustomerProfileResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def complete_customer_profile(
+        payload: CustomerProfileRequest,
+        response: Response,
+        authorization: str | None = Header(default=None),
+    ) -> CustomerProfileResponse:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        token = authorization.split(" ", 1)[1].strip()
+        if not token:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        try:
+            backend = customer_profile_backend or FirebaseAdminCustomerProfileBackend()
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="customer_profile_unavailable",
+                message="Account setup is temporarily unavailable. Try again.",
+            ) from None
+        try:
+            identity = backend.verify_identity(token)
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except Exception:  # noqa: BLE001 -- SDK errors are not stable types
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        try:
+            status, profile = backend.complete_customer_profile(
+                identity,
+                display_name=payload.display_name,
+                locale=payload.locale,
+            )
+        except CustomerProfileConflict:
+            raise ApiError(
+                status_code=409,
+                code="profile_conflict",
+                message="This account requires support.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="customer_profile_unavailable",
+                message="Account setup is temporarily unavailable. Try again.",
+            ) from None
+        response.status_code = 201 if status == "created" else 200
+        return CustomerProfileResponse(status=status, profile=profile)
 
     @api.post(
         "/tickets",

@@ -7,6 +7,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    StrictBool,
     StrictStr,
     field_validator,
     model_validator,
@@ -24,6 +25,50 @@ DepartmentId = Literal[
     "loan_credit",
     "general_support",
 ]
+
+
+class CustomerProfileRequest(BaseModel):
+    """Public profile-completion fields; credentials and authority stay elsewhere."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Annotated[
+        StrictStr, Field(alias="displayName", min_length=1, max_length=100)
+    ]
+    locale: Literal["en", "my"]
+    terms_accepted: StrictBool | None = Field(
+        default=None,
+        alias="termsAccepted",
+        description="Validated for this request only; not persisted in this slice.",
+    )
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized:
+            raise ValueError("display name must not be empty")
+        return normalized
+
+
+class CustomerProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    uid: str
+    email: str
+    display_name: str = Field(alias="displayName")
+    locale: Literal["en", "my"]
+    role: Literal["customer"]
+    department_id: None = Field(default=None, alias="departmentId")
+    active: Literal[True]
+
+
+class CustomerProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    status: Literal["created", "existing"]
+    profile: CustomerProfile
+
 
 ActionId = Annotated[
     StrictStr, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
