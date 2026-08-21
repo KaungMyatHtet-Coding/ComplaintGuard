@@ -8,6 +8,13 @@ import {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("ComplaintForm success callback", () => {
+  it("keeps the customer safety reminder associated with the complaint field", () => {
+    const source = readFileSync(new URL("./complaint-form.tsx", import.meta.url), "utf8");
+    expect(source).toContain('id="complaint-safety"');
+    expect(source).toContain('complaint-safety complaint-count');
+    expect(source).toContain("complaintSafetyReminder");
+  });
+
   it("wires the actual form success path to the returned complaint ID", () => {
     const source = readFileSync(new URL("./complaint-form.tsx", import.meta.url), "utf8");
     expect(source).toContain("onSuccess?.(result.complaintId)");

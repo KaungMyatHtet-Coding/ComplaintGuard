@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { CustomerFeedbackPanel } from "@/components/customer-feedback-panel";
-import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
 import type { Locale } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
 import type { CustomerTicketDetail } from "@/lib/customer-workflow";
@@ -89,7 +88,7 @@ export function CustomerTicketDetailView({
           </h2>
         </div>
           <div className="cust-detail-subrow">
-            <span className="cust-ticket-id" style={{ overflowWrap: "anywhere" }}>
+            <span className="cust-ticket-id">
               {translate(locale, "customerTicketId")}: {ticket.id}
             </span>
             <span className="cust-detail-meta">
@@ -131,13 +130,6 @@ export function CustomerTicketDetailView({
             })}
           </div>
         </div>
-
-        <DatasetEvidencePanel
-          predictedDepartmentId={ticket.predictedDepartmentId}
-          predictionConfidence={ticket.predictionConfidence}
-          routingSource={ticket.routingSource}
-          assignedDepartmentId={ticket.assignedDepartmentId}
-        />
 
         {/* Complaint Body */}
         <div style={{ marginTop: '1.5rem' }}>

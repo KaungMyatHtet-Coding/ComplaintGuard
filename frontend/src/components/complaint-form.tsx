@@ -97,7 +97,7 @@ export function ComplaintForm({ onSuccess, hideTitle }: { onSuccess?: (ticketId:
         <div className="cust-compose-input-wrap">
           <textarea
             id="complaint-text"
-            aria-describedby={fieldError ? "complaint-error complaint-count" : "complaint-count"}
+            aria-describedby={fieldError ? "complaint-safety complaint-error complaint-count" : "complaint-safety complaint-count"}
             aria-invalid={fieldError}
             maxLength={MAX_COMPLAINT_LENGTH}
             required
@@ -111,6 +111,7 @@ export function ComplaintForm({ onSuccess, hideTitle }: { onSuccess?: (ticketId:
               if (fieldError) setErrorCode(null);
             }}
           />
+          <p id="complaint-safety" className="field-help">{t("complaintSafetyReminder")}</p>
           <div className="cust-compose-footer">
             <span id="complaint-count" className="cust-compose-count">
               {text.length}/{MAX_COMPLAINT_LENGTH}

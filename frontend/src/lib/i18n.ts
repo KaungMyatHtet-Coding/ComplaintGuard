@@ -21,6 +21,39 @@ const messages = {
     permissionError: "This account is inactive or has no permitted role profile.",
     sensitiveWarning:
       "Never enter a PIN, full account/card number, or other financial secret.",
+    landingHeroLead:
+      "Submit a complaint, follow its progress, and get help from the right team.",
+    landingExplore: "Explore",
+    landingServicesTitle: "How ComplaintGuard helps",
+    landingServicesLead:
+      "ComplaintGuard helps organize financial complaints and supports clear follow-up.",
+    landingServiceRoutingTitle: "Assisted complaint routing",
+    landingServiceRoutingDescription:
+      "Supports complaint classification and routing so your concern can reach the appropriate team.",
+    landingServiceBilingualTitle: "Bilingual support",
+    landingServiceBilingualDescription:
+      "Use the platform in English or Myanmar for a more comfortable complaint experience.",
+    landingServiceSecurityTitle: "Privacy-minded access",
+    landingServiceSecurityDescription:
+      "Your complaint is handled within role-based access boundaries designed to protect your information.",
+    landingServiceReviewTitle: "Manager review when needed",
+    landingServiceReviewDescription:
+      "Uncertain cases can be sent to a Manager for review under the current routing policy.",
+    landingFaqTitle: "Frequently asked questions",
+    landingFaqLead:
+      "Simple answers about submitting, following, and reviewing a complaint.",
+    landingFaqWhatQuestion: "What is ComplaintGuard?",
+    landingFaqWhatAnswer:
+      "A secure platform for submitting, tracking, and resolving financial complaints.",
+    landingFaqWhoQuestion: "Who handles my complaint?",
+    landingFaqWhoAnswer:
+      "Your complaint is reviewed and routed to the appropriate team based on the information you provide.",
+    landingFaqSecurityQuestion: "How is my complaint handled?",
+    landingFaqSecurityAnswer:
+      "ComplaintGuard uses role-based access so only authorized people can work with the information they need.",
+    landingFaqClassificationQuestion: "How does complaint routing work?",
+    landingFaqClassificationAnswer:
+      "The service assists with classification and sends uncertain cases for Manager review.",
     demoHelp:
       "Demo identities are prepared in Firebase by the project owner; credentials are never committed.",
     createAccount: "Create an account",
@@ -137,6 +170,7 @@ const messages = {
     complaintEyebrow: "Day 13 submission",
     complaintTitle: "Submit a complaint",
     complaintLead: "Your complaint will be saved securely and classified later.",
+    complaintSafetyReminder: "Do not include PINs, passwords, or full account/card numbers.",
     complaintTextLabel: "Complaint",
     complaintSubmit: "Submit complaint",
     complaintSubmitting: "Submitting…",
@@ -446,6 +480,39 @@ const messages = {
     permissionError: "ဤအကောင့်သည် အသုံးပြုခွင့်ရှိသော role profile မရှိပါ။",
     sensitiveWarning:
       "PIN၊ အကောင့်/ကတ်နံပါတ်အပြည့်အစုံ သို့မဟုတ် ငွေကြေးလျှို့ဝှက်ချက် မထည့်ပါနှင့်။",
+    landingHeroLead:
+      "တိုင်ကြားချက်တင်သွင်းပြီး အခြေအနေကို စောင့်ကြည့်ကာ သင့်အမှုကို ကူညီမည့်အဖွဲ့ထံ ဆက်သွယ်နိုင်ပါသည်။",
+    landingExplore: "လေ့လာရန်",
+    landingServicesTitle: "ComplaintGuard က ကူညီပေးနိုင်သည့်အရာများ",
+    landingServicesLead:
+      "ComplaintGuard သည် ငွေကြေးဆိုင်ရာ တိုင်ကြားချက်များကို စနစ်တကျ စီမံပြီး နောက်ဆက်တွဲဆောင်ရွက်မှုကို ရှင်းလင်းစွာ ကူညီပေးသည်။",
+    landingServiceRoutingTitle: "တိုင်ကြားချက် လမ်းကြောင်းကူညီပေးမှု",
+    landingServiceRoutingDescription:
+      "တိုင်ကြားချက်အမျိုးအစားခွဲခြားခြင်းနှင့် လမ်းကြောင်းပေးခြင်းကို ကူညီ၍ သင့်ကိစ္စကို သင့်လျော်သောအဖွဲ့ထံ ရောက်ရှိစေသည်။",
+    landingServiceBilingualTitle: "ဘာသာစကားနှစ်မျိုး အထောက်အပံ့",
+    landingServiceBilingualDescription:
+      "တိုင်ကြားချက်တင်သွင်းရာတွင် ပိုမိုအဆင်ပြေစေရန် English သို့မဟုတ် မြန်မာဘာသာဖြင့် အသုံးပြုနိုင်သည်။",
+    landingServiceSecurityTitle: "ကိုယ်ရေးအချက်အလက်ကို ဦးစားပေးသော ဝင်ရောက်ခွင့်",
+    landingServiceSecurityDescription:
+      "သင့်အချက်အလက်ကို ကာကွယ်ရန် ရည်ရွယ်ထားသော role အလိုက် ဝင်ရောက်ခွင့်နယ်နိမိတ်အတွင်း တိုင်ကြားချက်ကို ကိုင်တွယ်သည်။",
+    landingServiceReviewTitle: "လိုအပ်ပါက Manager စစ်ဆေးမှု",
+    landingServiceReviewDescription:
+      "မသေချာသောကိစ္စများကို လက်ရှိ routing policy အရ Manager ထံ စစ်ဆေးရန် ပို့နိုင်သည်။",
+    landingFaqTitle: "မေးလေ့ရှိသော မေးခွန်းများ",
+    landingFaqLead:
+      "တိုင်ကြားချက်တင်သွင်းခြင်း၊ အခြေအနေစောင့်ကြည့်ခြင်းနှင့် စစ်ဆေးခြင်းအကြောင်း ရိုးရှင်းသောအဖြေများ။",
+    landingFaqWhatQuestion: "ComplaintGuard ဆိုတာ ဘာလဲ။",
+    landingFaqWhatAnswer:
+      "ငွေကြေးဆိုင်ရာ တိုင်ကြားချက်များ တင်သွင်းရန်၊ အခြေအနေစောင့်ကြည့်ရန်နှင့် ဖြေရှင်းရန် လုံခြုံသော platform တစ်ခု ဖြစ်သည်။",
+    landingFaqWhoQuestion: "ကျွန်ုပ်၏ တိုင်ကြားချက်ကို ဘယ်သူက ကိုင်တွယ်မလဲ။",
+    landingFaqWhoAnswer:
+      "သင်ပေးထားသော အချက်အလက်များအပေါ် မူတည်၍ သင့်တော်သောအဖွဲ့က တိုင်ကြားချက်ကို စစ်ဆေးပြီး လမ်းကြောင်းပေးမည်။",
+    landingFaqSecurityQuestion: "ကျွန်ုပ်၏ တိုင်ကြားချက်ကို ဘယ်လိုကိုင်တွယ်မလဲ။",
+    landingFaqSecurityAnswer:
+      "လိုအပ်သောအချက်အလက်များကိုသာ သက်ဆိုင်သူများက ကိုင်တွယ်နိုင်ရန် ComplaintGuard သည် role အလိုက် ဝင်ရောက်ခွင့်ကို အသုံးပြုသည်။",
+    landingFaqClassificationQuestion: "တိုင်ကြားချက် လမ်းကြောင်းပေးခြင်းက ဘယ်လိုအလုပ်လုပ်လဲ။",
+    landingFaqClassificationAnswer:
+      "ဝန်ဆောင်မှုသည် အမျိုးအစားခွဲခြားခြင်းကို ကူညီပြီး မသေချာသောကိစ္စများကို Manager စစ်ဆေးရန် ပို့သည်။",
     demoHelp:
       "Demo အကောင့်များကို project owner က Firebase တွင် ပြင်ဆင်ရမည်။ စကားဝှက်များကို repository တွင် မသိမ်းပါ။",
     createAccount: "အကောင့်ဖန်တီးရန်",
@@ -562,6 +629,7 @@ const messages = {
     complaintEyebrow: "Day 13 တိုင်ကြားချက်တင်သွင်းခြင်း",
     complaintTitle: "တိုင်ကြားချက်တင်သွင်းရန်",
     complaintLead: "သင့်တိုင်ကြားချက်ကို လုံခြုံစွာသိမ်းဆည်းပြီး နောက်တစ်ဆင့်တွင် အမျိုးအစားခွဲမည်။",
+    complaintSafetyReminder: "PIN၊ စကားဝှက် သို့မဟုတ် အကောင့်/ကတ်နံပါတ်အပြည့်အစုံ မထည့်ပါနှင့်။",
     complaintTextLabel: "တိုင်ကြားချက်",
     complaintSubmit: "တိုင်ကြားချက်တင်သွင်းမည်",
     complaintSubmitting: "တင်သွင်းနေသည်…",

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -49,10 +50,18 @@ describe("CustomerTicketDetailView", () => {
     expect(markup).toContain(longTicketId);
     expect(markup).toContain("cust-detail-header");
     expect(markup).toContain("cust-ticket-id");
-    expect(markup).toContain("overflow-wrap:anywhere");
+    expect(markup).toContain('class="cust-ticket-id"');
     expect(markup).toContain("Messages");
     expect(markup).toContain("cust-timeline");
     expect(markup).toContain("Waiting for your reply");
     expect(markup).toContain("Synthetic complaint text");
+    const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+    expect(css).toContain(".cust-ticket-id");
+    expect(css).toContain("overflow-wrap: anywhere");
+    expect(markup).not.toContain("Model confidence");
+    expect(markup).not.toContain("Operational threshold");
+    expect(markup).not.toContain("Privacy-safe model evidence");
+    expect(markup).not.toContain("TF-IDF");
+    expect(markup).not.toContain("Dataset evidence");
   });
 });

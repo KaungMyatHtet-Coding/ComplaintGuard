@@ -555,6 +555,7 @@ a {
   grid-template-columns: 26rem 1fr;
   gap: 1.5rem;
   align-items: start;
+  min-width: 0;
 }
 
 .cust-sidebar {
@@ -603,6 +604,7 @@ a {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .cust-scroll-area {
@@ -612,6 +614,7 @@ a {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .cust-card-header {
@@ -755,14 +758,26 @@ a {
 
 .cust-detail-subrow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  min-width: 0;
+}
+
+.cust-ticket-id {
+  min-width: 0;
+  flex: 1 1 12rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .cust-detail-meta {
   font-size: 0.8rem;
   color: var(--muted);
-  flex-shrink: 0;
+  min-width: 0;
+  flex: 1 1 10rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .cust-section-label {
@@ -794,6 +809,7 @@ a {
   max-width: 36rem;
   margin: 0 auto;
   padding: 0.5rem 0;
+  min-width: 0;
 }
 
 .cust-step {
@@ -855,6 +871,7 @@ a {
 .cust-msg {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .cust-msg.is-mine { align-items: flex-end; }
@@ -867,6 +884,7 @@ a {
   font-size: 0.875rem;
   line-height: 1.5;
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .cust-msg.is-mine .cust-msg-bubble {
@@ -901,6 +919,37 @@ a {
   font-size: 0.65rem;
   color: var(--muted);
   margin-top: 0.25rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .cust-timeline {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0;
+    margin-left: 0;
+  }
+
+  .cust-step {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    text-align: left;
+  }
+
+  .cust-step-label {
+    max-width: none;
+    margin-top: 0;
+  }
+
+  .cust-step-connector {
+    width: 2px;
+    height: 1rem;
+    min-width: 2px;
+    margin: 0 0 0 0.875rem;
+  }
 }
 
 .cust-msg-composer {
