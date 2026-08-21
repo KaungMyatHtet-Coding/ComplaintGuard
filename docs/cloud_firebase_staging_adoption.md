@@ -77,10 +77,12 @@ additional compound query. Manager and staff reads may need redesign before a
 larger Cloud dataset; adding filters or pagination must trigger a fresh index
 review rather than relying on this matrix.
 
-### Proposed future `firestore.indexes.json`
+### Local `firestore.indexes.json` preparation
 
-This is a proposal only. It must not be created, deployed, or treated as
-evidence in this checkpoint.
+The local manifest is now prepared and referenced by `firebase.json`. It is
+not Cloud evidence: it has not been deployed, and the customer ticket query
+has not been run against Cloud. The local manifest must remain subject to
+owner review before any future deployment.
 
 ```json
 {
@@ -98,9 +100,11 @@ evidence in this checkpoint.
 }
 ```
 
-Before deployment, run the customer-history query against a controlled
-synthetic Cloud fixture, confirm the SDK's index requirement, review quota and
-cost exposure, and obtain separate owner approval for the exact index file.
+Before deployment, run the customer-history query only against a controlled
+synthetic Cloud fixture after separate owner approval, confirm the SDK's index
+requirement, review quota and cost exposure, and retain evidence that the
+local manifest and deployed index definition match. No Cloud query has been
+tested in this slice.
 
 ### Rules comparison and later method
 
