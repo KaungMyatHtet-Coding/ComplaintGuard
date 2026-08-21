@@ -440,7 +440,11 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
    Firebase Auth state is not independently verified by the directory.
 7. [ ] Status lifecycle design and implementation: activation, disable, and
    reactivation policy with separate owner approval.
-8. [ ] UI/UX refinement and accessibility review without changing authorization.
+8. [x] UI/UX Slices A-D implemented locally without changing authorization:
+   Customer/landing safety and containment, accessible Staff tabs, semantic
+   auth theme/form polish, and Manager analytics readability. Automated
+   frontend tests, TypeScript, and ESLint pass; browser/device visual
+   verification remains incomplete.
 9. [x] Manager-only model/data-analysis presentation from frozen evidence:
    frozen TF-IDF/MultinomialNB equations plus separate aggregate-safe V1 and V2
    controlled-testing evidence in the Model & Dataset Analytics workspace.
@@ -452,8 +456,9 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
     hosting/keyless-identity approval required.
 12. [ ] Model hunting: paused and approval-gated on `research/model-hunting`.
 
-Current verification boundary: the implementation slices above are statically
-and pure-tested, but registration E2E, live Emulator provisioning, bootstrap,
+Current verification boundary: the implementation slices above are statically,
+pure-, and automated-frontend-tested, but no browser-based visual verification
+was performed for UI/UX Slices A-D. Registration E2E, live Emulator provisioning, bootstrap,
 activation, browser-to-backend Admin provisioning, and the Admin directory
 workflow, and browser verification of the Manager equations/controlled-evidence
 presentation remain unverified. Firebase CLI Configstore permission was safely

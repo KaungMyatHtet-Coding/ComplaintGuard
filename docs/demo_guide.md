@@ -226,6 +226,14 @@ suggest that complaint length alone caused their difference. Confidence values
 are uncalibrated; the demonstrations are synthetic, small-sample, not official
 evaluation, not production evidence, and not live-user performance.
 
+The Customer, Staff, Login/Register, and Manager UI/UX refinements described in
+Slices A-D are implemented and automated-test verified. They have not received
+browser-based visual verification in this environment. Do not present mobile
+layout, autofill, hover behavior, focus appearance, or document-level overflow
+as passed evidence. Registration, Admin provisioning, bootstrap, activation,
+and the Admin directory remain Emulator-unverified; the local Firebase CLI
+startup blocker remains documented above.
+
 ## Failure and recovery
 
 ### Canonical visual-demo snapshot target

@@ -206,6 +206,18 @@ and Emulator runtime verification remains incomplete. Operational aggregate
 Slice 2 remains deferred while bounded aggregation and completeness semantics
 are unresolved.
 
+The Secure & Approachable UI/UX Slices A-D are implemented locally and
+automated-test verified without changing authorization. Customer and landing
+views no longer expose technical model evidence; the Staff workspace uses
+accessible Overview, Messages, Activity, and Model Data tabs; Login/Register
+use the semantic Deep Forest (`#064E3B`), Emerald (`#10B981`), and Warm White
+(`#FAFAF9`) theme with focus/autofill polish; and Manager analytics has ordinary
+anchor navigation, more readable tables, Emerald presentation bars, and
+accessible confusion-matrix descriptions. Manager analytics remains reachable
+only through the existing Manager boundary. No browser visual verification was
+performed, so mobile layout, autofill, hover/focus appearance, and
+document-level overflow remain unverified.
+
 ## Historical Day 2 boundary
 
 The original Day 2 milestone established only the toolchain and architecture.

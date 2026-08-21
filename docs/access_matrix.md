@@ -13,6 +13,13 @@ classified as follows:
   strict active profile. Admin authorization, the pending Staff/Manager
   provisioning API, and the Admin provisioning dashboard are implemented. The
   local bootstrap and activation helpers are committed but unexecuted.
+- **Implemented and automated-frontend-tested, browser visual verification
+  pending:** UI/UX Slices A-D preserve the existing role boundaries. Customer
+  details exclude technical model evidence, Staff has accessible workflow tabs
+  including Staff-authorized Model Data, Login/Register have the shared secure
+  theme and form polish, and Manager has the readable Model & Dataset Analytics
+  presentation. No Customer, Staff, or Admin access was added to Manager-only
+  technical evidence.
 - **Designed/planned:** account listing, status management, reassignment,
   deletion, password reset/invitation, Customer management, Admin creation, and
   broader assignment, priority, escalation, reopen/close, and department
@@ -91,8 +98,10 @@ Managers have broad operational visibility but do not administer identities. Adm
 ## Current implementation status
 
 The customer, assigned-department staff, and manager boundaries are implemented
-in frontend visibility, trusted FastAPI checks, and Firestore rules, and are
-verified locally with emulator and browser tests.
+in frontend visibility, trusted FastAPI checks, and Firestore rules, and the
+underlying workflow boundaries are verified locally with emulator and browser
+tests. This does not constitute browser-based visual verification of UI/UX
+Slices A-D.
 
 ### Customer — implemented locally
 
@@ -100,7 +109,8 @@ verified locally with emulator and browser tests.
   owned tickets, exchanges participant messages, views resolution, and submits
   feedback.
 - Cannot view another customer's tickets.
-- Public self-registration is planned, not implemented.
+- Public self-registration is Customer-only and implemented locally; its
+  registration Emulator E2E remains pending.
 
 ### Department Staff — implemented locally within department scope
 
@@ -125,6 +135,9 @@ verified locally with emulator and browser tests.
 - This technical evidence presentation does not grant access to Customers,
   Staff, or Admins. It does not expose complaint text, case rationale, private
   identifiers, or credentials.
+- The Manager analytics presentation includes ordinary section navigation,
+  readable metric tables/bars, and accessible confusion-matrix descriptions;
+  these are automated-test verified but not browser/device visually verified.
 - General account provisioning, full staff assignment management, complete
   priority management, general reopen/close administration, and system
   administration are not implemented.

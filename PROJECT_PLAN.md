@@ -1019,7 +1019,7 @@ Frozen evidence:
 | 2. Cloud Firebase staging migration | Preparation complete; overall Phase 2 remains in progress as a deferred boundary because runtime and application connection are deferred by the no-budget/no-billing decision | `complaintguard` is preserved for possible future staging; no Cloud runtime or workflow is verified. |
 | 3. Registration, login, and account lifecycle | Implemented locally; runtime pending | Customer-only registration/recovery is pure-tested; Emulator E2E remains pending. |
 | 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, and Admin UI exist; execution and account listing remain pending. |
-| 5. Secure & Approachable UI/UX upgrade | Initial Admin slice implemented; broader work pending | Bilingual Admin provisioning UX exists; broader refinement and browser verification remain pending. |
+| 5. Secure & Approachable UI/UX upgrade | Slices A-D implemented locally; runtime pending | Customer/landing safety, accessible Staff workspace, auth theme/polish, and Manager analytics readability are automated-test verified; no browser visual verification was performed. |
 | 6. Model, dataset, equations, and analytics presentation | Implemented locally; runtime pending | Manager-only read-only equations and separate frozen/controlled evidence presentation. |
 | 7. Controlled six-department user testing | V1/V2 evidence implemented locally; runtime pending | Small-sample synthetic evidence, not formal model accuracy or live-user performance. |
 | 8. Controlled model-hunting resumption | Paused and approval-gated | Cannot resume before staging and Phase 7 gates. |
@@ -1112,6 +1112,34 @@ Next local roadmap order is: documentation reconciliation; status lifecycle
 design and implementation; broader UI/UX refinement; final local packaging and
 teacher-facing evidence. Cloud work remains gated on future budget and owner
 approval, and model hunting remains separately approval-gated.
+
+### Current Secure & Approachable UI/UX checkpoint
+
+Slices A-D are implemented locally and verified by the full frontend suite
+(35 files, 171 tests), TypeScript, and ESLint. The implementation checkpoints
+are Slice A (`85b1a0e080bc4f28bf58ca2ebde8facbb0b87a3c`), Slice B
+(`9245bdd3be170c7b9e1ffae7ab934188453e3144`), Slice C
+(`8a875bf4b0e6f88c5dc35dbcd7971925d05123ba`), and Slice D
+(`921482829f0bec9a741a2881aa3ad375448a88c6`). Slice A removed technical model/dataset evidence from
+Customer ticket details, added localized complaint safety guidance and safer
+detail containment, and simplified landing-page security and routing language.
+Slice B added accessible Staff Overview, Messages, Activity, and Model Data tabs,
+preserved relevant drafts, localized safe activity labels, and retained
+Staff-authorized model evidence. Slice C added semantic Deep Forest
+(`#064E3B`), Emerald (`#10B981`), and Warm White (`#FAFAF9`) theme tokens,
+authentication-form focus/autofill polish, and an accessible Login password
+visibility control without changing authentication lifecycle behavior. Slice D
+added ordinary anchor navigation, more readable Manager analytics tables,
+Emerald metric bars, improved confusion-matrix containment, and accessible
+expected/predicted/count descriptions while preserving Manager-only access and
+the exact frozen evidence values.
+
+No browser-based visual verification was performed for Slices A-D. Mobile
+layout, autofill rendering, hover behavior, focus appearance, and document-level
+overflow therefore remain unverified. New account-lifecycle and Admin flows
+also remain unverified against the Emulator. The Firebase CLI/Emulator startup
+blocker remains the previously documented network-dependent MOTD/auto-download
+boundary; no product defect was proven.
 
 ### Current model and controlled-evidence presentation checkpoint
 
