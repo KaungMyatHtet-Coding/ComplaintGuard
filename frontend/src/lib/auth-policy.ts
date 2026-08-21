@@ -12,6 +12,21 @@ export type UserProfile = {
   active: boolean;
 };
 
+export type ProfileResolution =
+  | { kind: "missing" }
+  | { kind: "valid"; profile: UserProfile }
+  | { kind: "inactive" }
+  | { kind: "malformed" };
+
+const departmentIds = new Set([
+  "transfer_payment",
+  "account_support",
+  "card_atm",
+  "fraud_security",
+  "loan_credit",
+  "general_support",
+]);
+
 export const roleDestinations: Record<AppRole, string> = {
   customer: "/dashboard",
   staff: "/dashboard",
@@ -77,4 +92,68 @@ export function parseUserProfile(
     locale,
     active: true,
   };
+}
+
+export function parseUserProfileStrict(
+  uid: string,
+  email: string,
+  value: unknown,
+): UserProfile {
+  if (!value || typeof value !== "object") throw new Error("profile_malformed");
+  const record = value as Record<string, unknown>;
+  if (
+    record.email !== email ||
+    typeof record.displayName !== "string" ||
+    !record.displayName.trim() ||
+    (record.locale !== "en" && record.locale !== "my") ||
+    !isAppRole(record.role) ||
+    typeof record.active !== "boolean" ||
+    record.createdAt == null ||
+    record.updatedAt == null
+  ) {
+    throw new Error("profile_malformed");
+  }
+  if (
+    record.departmentId !== null &&
+    (typeof record.departmentId !== "string" ||
+      !departmentIds.has(record.departmentId))
+  ) {
+    throw new Error("profile_malformed");
+  }
+  if (record.role === "staff" && !record.departmentId) {
+    throw new Error("profile_malformed");
+  }
+  if (record.role !== "staff" && record.departmentId !== null) {
+    throw new Error("profile_malformed");
+  }
+  if (record.active !== true) throw new Error("profile_inactive");
+  return {
+    uid,
+    email,
+    displayName: record.displayName.trim(),
+    role: record.role,
+    departmentId: record.departmentId,
+    locale: record.locale,
+    active: true,
+  };
+}
+
+export function resolveUserProfile(
+  uid: string,
+  email: string,
+  exists: boolean,
+  value: unknown,
+): ProfileResolution {
+  if (!exists) return { kind: "missing" };
+  try {
+    return {
+      kind: "valid",
+      profile: parseUserProfileStrict(uid, email, value),
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "profile_inactive") {
+      return { kind: "inactive" };
+    }
+    return { kind: "malformed" };
+  }
 }
