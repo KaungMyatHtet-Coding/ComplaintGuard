@@ -9,17 +9,24 @@ classified as follows:
 
 - **Implemented and locally verified:** customer ownership, department staff
   isolation, manager review/override, and deny-by-default direct mutations.
-- **Recognized role but operational feature not implemented:** the `admin` role
-  resolves through authentication and has a dashboard shell, but no operational
-  Admin dashboard or API exists.
-- **Designed/planned:** broader assignment, priority, escalation, reopen/close,
-  role management, and department administration.
+- **Implemented and pure-tested, runtime pending:** the `admin` role requires a
+  strict active profile. Admin authorization, the pending Staff/Manager
+  provisioning API, and the Admin provisioning dashboard are implemented. The
+  local bootstrap and activation helpers are committed but unexecuted.
+- **Designed/planned:** account listing, status management, reassignment,
+  deletion, password reset/invitation, Customer management, Admin creation, and
+  broader assignment, priority, escalation, reopen/close, and department
+  administration.
 - **Future Cloud staging work:** trusted provisioning, Cloud rules/indexes,
   deployment configuration, and production-equivalent security evidence.
 
-Public self-registration is planned and, when implemented, will create only
-customer accounts. Privileged accounts and department membership require
-trusted provisioning.
+Public self-registration is implemented as Customer-only. It accepts no role,
+department, active state, UID, timestamps, or claims; Firebase Auth creates the
+identity and the trusted backend creates the fixed Customer profile. A genuinely
+missing profile is recoverable through `profile_incomplete`, while privileged,
+inactive, and malformed profiles cannot use public recovery. Direct client
+profile writes remain denied. Registration Emulator E2E remains pending because
+the Firebase CLI did not reach a safe isolated runtime.
 
 ## Access predicates
 
@@ -117,11 +124,13 @@ verified locally with emulator and browser tests.
   backend request schema permits the reason to be optional. Backend enforcement
   is planned for a later implementation phase.
 
-The `admin` role currently has only authenticated profile resolution and an
-administration dashboard shell. No admin UI, administration endpoint, demo seed
-identity, role management, department management, or emergency correction
-workflow is implemented. Rows above that describe future authority boundaries,
-not delivered admin functionality. Trusted staff/manager/admin provisioning and
-platform management are planned for Phase 4. The Admin must never rewrite
-original model prediction evidence. Production Firebase deployment is
-unverified.
+The `admin` role is distinct from Firebase Console/IAM ownership. An active
+Admin may prepare only pending Staff or Manager accounts through the trusted
+`POST /admin/users` workflow and its bilingual dashboard. New Auth identities
+are disabled, passwordless, and claimless; profiles are inactive, with Staff
+requiring one approved department and Manager requiring `departmentId == null`.
+Managers handle complaint operations, routing review, and analytics but cannot
+provision accounts. Public registration cannot create Staff, Manager, or Admin;
+Admin cannot create Customer or another Admin in the first version. The Admin
+must never rewrite original model prediction evidence. Production Firebase
+deployment is unverified.

@@ -421,20 +421,30 @@ truth for development and demonstration. Detailed objectives, dependencies,
 scope, exclusions, security constraints, tests, acceptance criteria, rollback,
 and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 
-1. [ ] Customer registration and login lifecycle; public registration creates
-   Customer accounts only and cannot accept privileged roles or departments.
-2. [ ] Trusted role/profile provisioning design; make Auth/profile creation
-   atomic or safely recoverable.
-3. [ ] Admin role and Admin dashboard; enforce least privilege locally.
-4. [ ] Six department-staff identities and controlled local test users; keep
-   synthetic fixtures reproducible.
-5. [ ] UI/UX redesign and accessibility without changing authorization.
-6. [ ] Manager ML/data-analysis and equation presentation from frozen evidence.
-7. [ ] Controlled multi-user evaluation and analytics using synthetic cases.
-8. [ ] Final local demonstration, testing, and packaging.
-9. [ ] Cloud deployment: deferred, not cancelled; separate budget/billing/
-   hosting/keyless-identity approval required.
-10. [ ] Model hunting: paused and approval-gated on `research/model-hunting`.
+1. [x] Customer registration and recoverable profile lifecycle; public
+   registration creates Customer accounts only.
+2. [x] Trusted active-Admin authorization and pending Staff/Manager
+   provisioning design and backend contract.
+3. [x] Admin-only pending-account dashboard with bilingual confirmation UX.
+4. [x] Commit owner-only local Admin bootstrap and pending-user activation
+   helpers; both remain unexecuted.
+5. [ ] Read-only Admin account-list endpoint and pure/fake tests.
+6. [ ] Admin Staff/Manager account-list UI without activation or status changes.
+7. [ ] Status lifecycle design and implementation: activation, disable, and
+   reactivation policy with separate owner approval.
+8. [ ] UI/UX refinement and accessibility review without changing authorization.
+9. [ ] Model/data-analysis presentation from frozen evidence.
+10. [ ] Controlled multi-user evaluation and final local packaging.
+11. [ ] Cloud deployment: deferred, not cancelled; separate budget/billing/
+    hosting/keyless-identity approval required.
+12. [ ] Model hunting: paused and approval-gated on `research/model-hunting`.
+
+Current verification boundary: the implementation slices above are statically
+and pure-tested, but registration E2E, live Emulator provisioning, bootstrap,
+activation, and browser-to-backend Admin provisioning remain unverified. Firebase
+CLI Configstore permission was safely isolated with a temporary configuration;
+startup still stopped at network-dependent MOTD/auto-download behavior. No
+product defect was proven and no runtime pass may be claimed.
 
 ### Deferred backlog — not current execution order
 

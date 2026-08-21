@@ -15,11 +15,19 @@ Spaces, and production Firebase in the table and diagram below are original
 zero-cost deployment options only; they were not configured or verified and
 must not be presented as delivered architecture.
 
+The application role model has four roles: Customer, Staff, Manager, and Admin.
+Firebase Console/IAM ownership is not an application Admin role. Public
+registration creates Customer accounts only. Staff and Manager accounts are
+prepared through the trusted active-Admin workflow; Managers operate complaints,
+routing review, and analytics but cannot provision accounts. Admin provisions
+pending Staff/Manager accounts and cannot create Customer or another Admin in
+the first version.
+
 | Layer | Technology | Responsibility | Cost boundary |
 |---|---|---|---|
-| Frontend | Next.js, TypeScript, Tailwind CSS | Responsive English/Myanmar customer, staff, and manager web UI | Open-source |
+| Frontend | Next.js, TypeScript, Tailwind CSS | Responsive English/Myanmar customer, staff, manager, and Admin web UI | Open-source |
 | Frontend hosting | Local Next.js development/build | Verified local evaluator and demo access | Local only; Vercel remains unverified |
-| Authentication | Firebase Auth Emulator | Synthetic customer, staff, and manager demo accounts | Local emulator only; no SMS |
+| Authentication | Firebase Auth Emulator | Synthetic customer, staff, manager, and optional Admin accounts | Local emulator only; no SMS |
 | Operational NoSQL | Firestore Emulator | Synthetic users, departments, tickets, messages, events, and feedback | Local emulator only; production Spark unverified |
 | ML API | Local Python FastAPI | Preprocessing, trusted workflows, classification, and confidence | Local CPU only; Hugging Face Spaces unverified |
 | Offline data | Historical CFPB CSV/Parquet | Local profiling, cleaning, EDA, deterministic label mapping, and model training | Free public data; never bulk-loaded into Firestore |
@@ -160,10 +168,17 @@ production deployment or enterprise security.
 
 The build-time Day 18/19 evaluation JSON is non-sensitive aggregate evidence.
 The ignored historical-similarity index is sensitive analytical material and is
-not loaded by the runtime application. No public deployment, production Firebase
-verification, QR code, admin operations, approved retention/deletion workflow,
+not loaded by the runtime application. Customer registration/recovery, strict
+active-Admin authorization, pending Staff/Manager provisioning, and the Admin
+provisioning dashboard are implemented for the local prototype. The initial
+Admin bootstrap and pending-user activation scripts are committed but
+unexecuted. No public deployment, production Firebase verification, QR code,
+account listing, status-management UI, approved retention/deletion workflow,
 rate limiting, monitoring, disaster recovery, or independent security audit is
-implemented.
+implemented. Registration, provisioning, bootstrap, activation, and the
+browser-to-backend Admin flow remain unverified against a live Emulator because
+Firebase CLI startup stopped at a network-dependent MOTD/auto-download boundary;
+no product defect was proven.
 
 ## Historical Day 2 boundary
 

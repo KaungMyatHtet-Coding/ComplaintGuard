@@ -94,6 +94,13 @@ processes it launched. Its generated identity file is ignored and sensitive.
 
 ## Supported boundary
 
-The supported and verified mode is local emulator-based demonstration. There is
-no verified Vercel URL, Hugging Face Space, production Firebase rules deployment,
-QR code, retention/deletion job, or admin operations UI.
+The supported application mode is the local emulator-based prototype. Customer
+registration/recovery, active-Admin authorization, pending Staff/Manager
+provisioning, and the Admin provisioning UI are implemented and pure-tested but
+not runtime verified. The owner-only scripts
+`ml-api/scripts/bootstrap_local_admin.py` and
+`ml-api/scripts/activate_pending_user.py` are committed and must remain
+unexecuted until an approved isolated Emulator session is available. There is
+no verified Vercel URL, Hugging Face Space, production Firebase rules
+deployment, QR code, retention/deletion job, account-list/status UI, or
+production administration workflow.

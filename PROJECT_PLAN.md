@@ -1017,9 +1017,9 @@ Frozen evidence:
 | 0. Repository reconciliation and baseline freeze | Completed locally, not pushed | Baseline tag and upgrade branch exist locally; no Cloud work started. |
 | 1. Master plan and architecture documentation | Completed with this reconciliation commit | Documentation reconciliation only. |
 | 2. Cloud Firebase staging migration | Preparation complete; overall Phase 2 remains in progress as a deferred boundary because runtime and application connection are deferred by the no-budget/no-billing decision | `complaintguard` is preserved for possible future staging; no Cloud runtime or workflow is verified. |
-| 3. Registration, login, and account lifecycle | Approved roadmap, not implemented | Public registration creates customers only. |
-| 4. Roles and System Admin functionality | Approved roadmap, not implemented | Trusted provisioning and least privilege are required. |
-| 5. Secure & Approachable UI/UX upgrade | Approved roadmap, not implemented | Starts after local Auth, role, Admin, and workflow contracts stabilize. |
+| 3. Registration, login, and account lifecycle | Implemented locally; runtime pending | Customer-only registration/recovery is pure-tested; Emulator E2E remains pending. |
+| 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, and Admin UI exist; execution and account listing remain pending. |
+| 5. Secure & Approachable UI/UX upgrade | Initial Admin slice implemented; broader work pending | Bilingual Admin provisioning UX exists; broader refinement and browser verification remain pending. |
 | 6. Model, dataset, equations, and analytics presentation | Approved roadmap, not implemented | Read-only evidence with separate data boundaries. |
 | 7. Controlled six-department user testing | Approved roadmap, not implemented | Small-sample evidence, not formal model accuracy. |
 | 8. Controlled model-hunting resumption | Paused and approval-gated | Cannot resume before staging and Phase 7 gates. |
@@ -1041,6 +1041,79 @@ adopted by the application, and exact deployed-rules byte equality remains
 pending. `cloud_staging_not_adopted` remains enforced. Every local slice below
 must use the `demo-complaintguard` emulators, synthetic data, and reproducible
 fixtures; it must not change Cloud accounts or data.
+
+### Current account-lifecycle reconciliation checkpoint
+
+The application has four roles: Customer, Staff, Manager, and Admin. Firebase
+Console/IAM ownership is separate from the application `role: admin`. Customers
+are created through public registration only. Public input contains only email,
+password, confirmation, display name, locale, and required terms acceptance;
+public users cannot select role, department, active state, UID, timestamps, or
+claims. Firebase Auth creates the Customer identity and the trusted backend
+creates the fixed Customer profile. A definitely missing profile becomes the
+recoverable `profile_incomplete` state; privileged, inactive, and malformed
+profiles cannot use public recovery, and direct client profile writes remain
+denied.
+
+Staff and Manager accounts are prepared only through active strict Admin
+authorization and `POST /admin/users`. Admin may create Staff or Manager only;
+Admin cannot create Customer or another Admin, and Manager cannot provision
+accounts. New Auth identities are disabled, passwordless, and without custom
+claims. New profiles are `active: false`; Staff requires exactly one approved
+department and Manager requires `departmentId: null`, with a `pending_setup`
+result. The Admin dashboard has no password field and creates pending accounts
+only. Manager handles complaint operations, routing review, and analytics.
+
+The fixed synthetic local Admin contract is UID
+`complaintguard-local-admin-v1`, email `admin.demo@complaintguard.test`, display
+name `ComplaintGuard Admin`, locale `en`, role `admin`, and null department. It
+is owned by `ml-api/scripts/bootstrap_local_admin.py`, which validates the local
+Emulator environment and uses hidden interactive password input only for first
+creation. The helper is committed but unexecuted; no new application Admin
+account has been runtime-created by this workflow. Its password prompt is not a
+Windows administrator credential prompt and must never become a public route.
+
+Pending Staff/Manager activation is owned by
+`ml-api/scripts/activate_pending_user.py`. It selects a target interactively by
+email, verifies trusted provisioning provenance, accepts only pending Staff or
+Manager accounts, sets a password while Auth remains disabled, enables Auth,
+and then activates the matching profile. It preserves UID, email, display name,
+locale, role, department, and `createdAt`; Customer, Admin, manual, seeded, and
+unlinked accounts cannot use the flow. The helper is committed but unexecuted.
+
+The trusted `adminProvisioningActions/{actionId}` collection is inaccessible to
+direct clients under the existing catch-all rules. Its action ID is lowercase
+SHA-256 over canonical UTF-8 JSON containing the domain/version, verified actor
+UID, and normalized idempotency key. It stores only safe provisioning metadata,
+target UID where known, fingerprints, lifecycle status, safe result code, and
+server timestamps. It never stores passwords, tokens, claims, headers, or full
+credential-bearing requests. Same actor/key/request retries are idempotent;
+changed requests conflict; different Admin actors remain isolated. Partial
+failures preserve disabled Auth and inactive profiles for recovery.
+
+The six authoritative department IDs are `transfer_payment`,
+`account_support`, `card_atm`, `fraud_security`, `loan_credit`, and
+`general_support`. Staff requires exactly one valid ID; Customer, Manager, and
+Admin require null department. The backend allowlist is authoritative until a
+separately approved department-metadata collection exists; localized frontend
+labels are presentation only.
+
+Implemented and statically/pure-tested: Customer registration/recovery, active
+Admin authorization, pending Staff/Manager provisioning, the Admin dashboard,
+the local Admin bootstrap helper, and the pending-user activation helper. Not
+runtime verified: Customer registration Emulator E2E, bootstrap execution,
+pending provisioning against a live Emulator, activation execution, and the
+Admin dashboard browser-to-backend flow. Firebase CLI Configstore EPERM was
+safely bypassed with a temporary configuration, but startup stopped at
+network-dependent MOTD/auto-download behavior. No product defect was proven;
+these workflows must not be described as passed.
+
+Next local roadmap order is: documentation reconciliation; a read-only Admin
+account-list endpoint; Staff/Manager list UI; status lifecycle design and
+implementation; broader UI/UX refinement; model/data-analysis presentation;
+final local packaging and teacher-facing evidence. Cloud work remains gated on
+future budget and owner approval, and model hunting remains separately
+approval-gated.
 
 #### Local slice 1 — Customer registration and login lifecycle
 

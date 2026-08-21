@@ -47,6 +47,36 @@ Operational profile keyed by the Firebase Authentication UID.
 
 Role, department, active status, ownership, and timestamps are never ordinary client-writable fields. Authentication credentials remain in Firebase Authentication, not this document.
 
+Public registration is Customer-only. Firebase Auth creates the identity and the
+trusted backend completes `users/{uid}` with `role: customer`,
+`departmentId: null`, and `active: true`; public input cannot select a role,
+department, active state, UID, timestamps, or claims. A definitely missing
+profile is represented in the frontend as recoverable `profile_incomplete`.
+Privileged, inactive, and malformed profiles are not publicly repairable, and
+direct client profile writes remain denied.
+
+Pending Staff and Manager profiles are created only by the trusted
+`POST /admin/users` workflow after active Admin authorization. They begin with
+`active: false`; Staff requires exactly one of the six approved departments and
+Manager requires `departmentId: null`. Their Auth identities begin disabled,
+passwordless, and without custom claims. The local owner-only activation helper
+sets credentials while disabled, enables Auth, and then changes only `active` and
+`updatedAt`. The bootstrap and activation scripts are committed but unexecuted.
+
+### `adminProvisioningActions/{actionId}`
+
+This trusted backend-only collection records safe provisioning lifecycle
+metadata. Existing catch-all Firestore rules deny direct client access. The
+document ID is lowercase SHA-256 of canonical UTF-8 JSON containing the fixed
+domain/version, verified actor UID, and normalized idempotency key; raw UIDs and
+keys are never used as document IDs. Records contain only verified actor and
+known target UIDs, action/key and request fingerprints, operation/lifecycle
+status, safe result codes, and server timestamps. Passwords, tokens, claims,
+headers, and full credential-bearing requests are never stored. Same actor/key/
+request retries are idempotent; a changed request conflicts, while different
+Admin actors remain isolated. Partial failures preserve disabled Auth and
+inactive profiles for safe recovery.
+
 ### `departments/{departmentId}`
 
 Canonical operational department metadata. Document IDs must use the six stable IDs.
@@ -59,6 +89,11 @@ Canonical operational department metadata. Document IDs must use the six stable 
 | `updatedAt` | timestamp | yes | trusted backend | Last trusted update |
 
 Authenticated users may read department metadata. An admin may request changes only through an audited trusted backend; direct client writes are denied.
+
+The six IDs above are the backend authority until a separately approved
+department-metadata collection is formally implemented. Frontend localized
+labels are presentation only. Staff must select exactly one valid department;
+Manager, Admin, and Customer profiles require `departmentId: null`.
 
 ### `tickets/{ticketId}`
 

@@ -7,8 +7,11 @@ synthetic identities and synthetic complaints. Never expose the ignored seeded
 password file, Firebase ID tokens, `.env.local`, terminal environment values,
 service-account material, real complaint narratives, or raw CFPB Complaint IDs.
 
-Do not present public deployment, live historical neighbors, admin operations,
-production security, or automatic Myanmar routing as implemented.
+Do not present public deployment, live historical neighbors, production
+security, or automatic Myanmar routing as implemented. The Admin provisioning
+dashboard and trusted pending-account workflow are implemented but remain
+runtime-unverified; do not execute the owner-only bootstrap or activation
+scripts during the ordinary demo.
 
 ## Prerequisites
 
@@ -149,7 +152,10 @@ npm.cmd run dev -- -H 127.0.0.1 -p 3000
 ```
 
 Visit `http://127.0.0.1:3000/login`. All roles use `/dashboard` after profile
-resolution. Admin is intentionally not seeded and has no operational workflow.
+resolution. Admin is intentionally not seeded. The Admin dashboard can prepare
+pending Staff/Manager accounts only when an active Admin profile exists, but the
+bootstrap, provisioning, activation, and browser-to-backend flows are not
+runtime verified.
 
 ## Approved synthetic examples
 
@@ -350,7 +356,8 @@ after import. Keep the export local and ignored. Never:
 
 - Historical-neighbor results or similarity percentages
 - Coverage over all mapped/raw complaints
-- Admin operations
+- Runtime Admin account provisioning, bootstrap, and activation (implemented
+  locally but not runtime verified)
 - Production Firebase or public deployment
 - QR code
 - Automatic Myanmar routing
