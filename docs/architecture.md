@@ -169,14 +169,24 @@ production deployment or enterprise security.
 The build-time Day 18/19 evaluation JSON is non-sensitive aggregate evidence.
 The ignored historical-similarity index is sensitive analytical material and is
 not loaded by the runtime application. Customer registration/recovery, strict
-active-Admin authorization, pending Staff/Manager provisioning, and the Admin
-provisioning dashboard are implemented for the local prototype. The initial
+active-Admin authorization, pending Staff/Manager provisioning, the Admin
+provisioning dashboard, and the read-only `GET /admin/users` Staff/Manager
+directory are implemented for the local prototype. The directory exposes only
+email, display name, locale, role, department, profile active state, and
+profile setup status; it excludes Customers, Admins, UIDs, credentials,
+claims, timestamps, Auth-provider details, and provisioning action records.
+It supports approved role/department/status/search filters, a bounded
+200-profile scan, page sizes from 1 to 50, and opaque cursor pagination. Its
+Pending/Active wording represents Firestore profile state only and does not
+independently verify Firebase Auth state. The directory has no edit,
+activation, reassignment, disable/reactivate, or deletion controls. The initial
 Admin bootstrap and pending-user activation scripts are committed but
 unexecuted. No public deployment, production Firebase verification, QR code,
-account listing, status-management UI, approved retention/deletion workflow,
-rate limiting, monitoring, disaster recovery, or independent security audit is
+account status-management UI, approved retention/deletion workflow, rate
+limiting, monitoring, disaster recovery, or independent security audit is
 implemented. Registration, provisioning, bootstrap, activation, and the
-browser-to-backend Admin flow remain unverified against a live Emulator because
+browser-to-backend Admin directory/provisioning flows remain unverified against
+a live Emulator because
 Firebase CLI startup stopped at a network-dependent MOTD/auto-download boundary;
 no product defect was proven.
 

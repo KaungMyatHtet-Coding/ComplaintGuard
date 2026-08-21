@@ -9,9 +9,13 @@ service-account material, real complaint narratives, or raw CFPB Complaint IDs.
 
 Do not present public deployment, live historical neighbors, production
 security, or automatic Myanmar routing as implemented. The Admin provisioning
-dashboard and trusted pending-account workflow are implemented but remain
-runtime-unverified; do not execute the owner-only bootstrap or activation
-scripts during the ordinary demo.
+dashboard, trusted pending-account workflow, and read-only Staff/Manager
+directory are implemented but remain runtime-unverified; do not execute the
+owner-only bootstrap or activation scripts during the ordinary demo. The
+directory is Admin-only, exposes only safe operational profile fields, supports
+bounded filters/pagination, and has no account mutation controls. Pending/Active
+labels describe Firestore profile state only, not independently verified
+Firebase Auth state.
 
 ## Prerequisites
 
@@ -356,8 +360,8 @@ after import. Keep the export local and ignored. Never:
 
 - Historical-neighbor results or similarity percentages
 - Coverage over all mapped/raw complaints
-- Runtime Admin account provisioning, bootstrap, and activation (implemented
-  locally but not runtime verified)
+- Runtime Admin provisioning, Staff/Manager directory, bootstrap, and
+  activation (implemented locally but not runtime verified)
 - Production Firebase or public deployment
 - QR code
 - Automatic Myanmar routing

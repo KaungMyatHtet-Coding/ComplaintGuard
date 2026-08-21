@@ -428,8 +428,16 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 3. [x] Admin-only pending-account dashboard with bilingual confirmation UX.
 4. [x] Commit owner-only local Admin bootstrap and pending-user activation
    helpers; both remain unexecuted.
-5. [ ] Read-only Admin account-list endpoint and pure/fake tests.
-6. [ ] Admin Staff/Manager account-list UI without activation or status changes.
+5. [x] Read-only Admin `GET /admin/users` endpoint and pure/fake tests. It
+   returns only safe Staff/Manager operational fields, excludes Customers,
+   Admins, UIDs, credentials, claims, timestamps, Auth-provider details, and
+   provisioning action records, and supports role/department/status/search
+   filters with a bounded 200-profile scan, page sizes from 1 to 50, and
+   opaque cursor pagination.
+6. [x] Bilingual read-only Admin Staff/Manager directory UI without
+   activation, editing, reassignment, disable/reactivate, or deletion
+   controls. Pending/Active labels represent Firestore profile state only;
+   Firebase Auth state is not independently verified by the directory.
 7. [ ] Status lifecycle design and implementation: activation, disable, and
    reactivation policy with separate owner approval.
 8. [ ] UI/UX refinement and accessibility review without changing authorization.
@@ -441,10 +449,11 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 
 Current verification boundary: the implementation slices above are statically
 and pure-tested, but registration E2E, live Emulator provisioning, bootstrap,
-activation, and browser-to-backend Admin provisioning remain unverified. Firebase
-CLI Configstore permission was safely isolated with a temporary configuration;
-startup still stopped at network-dependent MOTD/auto-download behavior. No
-product defect was proven and no runtime pass may be claimed.
+activation, browser-to-backend Admin provisioning, and the Admin directory
+workflow remain unverified. Firebase CLI Configstore permission was safely
+isolated with a temporary configuration; startup still stopped at
+network-dependent MOTD/auto-download behavior. No product defect was proven
+and no runtime pass may be claimed.
 
 ### Deferred backlog — not current execution order
 

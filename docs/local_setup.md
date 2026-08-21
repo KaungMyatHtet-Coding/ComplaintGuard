@@ -102,5 +102,11 @@ not runtime verified. The owner-only scripts
 `ml-api/scripts/activate_pending_user.py` are committed and must remain
 unexecuted until an approved isolated Emulator session is available. There is
 no verified Vercel URL, Hugging Face Space, production Firebase rules
-deployment, QR code, retention/deletion job, account-list/status UI, or
-production administration workflow.
+deployment, QR code, retention/deletion job, account status-management UI, or
+production administration workflow. The Admin-only `GET /admin/users` endpoint
+and bilingual read-only Staff/Manager directory are implemented and
+pure-tested, but remain runtime-unverified. They expose only safe operational
+profile fields, use bounded filtering/pagination, and provide no edit,
+activation, reassignment, disable/reactivate, or deletion controls. Pending and
+Active describe Firestore profile state only, not independently verified
+Firebase Auth state.
