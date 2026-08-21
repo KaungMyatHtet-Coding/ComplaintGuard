@@ -213,7 +213,7 @@ export default function RegisterPage() {
   return (
     <>
       <AppHeader />
-      <main className="min-h-[calc(100vh-4.5rem)] bg-white px-4 py-10 sm:px-6 lg:px-8">
+      <main className="auth-page min-h-[calc(100vh-4.5rem)] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">{title}</h1>
@@ -223,7 +223,7 @@ export default function RegisterPage() {
           {formError || supportRequired || status === "configuration_missing" ? (
             <div
               ref={errorSummaryRef}
-              className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+              className="auth-error-summary mb-6 rounded-xl border p-4 text-sm"
               role="alert"
               tabIndex={-1}
             >
@@ -245,11 +245,11 @@ export default function RegisterPage() {
           ) : null}
 
           {showForm && !accountCreated ? (
-            <form onSubmit={recovery ? submitRecovery : submitRegistration} noValidate className="space-y-5 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+            <form onSubmit={recovery ? submitRecovery : submitRegistration} noValidate className="auth-form space-y-5 rounded-2xl border p-5 shadow-sm sm:p-8">
               {!recovery ? (
                 <div>
                   <label htmlFor="register-email" className="mb-2 block text-sm font-bold text-gray-700">{t("email")}</label>
-                  <input id="register-email" name="email" type="email" autoComplete="email" value={input.email} onChange={(event) => updateField("email", event.target.value)} aria-invalid={Boolean(fieldErrors.email)} aria-describedby="register-email-help register-email-error" className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition-all focus:border-black focus:bg-white focus:ring-2 focus:ring-black" />
+                  <input id="register-email" name="email" type="email" autoComplete="email" value={input.email} onChange={(event) => updateField("email", event.target.value)} aria-invalid={Boolean(fieldErrors.email)} aria-describedby="register-email-help register-email-error" className="auth-input" />
                   <p id="register-email-help" className="mt-2 text-xs text-gray-500">{t("registerEmailHelp")}</p>
                   {fieldErrors.email ? <p id="register-email-error" className="mt-1 text-sm text-red-700">{fieldErrors.email}</p> : null}
                 </div>
@@ -257,7 +257,7 @@ export default function RegisterPage() {
 
               <div>
                 <label htmlFor="register-display-name" className="mb-2 block text-sm font-bold text-gray-700">{t("displayName")}</label>
-                <input id="register-display-name" name="name" type="text" autoComplete="name" value={input.displayName} onChange={(event) => updateField("displayName", event.target.value)} aria-invalid={Boolean(fieldErrors.displayName)} className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition-all focus:border-black focus:bg-white focus:ring-2 focus:ring-black" />
+                <input id="register-display-name" name="name" type="text" autoComplete="name" value={input.displayName} onChange={(event) => updateField("displayName", event.target.value)} aria-invalid={Boolean(fieldErrors.displayName)} className="auth-input" />
                 <p className="mt-2 text-xs text-gray-500">{t("displayNameHelp")}</p>
                 {fieldErrors.displayName ? <p className="mt-1 text-sm text-red-700">{fieldErrors.displayName}</p> : null}
               </div>
@@ -266,18 +266,18 @@ export default function RegisterPage() {
                 <>
                   <div>
                     <label htmlFor="register-password" className="mb-2 block text-sm font-bold text-gray-700">{t("password")}</label>
-                    <div className="flex gap-2">
-                      <input id="register-password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={input.password} onChange={(event) => updateField("password", event.target.value)} aria-invalid={Boolean(fieldErrors.password)} className="min-w-0 flex-1 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition-all focus:border-black focus:bg-white focus:ring-2 focus:ring-black" />
-                      <button type="button" className="rounded-xl border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-100" aria-label={showPassword ? t("hidePassword") : t("showPassword")} onClick={() => setShowPassword((value) => !value)}>{showPassword ? t("hidePassword") : t("showPassword")}</button>
+                    <div className="auth-password-row">
+                      <input id="register-password" name="password" type={showPassword ? "text" : "password"} autoComplete="new-password" value={input.password} onChange={(event) => updateField("password", event.target.value)} aria-invalid={Boolean(fieldErrors.password)} className="auth-input" />
+                      <button type="button" className="auth-password-toggle" aria-label={showPassword ? t("hidePassword") : t("showPassword")} onClick={() => setShowPassword((value) => !value)}>{showPassword ? t("hidePassword") : t("showPassword")}</button>
                     </div>
                     <p className="mt-2 text-xs text-gray-500">{t("passwordRequirements")}</p>
                     {fieldErrors.password ? <p className="mt-1 text-sm text-red-700">{fieldErrors.password}</p> : null}
                   </div>
                   <div>
                     <label htmlFor="register-confirm-password" className="mb-2 block text-sm font-bold text-gray-700">{t("confirmPassword")}</label>
-                    <div className="flex gap-2">
-                      <input id="register-confirm-password" name="confirmPassword" type={showConfirmation ? "text" : "password"} autoComplete="new-password" value={input.confirmPassword} onChange={(event) => updateField("confirmPassword", event.target.value)} aria-invalid={Boolean(fieldErrors.confirmPassword)} className="min-w-0 flex-1 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition-all focus:border-black focus:bg-white focus:ring-2 focus:ring-black" />
-                      <button type="button" className="rounded-xl border border-gray-300 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-100" aria-label={showConfirmation ? t("hidePasswordConfirmation") : t("showPasswordConfirmation")} onClick={() => setShowConfirmation((value) => !value)}>{showConfirmation ? t("hidePasswordConfirmation") : t("showPasswordConfirmation")}</button>
+                    <div className="auth-password-row">
+                      <input id="register-confirm-password" name="confirmPassword" type={showConfirmation ? "text" : "password"} autoComplete="new-password" value={input.confirmPassword} onChange={(event) => updateField("confirmPassword", event.target.value)} aria-invalid={Boolean(fieldErrors.confirmPassword)} className="auth-input" />
+                      <button type="button" className="auth-password-toggle" aria-label={showConfirmation ? t("hidePasswordConfirmation") : t("showPasswordConfirmation")} onClick={() => setShowConfirmation((value) => !value)}>{showConfirmation ? t("hidePasswordConfirmation") : t("showPasswordConfirmation")}</button>
                     </div>
                     {fieldErrors.confirmPassword ? <p className="mt-1 text-sm text-red-700">{fieldErrors.confirmPassword}</p> : null}
                   </div>
@@ -303,7 +303,7 @@ export default function RegisterPage() {
               </label>
               {fieldErrors.termsAccepted ? <p className="text-sm text-red-700">{fieldErrors.termsAccepted}</p> : null}
 
-              <button type="submit" disabled={isBusy} className="w-full rounded-xl bg-black px-4 py-3.5 text-sm font-bold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="submit" disabled={isBusy} className="auth-submit">
                 {isBusy ? (recovery ? t("finishingSetup") : t("registering")) : recovery ? t("finishSetup") : t("register")}
               </button>
             </form>

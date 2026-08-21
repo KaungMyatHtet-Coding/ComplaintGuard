@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 
 import { AppHeader } from "@/components/app-header";
@@ -13,12 +13,20 @@ export default function LoginPage() {
   const { errorCode, profile, signIn, status, t } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (profile && status === "authenticated") {
       router.replace(roleDestinations[profile.role]);
     }
   }, [profile, router, status]);
+
+  useEffect(() => {
+    if (status === "error" || status === "configuration_missing") {
+      window.requestAnimationFrame(() => errorSummaryRef.current?.focus());
+    }
+  }, [status]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,7 +41,7 @@ export default function LoginPage() {
   return (
     <>
       <AppHeader />
-      <main className="flex min-h-[calc(100vh-4.5rem)] bg-white animate-fade-in">
+      <main className="auth-page flex min-h-[calc(100vh-4.5rem)] animate-fade-in">
         {/* Left Side: Intro & Branding */}
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 xl:px-24 relative overflow-hidden bg-gray-950">
           <div 
@@ -66,14 +74,14 @@ export default function LoginPage() {
             </div>
 
             {configurationMissing ? (
-              <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800" role="alert">
+              <div ref={errorSummaryRef} tabIndex={-1} className="auth-error-summary mb-6 rounded-xl border p-4 text-sm" role="alert">
                 <strong className="block font-bold mb-1">{t("configMissing")}</strong>
                 <span className="text-sm">{t("configHelp")}</span>
               </div>
             ) : null}
             
             {status === "error" ? (
-              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 font-medium text-sm" role="alert">
+              <div ref={errorSummaryRef} tabIndex={-1} className="auth-error-summary mb-6 rounded-xl border p-4 text-sm font-medium" role="alert">
                 {permissionError ? t("permissionError") : t("authError")}
               </div>
             ) : null}
@@ -96,28 +104,33 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-black focus:border-black transition-all bg-gray-50 focus:bg-white text-gray-900 outline-none"
+                  className="auth-input"
                   placeholder="name@example.com"
                 />
               </div>
 
               <div>
               <label htmlFor="login-password" className="block text-sm font-bold text-gray-700 mb-2">{t("password")}</label>
+              <div className="auth-password-row">
               <input
                 id="login-password"
                 name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-black focus:border-black transition-all bg-gray-50 focus:bg-white text-gray-900 outline-none"
+                  className="auth-input"
                   placeholder="••••••••"
                 />
+                <button type="button" className="auth-password-toggle" aria-label={showPassword ? t("hidePassword") : t("showPassword")} onClick={() => setShowPassword((value) => !value)}>
+                  {showPassword ? t("hidePassword") : t("showPassword")}
+                </button>
+              </div>
               </div>
 
               <button 
-                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-4" 
+                className="auth-submit mt-4"
                 disabled={isLoading || configurationMissing}
                 suppressHydrationWarning
               >
@@ -127,7 +140,7 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center text-sm text-gray-600">
               <span>{t("registerLead")} </span>
-              <Link href="/register" className="font-bold underline underline-offset-4 hover:text-black">
+              <Link href="/register" className="font-bold underline underline-offset-4">
                 {t("createAccount")}
               </Link>
             </div>
