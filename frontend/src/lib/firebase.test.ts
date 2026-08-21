@@ -33,6 +33,23 @@ describe("Firebase configuration boundary", () => {
     ).toBe(true);
   });
 
+  it("uses the browser-safe environment projection for default validation", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
+    vi.stubEnv("NEXT_PUBLIC_USE_FIREBASE_EMULATORS", "true");
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://127.0.0.1:8000");
+    vi.stubEnv("SECRET_NOT_FOR_BROWSER", "must-not-be-required");
+
+    expect(
+      hasFirebaseConfig({
+        apiKey: "synthetic-public-web-key",
+        authDomain: "demo-complaintguard.firebaseapp.com",
+        projectId: "demo-complaintguard",
+        appId: "1:000:web:synthetic",
+      }),
+    ).toBe(true);
+  });
+
   it("requires an explicit local development switch for emulators", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");

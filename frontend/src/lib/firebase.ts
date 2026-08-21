@@ -10,7 +10,10 @@ import {
   FirebaseEnvironmentError,
   validateFirebaseEnvironment,
 } from "./firebase-environment";
-import type { RuntimeEnvironment } from "./runtime-environment";
+import {
+  getBrowserRuntimeEnvironment,
+  type RuntimeEnvironment,
+} from "./runtime-environment";
 
 const firebaseOptions: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,7 +26,7 @@ const firebaseOptions: FirebaseOptions = {
 
 export function hasFirebaseConfig(
   options = firebaseOptions,
-  environment: RuntimeEnvironment = process.env,
+  environment: RuntimeEnvironment = getBrowserRuntimeEnvironment(),
 ): boolean {
   try {
     validateFirebaseEnvironment(environment, options);
@@ -35,7 +38,7 @@ export function hasFirebaseConfig(
 
 export function getFirebaseServices(
   options = firebaseOptions,
-  environmentValues: RuntimeEnvironment = process.env,
+  environmentValues: RuntimeEnvironment = getBrowserRuntimeEnvironment(),
 ): { auth: Auth; db: Firestore } {
   let environment;
   try {
@@ -60,10 +63,11 @@ export function getFirebaseServices(
 let emulatorsConnected = false;
 
 export function shouldUseFirebaseEmulators(): boolean {
+  const environment = getBrowserRuntimeEnvironment();
   return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.NEXT_PUBLIC_APP_ENV === "local-emulator" &&
-    process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true"
+    environment.NODE_ENV !== "production" &&
+    environment.NEXT_PUBLIC_APP_ENV === "local-emulator" &&
+    environment.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true"
   );
 }
 

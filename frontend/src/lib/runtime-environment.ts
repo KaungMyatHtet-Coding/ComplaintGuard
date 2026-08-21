@@ -4,6 +4,20 @@ export const CLOUD_STAGING_MODE = "cloud-staging" as const;
 export type ApplicationMode = typeof LOCAL_EMULATOR_MODE | typeof CLOUD_STAGING_MODE;
 export type RuntimeEnvironment = Record<string, string | undefined>;
 
+/**
+ * Next.js only statically inlines direct public-environment references in the
+ * browser bundle. Keep this projection explicit and limited to configuration
+ * fields that are safe and required by browser runtime guards.
+ */
+export function getBrowserRuntimeEnvironment(): RuntimeEnvironment {
+  return {
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
+    NEXT_PUBLIC_USE_FIREBASE_EMULATORS: process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS,
+    NEXT_PUBLIC_ML_API_URL: process.env.NEXT_PUBLIC_ML_API_URL,
+  };
+}
+
 export class RuntimeEnvironmentError extends Error {
   constructor(public readonly code: string) {
     super(code);
@@ -30,7 +44,7 @@ function isLoopback(hostname: string): boolean {
 }
 
 export function resolveMlApiBaseUrl(
-  environment: RuntimeEnvironment = process.env,
+  environment: RuntimeEnvironment = getBrowserRuntimeEnvironment(),
 ): ResolvedMlApi {
   const mode = requireMode(environment);
   if (mode === LOCAL_EMULATOR_MODE && environment.NODE_ENV === "production") {
@@ -68,7 +82,7 @@ export function resolveMlApiBaseUrl(
 }
 
 export function resolveLocalMlApiBaseUrl(
-  environment: RuntimeEnvironment = process.env,
+  environment: RuntimeEnvironment = getBrowserRuntimeEnvironment(),
 ): string {
   const resolved = resolveMlApiBaseUrl(environment);
   if (resolved.mode !== LOCAL_EMULATOR_MODE) {

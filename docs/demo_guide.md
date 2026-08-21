@@ -148,6 +148,8 @@ Set-Location D:\ComplaintGuard\frontend
 $env:NEXT_PUBLIC_FIREBASE_API_KEY = "emulator-only"
 $env:NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "demo-complaintguard.firebaseapp.com"
 $env:NEXT_PUBLIC_FIREBASE_PROJECT_ID = "demo-complaintguard"
+$env:NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "demo-complaintguard.firebasestorage.app"
+$env:NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "000000000000"
 $env:NEXT_PUBLIC_FIREBASE_APP_ID = "1:000:web:emulator"
 $env:NEXT_PUBLIC_APP_ENV = "local-emulator"
 $env:NEXT_PUBLIC_USE_FIREBASE_EMULATORS = "true"

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { resolveMlApiBaseUrl } from "./runtime-environment";
+import { getBrowserRuntimeEnvironment, resolveMlApiBaseUrl } from "./runtime-environment";
 
 const local = {
   NEXT_PUBLIC_APP_ENV: "local-emulator",
@@ -8,6 +8,21 @@ const local = {
 };
 
 describe("runtime environment contract", () => {
+  it("projects only approved browser runtime fields", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
+    vi.stubEnv("NEXT_PUBLIC_USE_FIREBASE_EMULATORS", "true");
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://127.0.0.1:8000");
+    vi.stubEnv("SECRET_NOT_FOR_BROWSER", "must-not-project");
+
+    expect(getBrowserRuntimeEnvironment()).toEqual({
+      NODE_ENV: "development",
+      NEXT_PUBLIC_APP_ENV: "local-emulator",
+      NEXT_PUBLIC_USE_FIREBASE_EMULATORS: "true",
+      NEXT_PUBLIC_ML_API_URL: "http://127.0.0.1:8000",
+    });
+  });
+
   it("accepts and normalizes an explicit local API URL", () => {
     expect(resolveMlApiBaseUrl(local)).toEqual({
       mode: "local-emulator",
