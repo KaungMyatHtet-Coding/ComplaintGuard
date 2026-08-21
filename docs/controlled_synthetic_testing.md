@@ -64,3 +64,17 @@ The historical validation-selected model threshold `0.0` and the operational
 routing threshold `0.60` are recorded separately. No controlled result may be
 copied into the Day 18 official evaluation artifacts or presented as a model
 replacement.
+
+## V2A case-definition checkpoint
+
+V2A is a case-definition-only checkpoint for the intended supported-use
+benchmark. The separate manifest
+`evaluation/controlled/six_department_long_english_v2a_manifest.json` contains
+six predefined long-English synthetic cases, one per authoritative department,
+with no prediction, confidence, routing, or correctness fields. The wording
+and expected labels are committed before any V2 inference so later V2B
+execution cannot tune them after observing results.
+
+V2 inference has not run, and no V2 success rate exists. V2A is not official
+held-out evaluation or live-user performance. A later V2B runner must require
+the finalized manifest SHA-256 before loading the model or producing results.
