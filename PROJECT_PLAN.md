@@ -1016,17 +1016,132 @@ Frozen evidence:
 |---|---|---|
 | 0. Repository reconciliation and baseline freeze | Completed locally, not pushed | Baseline tag and upgrade branch exist locally; no Cloud work started. |
 | 1. Master plan and architecture documentation | Completed with this reconciliation commit | Documentation reconciliation only. |
-| 2. Cloud Firebase staging migration | In progress; Phase 2A–2D audit/adoption checkpoints complete, technical verification and application connection blocked | Cost-controlled synthetic-only staging; no production claim. |
+| 2. Cloud Firebase staging migration | Preparation complete; overall Phase 2 remains in progress as a deferred boundary because runtime and application connection are deferred by the no-budget/no-billing decision | `complaintguard` is preserved for possible future staging; no Cloud runtime or workflow is verified. |
 | 3. Registration, login, and account lifecycle | Approved roadmap, not implemented | Public registration creates customers only. |
 | 4. Roles and System Admin functionality | Approved roadmap, not implemented | Trusted provisioning and least privilege are required. |
-| 5. Secure & Approachable UI/UX upgrade | Approved roadmap, not implemented | Starts after Cloud/auth/role contracts stabilize. |
+| 5. Secure & Approachable UI/UX upgrade | Approved roadmap, not implemented | Starts after local Auth, role, Admin, and workflow contracts stabilize. |
 | 6. Model, dataset, equations, and analytics presentation | Approved roadmap, not implemented | Read-only evidence with separate data boundaries. |
 | 7. Controlled six-department user testing | Approved roadmap, not implemented | Small-sample evidence, not formal model accuracy. |
 | 8. Controlled model-hunting resumption | Paused and approval-gated | Cannot resume before staging and Phase 7 gates. |
 | 9. Future production readiness | Future work, not implemented | Separate from staging and local verification. |
 
 Each phase below records its objective, dependencies, tasks, risks, evidence,
-acceptance criteria, rollback point, owner approvals, and relative effort.
+acceptance criteria, rollback point, owner approvals, and relative effort. The
+following local-only order is the current execution sequence. The older Phase
+3–9 descriptions below preserve approved scope and historical planning detail;
+they do not override this sequence.
+
+### Current local-only implementation order
+
+Cloud staging work is deferred, not cancelled. Firebase remains on Spark with
+no billing account, no Cloud backend hosting is approved, the local index
+manifest is not deployed, App Check remains unconfigured, Spark managed
+backup/PITR remains unavailable, Google Auth is enabled in Console but not
+adopted by the application, and exact deployed-rules byte equality remains
+pending. `cloud_staging_not_adopted` remains enforced. Every local slice below
+must use the `demo-complaintguard` emulators, synthetic data, and reproducible
+fixtures; it must not change Cloud accounts or data.
+
+#### Local slice 1 — Customer registration and login lifecycle
+
+- **Objective:** Add local customer-only registration and login while preserving seeded workflows.
+- **Dependencies:** Local Auth/profile contract, emulator separation, existing rules/tests, and customer account policy.
+- **Scope:** Registration, email/password login, logout, verification/reset states, duplicate/disabled handling, validation, and safe Auth/profile recovery.
+- **Out of scope:** Privileged roles, department selection, Cloud Auth, Google Auth adoption, hosting, billing, and production claims.
+- **Security/privacy:** Public registration may create Customer accounts only; clients must never submit `staff`, `manager`, `admin`, or `departmentId`. Never log passwords, tokens, emails, or UIDs; use synthetic identities.
+- **Tests:** Emulator success, duplicate, reset, disabled, malformed-profile, partial-failure, and self-promotion-rejection tests.
+- **Acceptance:** Public registration creates only customers, protected workflows reject invalid/disabled users, and seed accounts remain reproducible.
+- **Rollback:** Disable registration routes and retain seeded local login.
+- **Approvals:** Customer fields and password/verification/privacy policy.
+
+#### Local slice 2 — Trusted role/profile provisioning design
+
+- **Objective:** Define and locally prove trusted role/profile provisioning.
+- **Dependencies:** Slice 1, role matrix, rules, and emulator fixture contract.
+- **Scope:** Atomic-or-recoverable Auth/profile creation, role/status/department invariants, disable/reactivate recovery, audit design, and deterministic fixtures.
+- **Out of scope:** Cloud provisioning, service identities, Admin SDK deployment, migrations, and real-person data.
+- **Security/privacy:** Privileged roles require a trusted path; clients cannot assign role, department, or active status; preserve model evidence and synthetic-only content.
+- **Tests:** Partial-creation failure injection, invariants, recovery, rules boundaries, and repeatable fixture reset checks.
+- **Acceptance:** No orphaned or self-promoted privileged profile is accepted and recovery is documented.
+- **Rollback:** Keep the current profile/seed contract and disable new provisioning operations.
+- **Approvals:** Trusted-provisioning owner, role matrix, audit fields, and disable/delete policy.
+
+#### Local slice 3 — Admin role and Admin dashboard
+
+- **Objective:** Add a least-privilege local System Administrator role and dashboard.
+- **Dependencies:** Slices 1–2, final role matrix, and audit design.
+- **Scope:** Trusted Admin fixture, role-gated dashboard, profile/status visibility, health/usage summaries, and approved audited actions.
+- **Out of scope:** Public role assignment, Cloud Admin identity, billing, hosting, destructive bulk actions, and production administration.
+- **Security/privacy:** Enforce Admin access in backend/rules; keep original predictions/evaluation immutable; use synthetic users.
+- **Tests:** Every-role authorization, Admin-only routes, denied non-Admin access, audited changes, disabled Admin handling, and evidence immutability.
+- **Acceptance:** Other roles cannot access Admin views and Admin actions cannot rewrite original model evidence.
+- **Rollback:** Disable Admin routes/dashboard while retaining existing workflows.
+- **Approvals:** Admin owner/bootstrap, action list, visibility, and disable/delete safeguards.
+
+#### Local slice 4 — Six department-staff identities and controlled local users
+
+- **Objective:** Establish reproducible synthetic local staff coverage for all six departments.
+- **Dependencies:** Trusted provisioning design, role matrix, and emulator seed contract.
+- **Scope:** One synthetic staff fixture per stable department ID plus controlled customer, manager, and Admin users, with reset expectations.
+- **Out of scope:** Cloud identity changes, real emails, bulk imports, public staff registration, and lead roles.
+- **Security/privacy:** No private identifiers or real complaint content; preserve department isolation and inactive-user enforcement.
+- **Tests:** Deterministic seeds, six-department coverage, cross-department denial, customer ownership, manager/Admin boundaries, and disabled-user access.
+- **Acceptance:** All six departments have controlled synthetic coverage and repeated local setup produces the same fixture contract.
+- **Rollback:** Revert to the current reproducible emulator seed set.
+- **Approvals:** Synthetic roster, retention, and test-user visibility.
+
+#### Local slice 5 — UI/UX redesign and accessibility
+
+- **Objective:** Improve clarity, accessibility, bilingual presentation, and responsive behavior without changing authorization.
+- **Dependencies:** Stable local Auth, role/profile, Admin, and workflow contracts from Slices 1–4.
+- **Scope:** Accessible auth states, role navigation, customer status language, staff workflow, manager/Admin views, keyboard/focus, contrast, mobile, and long-text behavior.
+- **Out of scope:** Cloud connection, hosting, new runtime APIs, model changes, and UI-only authorization.
+- **Security/privacy:** UI hiding never replaces backend/rules checks; do not expose technical evidence or sensitive-data guidance incorrectly.
+- **Tests:** Component, keyboard/focus, contrast, bilingual, responsive, browser workflow, and role-visibility tests using emulators.
+- **Acceptance:** WCAG findings are recorded, role visibility is correct, and existing workflows remain intact.
+- **Rollback:** Revert UI-only changes while retaining local backend/data.
+- **Approvals:** Copy, palette, evidence visibility, accessibility scope, and demo acceptance.
+
+#### Local slice 6 — Manager ML/data-analysis and equation presentation
+
+- **Objective:** Present read-only, role-scoped frozen model and operational analysis with accessible equations.
+- **Dependencies:** Frozen hashes, stable roles, Slice 5 patterns, and approved analysis boundaries.
+- **Scope:** Separate frozen evaluation, operational analytics, and controlled-test analytics; explain TF-IDF, Multinomial Naive Bayes, smoothing, threshold, metrics, imbalance, and limitations.
+- **Out of scope:** Model hunting, retraining, threshold changes, historical import, live-ticket recalculation of historical metrics, and Cloud data.
+- **Security/privacy:** Customers see no technical ML analysis; staff/managers receive approved evidence only; synthetic tests stay separate from frozen evaluation.
+- **Tests:** Hash/schema, role access, equation accessibility, metric reconciliation, and source-separation tests.
+- **Acceptance:** Frozen metrics come only from committed artifacts and live/test values are labelled separately.
+- **Rollback:** Remove new analysis views without changing frozen artifacts.
+- **Approvals:** Audience, staff evidence scope, retention, and equation wording.
+
+#### Local slice 7 — Controlled multi-user evaluation and analytics
+
+- **Objective:** Run a small synthetic labelled evaluation across six departments as demonstration evidence.
+- **Dependencies:** Slices 1–6, frozen model contract, and approved cases/testers.
+- **Scope:** Expected/predicted/final department, confidence, routing mode, override, correctness, model version, language, length category, and aggregates.
+- **Out of scope:** Real complaints, Cloud workflows, formal accuracy claims, model changes, and mixing with historical evaluation.
+- **Security/privacy:** Synthetic-only cases; preserve original prediction evidence, audit overrides, and restrict raw text by role.
+- **Tests:** Six-department coverage, immutable labels, reconciliation, privacy scan, role access, and aggregate-only reporting.
+- **Acceptance:** Reports explicitly state that small-sample results are not formal model accuracy.
+- **Rollback:** Disable test views and retain approved aggregate evidence.
+- **Approvals:** Cases, labels, testers, retention, and visibility.
+
+#### Local slice 8 — Final local demonstration, testing, and packaging
+
+- **Objective:** Produce a repeatable local-emulator demonstration package with honest limitations.
+- **Dependencies:** Slices 1–7, frozen hashes, local rules/index tests, and documentation review.
+- **Scope:** Full local Auth/Firestore workflow, regression/accessibility checks, setup instructions, evidence package, and offline demo fallback.
+- **Out of scope:** Cloud deployment/connection, billing, hosting, App Check, rules/index deployment, and production readiness.
+- **Security/privacy:** Synthetic fixtures only; no credentials, private identifiers, raw CFPB data, or private screenshots.
+- **Tests:** Local suites, hash verification, link/secret/artifact scans, and clean-worktree review.
+- **Acceptance:** Emulator behavior is reproducible and every claim is labelled local/demo evidence.
+- **Rollback:** Return to the verified local-emulator baseline and prior demo package.
+- **Approvals:** Final demo scope, package contents, and claims.
+
+#### Deferred Cloud boundary and paused research
+
+- **Cloud deployment:** Deferred, not cancelled. It requires separate approval for budget, billing, an approved hosting provider, and keyless identity. `cloud_staging_not_adopted` remains until every adoption gate passes; no Cloud runtime or workflow is verified and the local index manifest is not deployed.
+- **Model hunting:** Paused and approval-gated on `research/model-hunting`; no candidate may change the frozen runtime model without a separate decision.
 
 ### Phase 0 — Repository reconciliation and baseline freeze
 
@@ -1080,14 +1195,16 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 
 ### Phase 2 — Cloud Firebase staging migration
 
-- **Status:** In progress; Phase 2A, 2B, 2C, private Console audit, and owner
-  project adoption are complete. Technical verification and application
-  connection are blocked.
+- **Status:** Safety, audit, adoption, and local index-preparation checkpoints
+  complete; Cloud runtime and application connection deferred by the owner's
+  no-budget/no-billing decision. Phase 2 remains in progress as a deferred
+  boundary, not a verified runtime.
 - **Objective:** Establish a separate, synthetic-only Firebase staging
   environment while retaining the emulator as the default local backup and
   test environment.
-- **Dependencies:** Phase 1 approval, adopted staging project ownership,
-  environment separation, secret-handling design, and final role model.
+- **Dependencies:** Future separate approval for budget, billing, hosting,
+  keyless identity, environment separation, secret-handling design, and final
+  role model. These dependencies are not approved for the current slice.
 - **Main tasks:** Create a separate staging project; target cost-controlled
   Firebase staging, initially targeting the no-cost tier; configure Auth and
   Firestore separately from the emulator; review rules and indexes; configure
@@ -1108,9 +1225,11 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
   are reviewed and evidenced; staging uses synthetic data only; the emulator
   remains runnable; no production claim is made.
 - **Current boundary:** Project adoption is complete, but this is not
-  application connection. Keep `cloud_staging_not_adopted` enforced until the
-  documented rules, index, credential, synthetic-data, and controlled workflow
-  gates pass.
+  application connection. Spark/no billing remains active; no hosting, rules or
+  index deployment, App Check setup, or Cloud workflow is approved. The local
+  index manifest is not deployed, exact deployed-rules byte equality remains
+  pending, and `cloud_staging_not_adopted` stays enforced until every gate
+  passes.
 - **Rollback point:** Emulator-only configuration and the Phase 0 tag.
 - **Required owner approvals:** Staging project creation, project ID, secret
   storage, rules/index deployment, quota limits, and staging data policy.
@@ -1121,8 +1240,8 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 - **Status:** Approved roadmap, not implemented.
 - **Objective:** Add a secure customer account lifecycle without allowing
   public users to select privileged roles or departments.
-- **Dependencies:** Stable staging Auth, profile creation contract, email
-  verification policy, and Phase 2 environment separation.
+- **Dependencies:** Local emulator Auth, profile creation contract, email
+  verification policy, and the Phase 2 environment-separation guard.
 - **Main tasks:** Add customer-only registration, email/password login, logout,
   email verification, password reset, duplicate-email handling,
   disabled-account behavior, profile consistency/recovery, and loading,
@@ -1151,8 +1270,8 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 - **Status:** Approved roadmap, not implemented.
 - **Objective:** Implement least-privilege trusted account and department
   administration.
-- **Dependencies:** Final role matrix, Phase 2 Auth, Phase 3 profile contract,
-  and reviewed audit design.
+- **Dependencies:** Final role matrix, local Phase 2 Auth boundary, Phase 3
+  profile contract, and reviewed audit design.
 - **Approved staging roles:** Customer, six Department Staff accounts (one per
   department), one Manager, and one System Administrator. Separate six
   Department Lead/Admin accounts are not part of the staging MVP. A lead role
@@ -1182,11 +1301,11 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 ### Phase 5 — Secure & Approachable UI/UX upgrade
 
 - **Status:** Approved roadmap, not implemented.
-- **Objective:** Improve accessibility and clarity after Cloud staging,
-  authentication, and role contracts stabilize without changing workflow or
+- **Objective:** Improve accessibility and clarity after local authentication,
+  role, Admin, and workflow contracts stabilize without changing workflow or
   authorization behavior.
-- **Dependencies:** Stable Phase 2–4 contracts and a reviewed UI acceptance
-  baseline.
+- **Dependencies:** Stable local Phase 2–4 contracts and a reviewed UI
+  acceptance baseline.
 - **Design direction:** Deep Forest `#064E3B`, Emerald accent `#10B981`, and
   Warm White `#FAFAF9`, expressed through semantic tokens for background,
   surface, primary, hover, accent, text, muted text, border, success, warning,
@@ -1254,8 +1373,8 @@ acceptance criteria, rollback point, owner approvals, and relative effort.
 - **Status:** Approved roadmap, not implemented.
 - **Objective:** Establish a labelled synthetic testing process with at least
   one approved complaint for each department.
-- **Dependencies:** Stable staging roles/workflows, frozen model contract,
-  Phase 6 data contract, and owner-approved synthetic cases.
+- **Dependencies:** Stable local roles/workflows, frozen model contract, Phase 6
+  data contract, and owner-approved synthetic cases.
 - **Main tasks:** Record Test-case ID, expected department, predicted
   department, confidence, automatic/manual result, manager override, final
   verified department, correctness, model version, language, and text-length

@@ -1,8 +1,10 @@
 # Cloud Firebase Staging Adoption Checkpoint
 
-Status: Phase 2D documentation and technical-verification preparation. Cloud
-staging is adopted as an owner-approved project boundary, but the application
-is not connected and the technical migration remains blocked.
+Status: Phase 2 safety/adoption preparation complete; Cloud runtime and
+application connection deferred by the owner's no-budget/no-billing decision.
+Cloud staging is adopted as an owner-approved project boundary and preserved
+for possible future use, but the application is not connected and no Cloud
+runtime or workflow is verified.
 
 ## Approved audit record
 
@@ -27,7 +29,8 @@ is not connected and the technical migration remains blocked.
 - App Check is not registered or enforced.
 - Managed backup/PITR is unavailable on Spark.
 - Usage is minimal and one human owner has project access.
-- No Cloud application connection has occurred.
+- No Cloud application connection has occurred, and no Cloud runtime or
+  complaint workflow has been verified.
 
 The three identities are synthetic demo identities controlled by the owner.
 Future Cloud complaint records must also be synthetic-only, privacy-reviewed,
@@ -38,14 +41,19 @@ PINs, full account/card numbers, tokens, or credentials into staging.
 ## Phase status and boundary
 
 Phase 2A, Phase 2B, and Phase 2C are complete. The private Console audit and
-owner adoption decision are complete as Phase 2D entry evidence. Overall Phase
-2 remains in progress because no application connection, Cloud rules/index
-deployment, or Cloud workflow verification has occurred.
+owner adoption decision are complete as Phase 2D checkpoints. The local index
+manifest preparation is also complete, but it has not been deployed. Overall
+Phase 2 remains in progress as a deferred boundary: no application
+connection, Cloud rules/index deployment, or Cloud workflow verification has
+occurred, and no-budget/no-billing policy prevents Cloud runtime work now.
 
 Project adoption is not application connection. The repository must continue to
 enforce `cloud_staging_not_adopted`; no frontend, FastAPI, seed, or test path
 may use the Cloud project yet. The verified application remains the local
-Firebase Emulator prototype.
+Firebase Emulator prototype and is the source-of-truth runtime for continued
+development and demonstration. Cloud work may resume only after separate owner
+approval for budget, billing, hosting, and a keyless identity strategy. Spark/no
+billing remains the current decision; no Cloud backend hosting is approved.
 
 ## Technical-verification preparation
 

@@ -384,9 +384,10 @@ implemented until a corresponding evidence-backed completion entry is added.
 - [x] Review historical evidence links and avoid rewriting historical records.
 - [x] Complete final documentation review.
 - [x] Run safe documentation checks.
-- Phase 1 status: Completed with this reconciliation commit. Phase 2 is in
-  progress; its project adoption checkpoint is complete, but technical Cloud
-  verification and application connection remain blocked.
+- Phase 1 status: Completed with the reconciliation commit. Phase 2 safety,
+  audit, adoption, and local index-preparation checkpoints are complete; Cloud
+  runtime and application connection are deferred under the no-budget/no-
+  billing decision.
 
 ### Completed - Phase 2A-2D documentation/adoption checkpoints
 
@@ -400,21 +401,44 @@ implemented until a corresponding evidence-backed completion entry is added.
 - [x] Prepare the query/index matrix, future index proposal, rules comparison
   limitation, read-only credential strategy, and guard-removal gates in
   `docs/cloud_firebase_staging_adoption.md`.
-- Phase 2D status: Private Console audit and owner adoption completed;
-  technical verification remains blocked and `cloud_staging_not_adopted` stays
-  enforced.
+- Phase 2D status: Private Console audit and owner adoption completed; local
+  index preparation completed but was not deployed. No Cloud runtime or
+  workflow is verified, and `cloud_staging_not_adopted` stays enforced.
 
-### In progress - Phase 2 technical-verification preparation
+### Deferred - Cloud staging runtime and technical verification
 
-- [ ] Obtain owner review of the documentation checkpoint.
-- [ ] Perform controlled read-only rules/index verification only after a new
-  owner-approved credential and operation scope are provided.
-- [ ] Connect the application only after every documented guard-removal gate
-  passes; no Cloud complaint workflow has been tested.
+- [ ] Resume read-only verification only after separate approval for budget,
+  billing, hosting, keyless identity, and operation scope.
+- [ ] Connect the application only after every guard-removal gate passes; no
+  Cloud complaint workflow has been tested.
+- [ ] Keep Spark/no billing, App Check unconfigured, and the local index
+  manifest undeployed.
 
-### Approved backlog — not implemented
+### Current local-only implementation order
 
-#### Phase 2: Cloud Firebase staging migration
+The local Firebase Emulator using `demo-complaintguard` remains the source of
+truth for development and demonstration. Detailed objectives, dependencies,
+scope, exclusions, security constraints, tests, acceptance criteria, rollback,
+and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
+
+1. [ ] Customer registration and login lifecycle; public registration creates
+   Customer accounts only and cannot accept privileged roles or departments.
+2. [ ] Trusted role/profile provisioning design; make Auth/profile creation
+   atomic or safely recoverable.
+3. [ ] Admin role and Admin dashboard; enforce least privilege locally.
+4. [ ] Six department-staff identities and controlled local test users; keep
+   synthetic fixtures reproducible.
+5. [ ] UI/UX redesign and accessibility without changing authorization.
+6. [ ] Manager ML/data-analysis and equation presentation from frozen evidence.
+7. [ ] Controlled multi-user evaluation and analytics using synthetic cases.
+8. [ ] Final local demonstration, testing, and packaging.
+9. [ ] Cloud deployment: deferred, not cancelled; separate budget/billing/
+   hosting/keyless-identity approval required.
+10. [ ] Model hunting: paused and approval-gated on `research/model-hunting`.
+
+### Deferred backlog — not current execution order
+
+#### Phase 2: Cloud Firebase staging migration (deferred)
 
 - [ ] Create a separate staging Firebase project under a cost-controlled plan,
   initially targeting the no-cost tier.
