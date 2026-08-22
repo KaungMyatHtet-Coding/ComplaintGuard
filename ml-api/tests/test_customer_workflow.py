@@ -136,9 +136,9 @@ def test_customer_detail_maps_complete_canonical_staff_message_body():
 
     detail = CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
 
-    assert detail.messages[0].sender_id == "staff_999"
-    assert detail.messages[0].sender_role == "staff"
-    assert detail.messages[0].text == "Complete canonical staff reply."
+    assert detail.messages[0].sender_role == "support_team"
+    assert detail.messages[0].body == "Complete canonical staff reply."
+    assert "staff_999" not in detail.model_dump_json()
 
 
 def test_customer_detail_rejects_incomplete_message_instead_of_blank_body():
@@ -192,12 +192,12 @@ def test_customer_send_message_pii_redacted():
     assert res.status_code == 200
     body = res.json()
     assert body["senderRole"] == "customer"
-    assert "[REDACTED]" in body["text"]
-    assert "MyPassword123" not in body["text"]
+    assert "[REDACTED]" in body["body"]
+    assert "MyPassword123" not in body["body"]
     stored = backend.messages["t1"][-1]
     assert stored["authorId"] == "cust_123"
     assert stored["authorRole"] == "customer"
-    assert stored["body"] == body["text"]
+    assert stored["body"] == body["body"]
     assert stored["visibility"] == "participants"
     assert not ({"senderId", "senderRole", "text"} & stored.keys())
 
@@ -378,3 +378,75 @@ def test_customer_message_rejects_protected_field_spoofing():
     )
     assert response.status_code == 422
     assert backend.messages["t1"] == _sample_tickets()[0]["messages"]
+
+
+def test_customer_list_projection_excludes_internal_fields():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend))
+
+    response = client.get(
+        "/customer/tickets", headers={"Authorization": "Bearer valid_customer_token"}
+    )
+
+    assert response.status_code == 200
+    allowed = {
+        "id", "status", "priority", "departmentId", "createdAt", "updatedAt",
+        "resolvedAt", "summaryText",
+    }
+    for ticket in response.json()["tickets"]:
+        assert set(ticket) <= allowed
+        assert not {"customerId", "assignedStaffId", "predictedDepartmentId",
+                    "predictionConfidence", "routingSource"} & set(ticket)
+
+
+def test_customer_detail_projects_messages_and_timeline_without_internal_data():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.events["t1"] = [
+        {"eventId": "model-event", "type": "model_prediction", "actorId": "trusted_ml_v1",
+         "fromValue": None, "toValue": "transfer_payment", "createdAt": "2026-08-01T10:02:00Z",
+         "predictionConfidence": 0.12, "routingSource": "model"},
+        {"eventId": "status-event", "type": "status_transition", "actorId": "staff_999",
+         "fromValue": "triaged", "toValue": "in_progress", "createdAt": "2026-08-01T10:10:00Z"},
+        {"eventId": "manager-event", "type": "manager_override", "actorId": "manager_1",
+         "fromValue": "transfer_payment", "toValue": "fraud_security", "reason": "private",
+         "createdAt": "2026-08-01T10:20:00Z"},
+        {"eventId": "unknown-event", "type": "internal_note", "actorId": "manager_1",
+         "toValue": "private", "createdAt": "2026-08-01T10:21:00Z"},
+        {"eventId": "malformed-event", "type": "status_transition", "toValue": "closed"},
+    ]
+    detail = CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
+    payload = detail.model_dump(by_alias=True)
+
+    assert set(payload) == {
+        "id", "status", "complaintText", "inputLocale", "priority", "departmentId",
+        "createdAt", "updatedAt", "resolvedAt", "messages", "timeline", "feedback",
+    }
+    assert {"customerId", "predictedDepartmentId", "predictionConfidence", "routingSource"}.isdisjoint(payload)
+    assert all(set(message) == {"senderRole", "body", "createdAt"} for message in payload["messages"])
+    assert payload["messages"][1]["senderRole"] == "support_team"
+    assert all(set(item) <= {"type", "occurredAt", "departmentId"} for item in payload["timeline"])
+    assert [item["type"] for item in payload["timeline"]] == [
+        "complaint_received", "assigned_to_team", "customer_replied", "review_started",
+        "team_replied", "assigned_to_team",
+    ]
+    assert "staff_999" not in str(payload)
+    assert "manager_1" not in str(payload)
+    assert "private" not in str(payload)
+    assert "model_prediction" not in str(payload)
+
+
+def test_customer_timeline_ignores_unknown_events_and_has_deterministic_ties():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.messages["t1"] = []
+    backend.events["t1"] = [
+        {"type": "status_transition", "toValue": "resolved", "createdAt": "2026-08-01T10:00:00Z"},
+        {"type": "status_transition", "toValue": "in_progress", "createdAt": "2026-08-01T10:00:00Z"},
+        {"type": "status_transition", "toValue": "manager_override", "createdAt": "not-a-time"},
+        {"type": "manager_override", "toValue": "private", "createdAt": "2026-08-01T10:01:00Z"},
+    ]
+    timeline = CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1").timeline
+    assert [(item.type, item.occurred_at) for item in timeline] == [
+        ("complaint_received", "2026-08-01T10:00:00Z"),
+        ("review_started", "2026-08-01T10:00:00Z"),
+        ("complaint_resolved", "2026-08-01T10:00:00Z"),
+    ]

@@ -12,10 +12,59 @@ from app.schemas import (
     CustomerFeedbackResponse,
     CustomerMessageItem,
     CustomerMessageRequest,
+    CustomerTimelineItem,
     CustomerTicketDetail,
     CustomerTicketSummary,
 )
 from app.ticketing import redact_sensitive_data as redact_pii
+
+
+_PUBLIC_DEPARTMENTS = frozenset(
+    {
+        "transfer_payment",
+        "account_support",
+        "card_atm",
+        "fraud_security",
+        "loan_credit",
+        "general_support",
+    }
+)
+_TIMELINE_STATUS_TYPES = {
+    "in_progress": "review_started",
+    "awaiting_customer": "information_requested",
+    "resolved": "complaint_resolved",
+    "closed": "complaint_closed",
+}
+_TIMELINE_STATUS_RANKS = {
+    "in_progress": 30,
+    "awaiting_customer": 31,
+    "resolved": 32,
+    "closed": 33,
+}
+
+
+def _timestamp_text(value: Any) -> str | None:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, str) and value.strip():
+        return value
+    return None
+
+
+def _timeline_sort_key(item: dict[str, Any]) -> tuple[datetime, int, str]:
+    occurred_at = item["occurredAt"].replace("Z", "+00:00")
+    parsed = datetime.fromisoformat(occurred_at)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed, int(item.get("rank", 0)), item["type"]
+
+
+def _is_timeline_timestamp(value: str) -> bool:
+    try:
+        _timeline_sort_key({"occurredAt": value, "rank": 0, "type": "_"})
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 class CustomerWorkflowError(Exception):
@@ -103,6 +152,10 @@ class CustomerBackend(ABC):
         """Get all message thread items for a ticket."""
 
     @abstractmethod
+    def get_ticket_events(self, ticket_id: str) -> list[dict[str, Any]]:
+        """Get immutable ticket events for safe server-side projection."""
+
+    @abstractmethod
     def add_customer_message(
         self,
         customer_id: str,
@@ -135,6 +188,9 @@ class InMemoryCustomerBackend(CustomerBackend):
         self.messages = {
             ticket["id"]: list(ticket.get("messages", [])) for ticket in tickets
         }
+        self.events = {
+            ticket["id"]: list(ticket.get("events", [])) for ticket in tickets
+        }
         self.feedbacks: dict[str, dict[str, Any]] = {}
         self.actions: dict[tuple[str, str], dict[str, Any]] = {}
 
@@ -157,6 +213,9 @@ class InMemoryCustomerBackend(CustomerBackend):
         msgs = self.messages.get(ticket_id, [])
         msgs_sorted = sorted(msgs, key=lambda x: x.get("createdAt", ""))
         return msgs_sorted
+
+    def get_ticket_events(self, ticket_id: str) -> list[dict[str, Any]]:
+        return list(self.events.get(ticket_id, []))
 
     def add_customer_message(
         self,
@@ -183,10 +242,8 @@ class InMemoryCustomerBackend(CustomerBackend):
             self.messages[ticket_id] = []
         self.messages[ticket_id].append(msg_doc)
         result = {
-            "id": msg_id,
-            "senderId": customer_id,
             "senderRole": "customer",
-            "text": message_text,
+            "body": message_text,
             "createdAt": iso_str,
         }
         self.actions[key] = dict(result)
@@ -290,6 +347,20 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
             results.append(data)
         return results
 
+    def get_ticket_events(self, ticket_id: str) -> list[dict[str, Any]]:
+        events_ref = (
+            self.db.collection("tickets")
+            .document(ticket_id)
+            .collection("events")
+            .order_by("createdAt")
+        )
+        results = []
+        for d in events_ref.stream():
+            data = d.to_dict()
+            data["eventId"] = d.id
+            results.append(data)
+        return results
+
     def add_customer_message(
         self,
         customer_id: str,
@@ -311,10 +382,8 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
             "createdAt": created_at,
         }
         result = {
-            "id": action_id,
-            "senderId": customer_id,
             "senderRole": "customer",
-            "text": message_text,
+            "body": message_text,
             "createdAt": created_at.isoformat(),
         }
         try:
@@ -407,16 +476,134 @@ class CustomerWorkflowService:
                 CustomerTicketSummary(
                     id=t["id"],
                     status=t.get("status", "submitted"),
-                    predictedDepartmentId=t.get("predictedDepartmentId"),
-                    predictionConfidence=t.get("predictionConfidence"),
-                    routingSource=t.get("routingSource", "pending"),
-                    assignedDepartmentId=t.get("departmentId"),
+                    priority=t.get("priority", "normal"),
+                    departmentId=t.get("departmentId"),
                     createdAt=str(t.get("createdAt", "")),
                     updatedAt=str(t.get("updatedAt", t.get("createdAt", ""))),
+                    resolvedAt=str(t["resolvedAt"])
+                    if t.get("resolvedAt")
+                    else None,
                     summaryText=summary_text,
                 )
             )
         return summaries
+
+    @staticmethod
+    def _project_message(raw_message: dict[str, Any]) -> CustomerMessageItem:
+        canonical = normalize_message_document(raw_message)
+        occurred_at = _timestamp_text(canonical.get("createdAt"))
+        if not occurred_at or not _is_timeline_timestamp(occurred_at):
+            raise ValueError("message is missing a valid timestamp")
+        author_role = canonical.get("authorRole")
+        if author_role == "customer":
+            public_role = "customer"
+        elif author_role in {"staff", "manager"}:
+            public_role = "support_team"
+        else:
+            raise ValueError("message has an unsupported author role")
+        if canonical.get("visibility") != "participants":
+            raise ValueError("message is not participant-visible")
+        body = canonical.get("body")
+        if not isinstance(body, str):
+            raise ValueError("message has an invalid body")
+        return CustomerMessageItem(
+            senderRole=public_role,
+            body=body,
+            createdAt=occurred_at,
+        )
+
+    @staticmethod
+    def _event_timeline_item(raw_event: dict[str, Any]) -> dict[str, Any] | None:
+        event_type = raw_event.get("type")
+        occurred_at = _timestamp_text(raw_event.get("createdAt"))
+        if not occurred_at or not _is_timeline_timestamp(occurred_at):
+            return None
+
+        public_type: str | None = None
+        department_id: str | None = None
+        rank = 10
+        if event_type in {"model_prediction", "manager_override"}:
+            candidate_department = raw_event.get("toValue")
+            if candidate_department not in _PUBLIC_DEPARTMENTS:
+                return None
+            public_type = "assigned_to_team"
+            department_id = candidate_department
+            rank = 20
+        elif event_type == "status_transition":
+            status = raw_event.get("toValue")
+            public_type = _TIMELINE_STATUS_TYPES.get(status)
+            rank = _TIMELINE_STATUS_RANKS.get(status, 30)
+        elif event_type == "staff_reply":
+            public_type = "team_replied"
+            rank = 40
+        else:
+            return None
+
+        if public_type is None:
+            return None
+
+        return {
+            "type": public_type,
+            "occurredAt": occurred_at,
+            "departmentId": department_id,
+            "rank": rank,
+        }
+
+    def _project_timeline(
+        self,
+        raw_ticket: dict[str, Any],
+        messages: list[CustomerMessageItem],
+        raw_events: list[dict[str, Any]],
+    ) -> list[CustomerTimelineItem]:
+        candidates: list[dict[str, Any]] = []
+        created_at = _timestamp_text(raw_ticket.get("createdAt"))
+        if created_at and _is_timeline_timestamp(created_at):
+            candidates.append(
+                {
+                    "type": "complaint_received",
+                    "occurredAt": created_at,
+                    "departmentId": None,
+                    "rank": 0,
+                }
+            )
+
+        for event in raw_events:
+            item = self._event_timeline_item(event)
+            if item:
+                candidates.append(item)
+
+        for message in messages:
+            if _is_timeline_timestamp(message.created_at):
+                candidates.append(
+                    {
+                        "type": "customer_replied"
+                        if message.sender_role == "customer"
+                        else "team_replied",
+                        "occurredAt": message.created_at,
+                        "departmentId": None,
+                        "rank": 40,
+                    }
+                )
+
+        candidates.sort(key=_timeline_sort_key)
+        deduplicated: list[dict[str, Any]] = []
+        for candidate in candidates:
+            duplicate = any(
+                prior["type"] == candidate["type"]
+                and prior["occurredAt"] == candidate["occurredAt"]
+                for prior in deduplicated
+            )
+            if not duplicate:
+                deduplicated.append(candidate)
+
+        return [
+            CustomerTimelineItem(
+                type=item["type"],
+                occurredAt=item["occurredAt"],
+                departmentId=item["departmentId"],
+            )
+            for item in deduplicated
+        ]
 
     def get_ticket_detail(
         self, customer_id: str, ticket_id: str
@@ -428,16 +615,13 @@ class CustomerWorkflowService:
         messages_raw = self.backend.get_ticket_messages(ticket_id)
         messages_formatted: list[CustomerMessageItem] = []
         for m in messages_raw:
-            canonical = normalize_message_document(m)
-            messages_formatted.append(
-                CustomerMessageItem(
-                    id=m.get("id") or m.get("messageId"),
-                    senderId=canonical["authorId"],
-                    senderRole=canonical["authorRole"],
-                    text=canonical["body"],
-                    createdAt=str(canonical["createdAt"]),
-                )
-            )
+            messages_formatted.append(self._project_message(m))
+
+        timeline = self._project_timeline(
+            raw_ticket,
+            messages_formatted,
+            self.backend.get_ticket_events(ticket_id),
+        )
 
         feedback_dict = raw_ticket.get("feedback")
         if feedback_dict:
@@ -446,23 +630,20 @@ class CustomerWorkflowService:
 
         return CustomerTicketDetail(
             id=raw_ticket["id"],
-            customerId=raw_ticket.get("customerId", customer_id),
             status=raw_ticket.get("status", "submitted"),
             complaintText=raw_ticket.get(
                 "complaintText", raw_ticket.get("originalText", "")
             ),
             inputLocale=raw_ticket.get("inputLocale", "en"),
-            predictedDepartmentId=raw_ticket.get("predictedDepartmentId"),
-            predictionConfidence=raw_ticket.get("predictionConfidence"),
-            routingSource=raw_ticket.get("routingSource", "pending"),
-            assignedDepartmentId=raw_ticket.get("departmentId"),
-            priority=raw_ticket.get("priority", "medium"),
+            priority=raw_ticket.get("priority", "normal"),
+            departmentId=raw_ticket.get("departmentId"),
             createdAt=str(raw_ticket.get("createdAt", "")),
             updatedAt=str(raw_ticket.get("updatedAt", raw_ticket.get("createdAt", ""))),
             resolvedAt=str(raw_ticket["resolvedAt"])
             if raw_ticket.get("resolvedAt")
             else None,
             messages=messages_formatted,
+            timeline=timeline,
             feedback=feedback_dict,
         )
 

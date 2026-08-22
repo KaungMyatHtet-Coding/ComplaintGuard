@@ -364,26 +364,16 @@ class StaffMutationResponse(BaseModel):
 
 
 class CustomerTicketSummary(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     id: str
     status: TicketStatus
-    complaint_text: str = Field(default="", alias="complaintText")
+    priority: str = "normal"
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
     summary_text: str = Field(default="", alias="summaryText")
-    predicted_department_id: str | None = Field(
-        default=None, alias="predictedDepartmentId"
-    )
-    prediction_confidence: float | None = Field(
-        default=None, alias="predictionConfidence", ge=0.0, le=1.0
-    )
-    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
-        Field(default="pending", alias="routingSource")
-    )
-    assigned_department_id: str | None = Field(
-        default=None, alias="assignedDepartmentId"
-    )
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
+    resolved_at: str | None = Field(default=None, alias="resolvedAt")
 
 
 class CustomerTicketListResponse(BaseModel):
@@ -393,23 +383,31 @@ class CustomerTicketListResponse(BaseModel):
 
 
 class CustomerMessageItem(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str | None = None
-    message_id: str = Field(default="", alias="messageId")
-    sender_id: str = Field(alias="senderId")
-    sender_role: Literal["customer", "staff"] = Field(alias="senderRole")
-    text: str
+    sender_role: Literal["customer", "support_team"] = Field(alias="senderRole")
+    body: str
     created_at: str = Field(alias="createdAt")
 
-    @model_validator(mode="before")
-    @classmethod
-    def set_msg_id(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            msg_id = data.get("messageId") or data.get("id") or ""
-            data["messageId"] = msg_id
-            data["id"] = msg_id
-        return data
+
+CustomerTimelineType = Literal[
+    "complaint_received",
+    "assigned_to_team",
+    "review_started",
+    "information_requested",
+    "team_replied",
+    "customer_replied",
+    "complaint_resolved",
+    "complaint_closed",
+]
+
+
+class CustomerTimelineItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    type: CustomerTimelineType
+    occurred_at: str = Field(alias="occurredAt")
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
 
 
 class CustomerTicketFeedback(BaseModel):
@@ -421,29 +419,19 @@ class CustomerTicketFeedback(BaseModel):
 
 
 class CustomerTicketDetail(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     id: str
     status: TicketStatus
     complaint_text: str = Field(alias="complaintText")
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
-    predicted_department_id: DepartmentId | None = Field(
-        default=None, alias="predictedDepartmentId"
-    )
-    prediction_confidence: float | None = Field(
-        default=None, alias="predictionConfidence", ge=0.0, le=1.0
-    )
-    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
-        Field(default="pending", alias="routingSource")
-    )
-    assigned_department_id: DepartmentId | None = Field(
-        default=None, alias="assignedDepartmentId"
-    )
     priority: str
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
     resolved_at: str | None = Field(default=None, alias="resolvedAt")
     messages: list[CustomerMessageItem] = Field(default_factory=list)
+    timeline: list[CustomerTimelineItem] = Field(default_factory=list)
     feedback: CustomerTicketFeedback | None = None
 
 

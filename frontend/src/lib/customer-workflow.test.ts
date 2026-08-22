@@ -28,6 +28,7 @@ describe("Customer Workflow Client Library", () => {
           {
             id: "t1",
             status: "submitted",
+            priority: "normal",
             createdAt: "2026-08-01",
             updatedAt: "2026-08-01",
             summaryText: "Transfer issue",
@@ -67,11 +68,11 @@ describe("Customer Workflow Client Library", () => {
       status: 200,
       json: async () => ({
         id: "t1",
-        customerId: "c1",
         status: "in_progress",
         complaintText: "Card swallowed at ATM",
         inputLocale: "en",
         priority: "high",
+        timeline: [],
         createdAt: "2026-08-01",
         updatedAt: "2026-08-01",
         messages: [],
@@ -88,16 +89,14 @@ describe("Customer Workflow Client Library", () => {
       ok: true,
       status: 200,
       json: async () => ({
-        id: "m1",
-        senderId: "c1",
         senderRole: "customer",
-        text: "Please follow up",
+        body: "Please follow up",
         createdAt: "2026-08-01",
       }),
     });
 
     const msg = await sendCustomerMessage("t1", "Please follow up", "test_token", mockFetcher as unknown as typeof fetch);
-    expect(msg.text).toBe("Please follow up");
+    expect(msg.body).toBe("Please follow up");
   });
 
   it("submits customer feedback for resolved ticket", async () => {

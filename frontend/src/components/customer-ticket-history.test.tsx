@@ -13,6 +13,7 @@ describe("CustomerTicketHistory", () => {
         tickets={[{
           id: longTicketId,
           status: "in_progress",
+          priority: "normal",
           createdAt: "2026-08-11T00:00:00Z",
           updatedAt: "2026-08-11T00:00:00Z",
           summaryText: "Synthetic complaint summary",
@@ -39,6 +40,7 @@ describe("CustomerTicketHistory", () => {
         tickets={[{
           id: longTicketId,
           status: "submitted",
+          priority: "normal",
           createdAt: "2026-08-11T00:00:00Z",
           updatedAt: "2026-08-11T00:00:00Z",
           summaryText: "",

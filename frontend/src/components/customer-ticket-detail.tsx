@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { CustomerFeedbackPanel } from "@/components/customer-feedback-panel";
-import type { Locale } from "@/lib/i18n";
+import type { Locale, MessageKey } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
-import type { CustomerTicketDetail } from "@/lib/customer-workflow";
+import type { CustomerTicketDetail, CustomerTimelineType } from "@/lib/customer-workflow";
 
 type CustomerTicketDetailProps = {
   locale: Locale;
@@ -60,20 +60,15 @@ export function CustomerTicketDetailView({
     }
   };
 
-  // Timeline steps
-  const steps = [
-    { key: "submitted", label: translate(locale, "customerTimelineSubmitted") },
-    { key: "triaged", label: translate(locale, "customerTimelineTriaged") },
-    { key: "in_progress", label: translate(locale, "customerTimelineInProgress") },
-    { key: "awaiting_customer", label: translate(locale, "customerTimelineAwaitingCustomer") },
-    { key: "resolved", label: translate(locale, "customerTimelineResolved") },
-  ];
-
-  const getStepStatus = (stepKey: string) => {
-    const order = ["submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"];
-    const currentIdx = order.indexOf(ticket.status);
-    const stepIdx = order.indexOf(stepKey);
-    return currentIdx >= stepIdx ? "completed" : "pending";
+  const timelineLabels: Record<CustomerTimelineType, MessageKey> = {
+    complaint_received: "customerTimelineComplaintReceived",
+    assigned_to_team: "customerTimelineAssignedToTeam",
+    review_started: "customerTimelineReviewStarted",
+    information_requested: "customerTimelineInformationRequested",
+    team_replied: "customerTimelineTeamReplied",
+    customer_replied: "customerTimelineCustomerReplied",
+    complaint_resolved: "customerTimelineResolved",
+    complaint_closed: "customerTimelineClosed",
   };
 
   const isResolvedOrClosed = ticket.status === "resolved" || ticket.status === "closed";
@@ -111,19 +106,20 @@ export function CustomerTicketDetailView({
             {translate(locale, "customerTimelineTitle")}
           </span>
           <div className="cust-timeline">
-            {steps.map((step, idx) => {
-              const status = getStepStatus(step.key);
-              const isLast = idx === steps.length - 1;
+            {ticket.timeline.map((item, idx) => {
+              const isLast = idx === ticket.timeline.length - 1;
               return (
-                <React.Fragment key={step.key}>
+                <React.Fragment key={`${item.type}-${item.occurredAt}-${idx}`}>
                   <div className="cust-step">
-                    <div className={`cust-step-dot ${status === "completed" ? "done" : "pending"}`}>
+                    <div className="cust-step-dot done">
                       {idx + 1}
                     </div>
-                    <span className="cust-step-label">{step.label}</span>
+                    <span className="cust-step-label">
+                      {translate(locale, timelineLabels[item.type])}
+                    </span>
                   </div>
                   {!isLast && (
-                    <div className={`cust-step-connector ${status === "completed" ? "done" : "pending"}`} />
+                    <div className="cust-step-connector done" />
                   )}
                 </React.Fragment>
               );
@@ -175,17 +171,17 @@ export function CustomerTicketDetailView({
             </p>
           ) : (
             <div style={{ display: 'grid', gap: '0.75rem', maxHeight: '20rem', overflowY: 'auto' }}>
-              {ticket.messages.map((m) => {
+              {ticket.messages.map((m, index) => {
                 const isMe = m.senderRole === "customer";
                 return (
-                  <div key={m.id} className={`cust-msg ${isMe ? "is-mine" : "is-theirs"}`}>
+                  <div key={`${m.createdAt}-${index}`} className={`cust-msg ${isMe ? "is-mine" : "is-theirs"}`}>
                     <div className="cust-msg-bubble">
                       <div className="cust-msg-sender">
                         {isMe
                           ? translate(locale, "customerMessageYou")
                           : translate(locale, "customerMessageStaff")}
                       </div>
-                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.text}</p>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.body}</p>
                     </div>
                     <span className="cust-msg-time">
                       {new Date(m.createdAt).toLocaleTimeString([], {

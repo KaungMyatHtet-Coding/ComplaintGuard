@@ -1,38 +1,48 @@
 export type CustomerTicketSummary = {
   id: string;
   status: string;
-  predictedDepartmentId?: string | null;
-  predictionConfidence?: number | null;
-  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
-  assignedDepartmentId?: string | null;
+  priority: string;
+  departmentId?: string | null;
   createdAt: string;
   updatedAt: string;
+  resolvedAt?: string | null;
   summaryText: string;
 };
 
 export type CustomerMessageItem = {
-  id: string;
-  senderId: string;
-  senderRole: "customer" | "staff" | "manager" | "system";
-  text: string;
+  senderRole: "customer" | "support_team";
+  body: string;
   createdAt: string;
+};
+
+export type CustomerTimelineType =
+  | "complaint_received"
+  | "assigned_to_team"
+  | "review_started"
+  | "information_requested"
+  | "team_replied"
+  | "customer_replied"
+  | "complaint_resolved"
+  | "complaint_closed";
+
+export type CustomerTimelineItem = {
+  type: CustomerTimelineType;
+  occurredAt: string;
+  departmentId?: string | null;
 };
 
 export type CustomerTicketDetail = {
   id: string;
-  customerId: string;
   status: string;
   complaintText: string;
   inputLocale: string;
-  predictedDepartmentId?: string | null;
-  predictionConfidence?: number | null;
-  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
-  assignedDepartmentId?: string | null;
   priority: string;
+  departmentId?: string | null;
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string | null;
   messages: CustomerMessageItem[];
+  timeline: CustomerTimelineItem[];
   feedback?: {
     rating: number;
     comments?: string;
@@ -151,7 +161,7 @@ export async function sendCustomerMessage(
   if (!response.ok) throw new CustomerWorkflowError("backend");
 
   const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || typeof (data as { text?: unknown }).text !== "string") {
+  if (!data || typeof data !== "object" || typeof (data as { body?: unknown }).body !== "string") {
     throw new CustomerWorkflowError("unexpected");
   }
 
