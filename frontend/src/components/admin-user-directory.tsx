@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useApp } from "@/components/app-provider";
+import { AdminAccountDetail } from "@/components/admin-account-detail";
 import type { AdminOverviewSnapshot } from "@/components/admin-overview";
 import { departmentIds, getDepartmentLabel, type DepartmentId } from "@/lib/department-labels";
 import {
@@ -44,11 +45,35 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
   const requestIdRef = useRef(0);
   const summaryRowsRef = useRef<AdminDirectoryResponse["rows"]>([]);
   const previousRefreshKeyRef = useRef(refreshKey);
+  const previousAdminUidRef = useRef(profile?.uid);
+  const detailOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const directoryHeadingRef = useRef<HTMLElement | null>(null);
+  const focusRestoreAllowedRef = useRef(false);
+  const [selectedOwnerUid, setSelectedOwnerUid] = useState<string | undefined>(profile?.uid);
+  const [selectedRow, setSelectedRow] = useState<AdminDirectoryResponse["rows"][number] | null>(null);
 
   const isAdmin = profile?.role === "admin" && profile.active === true && profile.departmentId === null;
 
+  useLayoutEffect(() => {
+    if (previousAdminUidRef.current !== profile?.uid || !isAdmin) {
+      focusRestoreAllowedRef.current = false;
+      detailOpenerRef.current = null;
+    }
+  }, [isAdmin, profile?.uid]);
+
+  useEffect(() => {
+    if (previousAdminUidRef.current !== profile?.uid || !isAdmin) {
+      previousAdminUidRef.current = profile?.uid;
+      queueMicrotask(() => {
+        setSelectedOwnerUid(undefined);
+        setSelectedRow(null);
+      });
+    }
+  }, [isAdmin, profile?.uid]);
+
   useEffect(() => {
     if (!isAdmin) {
+      focusRestoreAllowedRef.current = false;
       onSummaryChange?.({ state: "empty", rows: [] });
       return;
     }
@@ -56,6 +81,10 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       previousRefreshKeyRef.current = refreshKey;
       setCursor(undefined);
       setHistory([]);
+      setResult(null);
+      focusRestoreAllowedRef.current = true;
+      setSelectedRow(null);
+      summaryRowsRef.current = [];
       return;
     }
     const requestId = ++requestIdRef.current;
@@ -78,6 +107,12 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
         const nextResult = await loadAdminDirectory(filters);
         if (shouldApplyDirectoryResponse(requestId, requestIdRef.current)) {
           setResult(nextResult);
+          setSelectedRow((current) => {
+            if (!current) return null;
+            const refreshedRow = nextResult.rows.find((row) => row.email === current.email && row.role === current.role);
+            if (!refreshedRow) focusRestoreAllowedRef.current = true;
+            return refreshedRow ?? null;
+          });
           const mergedRows = new Map(summaryRowsRef.current.map((row) => [`${row.email}|${row.role}`, row]));
           nextResult.rows.forEach((row) => mergedRows.set(`${row.email}|${row.role}`, row));
           summaryRowsRef.current = Array.from(mergedRows.values());
@@ -85,21 +120,23 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
         }
       } catch (error: unknown) {
         if (!shouldApplyDirectoryResponse(requestId, requestIdRef.current)) return;
+        focusRestoreAllowedRef.current = true;
+        setSelectedRow(null);
         setErrorCode(error && typeof error === "object" && "code" in error ? (error as { code: AdminDirectoryErrorCode }).code : "unexpected");
         onSummaryChange?.({ state: "error", rows: [] });
       } finally {
         if (shouldApplyDirectoryResponse(requestId, requestIdRef.current)) setLoading(false);
       }
     })();
-  }, [active, cursor, departmentId, isAdmin, onSummaryChange, refreshKey, retryNonce, role, search]);
-
-  if (!isAdmin) return null;
+  }, [active, cursor, departmentId, isAdmin, onSummaryChange, profile?.uid, refreshKey, retryNonce, role, search]);
 
   function resetPaging() {
     setCursor(undefined);
     setHistory([]);
     setResult(null);
     summaryRowsRef.current = [];
+    focusRestoreAllowedRef.current = true;
+    setSelectedRow(null);
   }
 
   function changeRole(value: "" | AdminDirectoryRole) {
@@ -121,6 +158,23 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     setCursor(previous || undefined);
   }
 
+  function openDetails(event: React.MouseEvent<HTMLButtonElement>, row: AdminDirectoryResponse["rows"][number]) {
+    detailOpenerRef.current = event.currentTarget;
+    focusRestoreAllowedRef.current = true;
+    setSelectedOwnerUid(profile?.uid);
+    setSelectedRow(row);
+  }
+
+  const closeDetails = useCallback(() => {
+    setSelectedOwnerUid(undefined);
+    setSelectedRow(null);
+  }, []);
+  const canRestoreDetailFocus = useCallback(() => focusRestoreAllowedRef.current, []);
+
+  if (!isAdmin) return null;
+
+  const activeSelectedRow = selectedOwnerUid === profile?.uid ? selectedRow : null;
+
   const displayError = errorCode ? t(errorMessages[errorCode]) : null;
   const roleLabel = (value: AdminDirectoryRole) => {
     if (value === "customer") return t("adminCustomer");
@@ -134,7 +188,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       <div className="admin-section-heading">
         <div>
           <p className="admin-section-eyebrow">{t("adminDirectoryEyebrow")}</p>
-          <h2 id="admin-directory-title">{t("adminDirectoryTitle")}</h2>
+          <h2 id="admin-directory-title" tabIndex={-1} ref={(node) => { directoryHeadingRef.current = node; }}>{t("adminDirectoryTitle")}</h2>
           <p>{t("adminDirectoryLead")}</p>
         </div>
         <button className="admin-secondary-button" type="button" onClick={() => { setRole(""); setDepartmentId(""); setActive(""); setSearch(""); resetPaging(); }}>{t("adminDirectoryReset")}</button>
@@ -148,10 +202,11 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       <div className="admin-directory-status" aria-live="polite">{loading ? <p role="status">{t("adminDirectoryLoading")}</p> : null}{displayError ? <div role="alert" className="admin-error-panel"><p>{displayError}</p><button className="admin-secondary-button" type="button" onClick={() => setRetryNonce((value) => value + 1)}>{t("adminDirectoryRetry")}</button></div> : null}</div>
       {!loading && !displayError && result && result.rows.length === 0 ? <p className="admin-empty-state">{t("adminDirectoryEmpty")}</p> : null}
       {result && result.rows.length > 0 ? <>
-        <div className="admin-directory-table-wrap"><table className="admin-directory-table" aria-label={t("adminDirectoryTitle")}><thead><tr><th scope="col">{t("adminDirectoryName")}</th><th scope="col">{t("adminEmail")}</th><th scope="col">{t("adminRole")}</th><th scope="col">{t("adminDepartment")}</th><th scope="col">{t("adminDirectoryLanguage")}</th><th scope="col">{t("adminDirectoryStatus")}</th></tr></thead><tbody>{result.rows.map((row) => <tr key={`${row.email}-${row.role}`}><td data-label={t("adminDirectoryName")}>{row.displayName}</td><td data-label={t("adminEmail")} className="admin-break-value">{row.email}</td><td data-label={t("adminRole")}>{roleLabel(row.role)}</td><td data-label={t("adminDepartment")}>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</td><td data-label={t("adminDirectoryLanguage")}>{row.locale === "en" ? t("english") : t("myanmar")}</td><td data-label={t("adminDirectoryStatus")}><span className={`admin-status-chip ${row.active ? "is-active" : "is-pending"}`}>{row.active ? t("adminDirectoryActive") : t("adminDirectoryPending")}</span>{shouldShowOwnerActivationNotice(row) ? <span className="admin-status-note">{t("adminDirectoryOwnerNotice")}</span> : null}</td></tr>)}</tbody></table></div>
-        <div className="admin-directory-card-list">{result.rows.map((row) => <article className="admin-account-card" key={`${row.email}-${row.role}-card`}><h3>{row.displayName}</h3><dl><div><dt>{t("adminEmail")}</dt><dd>{row.email}</dd></div><div><dt>{t("adminRole")}</dt><dd>{roleLabel(row.role)}</dd></div><div><dt>{t("adminDepartment")}</dt><dd>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</dd></div><div><dt>{t("adminDirectoryLanguage")}</dt><dd>{row.locale === "en" ? t("english") : t("myanmar")}</dd></div><div><dt>{t("adminDirectoryStatus")}</dt><dd><span className={`admin-status-chip ${row.active ? "is-active" : "is-pending"}`}>{row.active ? t("adminDirectoryActive") : t("adminDirectoryPending")}</span></dd></div></dl></article>)}</div>
+        <div className="admin-directory-table-wrap"><table className="admin-directory-table" aria-label={t("adminDirectoryTitle")}><thead><tr><th scope="col">{t("adminDirectoryName")}</th><th scope="col">{t("adminEmail")}</th><th scope="col">{t("adminRole")}</th><th scope="col">{t("adminDepartment")}</th><th scope="col">{t("adminDirectoryLanguage")}</th><th scope="col">{t("adminDirectoryStatus")}</th><th scope="col">{t("adminDirectoryActions")}</th></tr></thead><tbody>{result.rows.map((row) => <tr key={`${row.email}-${row.role}`}><td data-label={t("adminDirectoryName")}>{row.displayName}</td><td data-label={t("adminEmail")} className="admin-break-value">{row.email}</td><td data-label={t("adminRole")}>{roleLabel(row.role)}</td><td data-label={t("adminDepartment")}>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</td><td data-label={t("adminDirectoryLanguage")}>{row.locale === "en" ? t("english") : t("myanmar")}</td><td data-label={t("adminDirectoryStatus")}><span className={`admin-status-chip ${row.active ? "is-active" : "is-pending"}`}>{row.active ? t("adminDirectoryActive") : t("adminDirectoryPending")}</span>{shouldShowOwnerActivationNotice(row) ? <span className="admin-status-note">{t("adminDirectoryOwnerNotice")}</span> : null}</td><td data-label={t("adminDirectoryActions")}><button className="admin-secondary-button admin-directory-view-button" type="button" onClick={(event) => openDetails(event, row)}>{t("adminDirectoryViewDetails")}</button></td></tr>)}</tbody></table></div>
+        <div className="admin-directory-card-list">{result.rows.map((row) => <article className="admin-account-card" key={`${row.email}-${row.role}-card`}><h3>{row.displayName}</h3><dl><div><dt>{t("adminEmail")}</dt><dd>{row.email}</dd></div><div><dt>{t("adminRole")}</dt><dd>{roleLabel(row.role)}</dd></div><div><dt>{t("adminDepartment")}</dt><dd>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</dd></div><div><dt>{t("adminDirectoryLanguage")}</dt><dd>{row.locale === "en" ? t("english") : t("myanmar")}</dd></div><div><dt>{t("adminDirectoryStatus")}</dt><dd><span className={`admin-status-chip ${row.active ? "is-active" : "is-pending"}`}>{row.active ? t("adminDirectoryActive") : t("adminDirectoryPending")}</span></dd></div></dl><button className="admin-secondary-button admin-directory-view-button" type="button" onClick={(event) => openDetails(event, row)}>{t("adminDirectoryViewDetails")}</button></article>)}</div>
       </> : null}
       <div className="admin-pagination"><button className="admin-secondary-button" type="button" onClick={previousPage} disabled={history.length === 0}>{t("adminDirectoryPrevious")}</button><button className="admin-secondary-button" type="button" onClick={nextPage} disabled={!result?.hasMore}>{t("adminDirectoryNext")}</button></div>
+       {activeSelectedRow ? <AdminAccountDetail row={activeSelectedRow} openerRef={detailOpenerRef} fallbackRef={directoryHeadingRef} canRestoreFocus={canRestoreDetailFocus} onClose={closeDetails} /> : null}
     </section>
   );
 
