@@ -44,9 +44,14 @@ authorization, validation, audit records, idempotency/concurrency protection,
 and Auth/profile consistency. No direct frontend profile or authorization
 writes are permitted.
 
-If Staff has active assigned tickets, disable and department-change operations
-must initially fail safely and require reassignment first. Active work must not
-be silently orphaned. Permanent deletion remains deferred until retention,
+If Staff has active assigned tickets, disable operations must initially fail
+safely and require reassignment first. Staff department reassignment has the
+narrower approved future rule that only unresolved complaints explicitly
+assigned to the target Staff member block the change. Unassigned unresolved
+complaints remain in their existing department queue; no complaint is
+automatically moved, rerouted, or modified. A trusted concurrency-safe check
+must return `409` if assignment changes during the operation, and a Manager
+must resolve or reassign the affected complaints before retry. Permanent deletion remains deferred until retention,
 anonymization, complaint/message/event ownership, audit preservation, cascade,
 and recovery policies are approved.
 
@@ -68,9 +73,10 @@ This is approved design, not implemented behavior.
 - Assignment and reassignment require trusted validation, explicit
   confirmation, idempotency, and safe audit events.
 - Automatic Staff assignment is not approved.
-- Disabled or department-moved Staff must not retain active assignments.
-- The first lifecycle implementation blocks disable or department change while
-  active assignments exist and requires reassignment first.
+- Disabled Staff must not retain active assignments.
+- A future department change blocks only on unresolved complaints explicitly
+  assigned to the target Staff member; unresolved unassigned complaints remain
+  in the department queue. This is approved design, not implemented behavior.
 
 The current Staff implementation remains department-level: it has no claim or
 assignment enforcement, and current mutations are authorized by department
@@ -183,6 +189,12 @@ Application notifications have an initial retention policy of 90 days. This
 does not alter or shorten audit-event retention. Cleanup automation is deferred
 until a trusted worker exists, and the absence of automatic cleanup must remain
 documented.
+
+R2C0 does not add account-lifecycle notification triggers. Staff, Manager, and
+Admin lifecycle notifications must not be described as implemented. A disabled
+profile cannot read in-app notifications because notification APIs require a
+strict active profile. Browser push, email, and SMS remain deferred under the
+delivery boundary below.
 
 Durable in-app notifications are the first approved delivery mechanism. They
 are visible while using the app or after reopening it, but do not provide a

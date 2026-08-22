@@ -430,6 +430,23 @@ implemented until a corresponding evidence-backed completion entry is added.
 - R0.1 status: Complete as documentation/contract approval only; implementation
   remains pending later local-only slices and verification.
 
+### Completed - R2C0 Admin account lifecycle contract approval
+
+- [x] Define future trusted disable/reactivate behavior for Customer, Staff,
+  Manager, and carefully governed Admin profiles.
+- [x] Define self-target and last-valid-active-Admin safeguards.
+- [x] Define Staff-only six-department reassignment without role change or
+  retroactive complaint movement, including the approved block only for
+  unresolved complaints explicitly assigned to the target Staff member;
+  unassigned unresolved complaints remain in their department queue.
+- [x] Define opaque account references, idempotency, action records,
+  concurrency, safe responses/errors, and Auth/Firestore recovery states.
+- [x] Preserve Customer-only registration, Staff/Manager-only provisioning,
+  owner-only activation, notification delivery boundaries, frozen evidence,
+  and the deferred Cloud boundary.
+- R2C0 status: Complete as documentation and contract approval only. No
+  lifecycle implementation or runtime verification exists.
+
 ### Current local-only implementation order
 
 The local Firebase Emulator using `demo-complaintguard` remains the source of
@@ -445,13 +462,11 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 4. [x] Commit owner-only local Admin bootstrap and pending-user activation
    helpers; both remain unexecuted.
 5. [x] Read-only Admin `GET /admin/users` endpoint and pure/fake tests. The
-   current implementation returns only safe Staff/Manager operational fields,
-   excludes Customers and Admins, and supports role/department/status/search
-   filters with a bounded 200-profile scan, page sizes from 1 to 50, and opaque
-   cursor pagination. R0.1 approves a future strict-Admin all-role projection
-   with the safe fields and opaque account reference defined in the approved
-   contract; that expansion is not implemented.
-6. [x] Bilingual read-only Admin Staff/Manager directory UI without
+   current implementation returns the safe Customer, Staff, Manager, and Admin
+   projection, with role/department/status/search filters, a bounded
+   200-profile scan, page sizes from 1 to 50, and opaque cursor pagination.
+6. [x] Bilingual read-only Admin all-role directory and R2B account-detail
+   drawer without
    activation, editing, reassignment, disable/reactivate, or deletion
    controls. Pending/Active labels represent Firestore profile state only;
    Firebase Auth state is not independently verified by the directory.

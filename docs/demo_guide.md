@@ -409,10 +409,14 @@ after import. Keep the export local and ignored. Never:
 - Coverage over all mapped/raw complaints
 - Runtime Admin provisioning, Staff/Manager directory, bootstrap, and
   activation (implemented locally but not runtime verified)
-- All-role Admin directory, account detail, account lifecycle mutations,
-  Customer History, durable notifications, Staff claim/assignment enforcement,
+- All-role Admin directory and read-only account detail drawer (implemented
+  locally but not runtime verified); account lifecycle mutations, Customer
+  History, durable notifications, Staff claim/assignment enforcement,
   response-target calculations, escalation alerts, and redesigned navigation
-  (approved design only; not implemented)
+  remain approved design only and must not be demonstrated as live
+- R2C0 Admin disable/reactivate, Staff department reassignment, opaque account
+  targeting, and Firebase Auth/Firestore lifecycle recovery (approved contract
+  only; not implemented or runtime verified)
 - Production Firebase or public deployment
 - QR code
 - Automatic Myanmar routing

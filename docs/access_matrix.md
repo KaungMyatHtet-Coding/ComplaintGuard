@@ -20,11 +20,12 @@ classified as follows:
   theme and form polish, and Manager has the readable Model & Dataset Analytics
   presentation. No Customer, Staff, or Admin access was added to Manager-only
   technical evidence.
-- **Current versus approved future:** the current read-only Admin directory is
-  Staff/Manager-only. R0.1 approves a future strict-active-Admin all-role
-  directory and safe opaque account detail reference, plus trusted display-name,
-  locale, Staff reassignment, disable, and reactivate controls. None of those
-  future expansions is implemented by R0.1.
+- **Current versus approved future:** the local read-only Admin directory now
+  supports the approved Customer, Staff, Manager, and Admin safe projection,
+  and R2B provides a read-only account-detail drawer from parsed directory
+  rows. Lifecycle mutation, Staff reassignment, role changes, and deletion
+  remain approved future contracts only; browser and Emulator verification
+  remain pending.
 - **Designed/planned:** deletion, password reset/invitation, Customer
   management, Admin creation, broader assignment, priority, escalation,
   reopen/close, and department administration.
@@ -178,3 +179,32 @@ localized department, profile active state, derived setup status, and an opaque
 account reference for detail navigation. UIDs, Auth provider records, tokens,
 claims, internal actions, complaint narratives, messages, and private ticket
 information remain prohibited.
+
+## R2C0 future account lifecycle boundary
+
+R2C0 approves a future trusted backend lifecycle contract only; it does not
+change the current read-only directory or provisioning behavior. A strict,
+active Admin may later request disable/reactivate for complete Customer, Staff,
+and Manager profiles, and for other Admin profiles only when the actor is not
+the target and at least one other valid active Admin remains after disablement.
+Malformed or unavailable Admin data must fail closed rather than weaken that
+safeguard.
+
+Staff department reassignment is future Staff-only governance. It accepts only
+the six authoritative department IDs, never changes role, never assigns a
+department to Customer, Manager, or Admin, and never retroactively moves
+complaints. The future trusted, concurrency-safe operation blocks only when
+the target Staff account is explicitly assigned to one or more unresolved
+complaints. Unresolved complaints that are unassigned to that Staff member
+remain in their existing department queue for other authorized Staff. No
+complaint is automatically moved, rerouted, or modified. Concurrent assignment
+changes fail safely with `409`, and a Manager must resolve or reassign affected
+complaints before retry. This policy is approved future design, not implemented.
+
+No role change, permanent deletion, password/claims operation, Auth-provider
+inspection, direct frontend write, or Firebase IAM operation is permitted.
+Future targeting uses a backend-issued opaque account reference only after
+strict Admin authorization. The reference is not authorization and is not
+signed or encrypted; strict validation, safe errors, trusted resolution,
+idempotency, concurrency checks, controlled action records, and immutable
+backend-only audit events remain required.

@@ -170,11 +170,12 @@ The build-time Day 18/19 evaluation JSON is non-sensitive aggregate evidence.
 The ignored historical-similarity index is sensitive analytical material and is
 not loaded by the runtime application. Customer registration/recovery, strict
 active-Admin authorization, pending Staff/Manager provisioning, the Admin
-provisioning dashboard, and the read-only `GET /admin/users` Staff/Manager
-directory are implemented for the local prototype. The directory exposes only
-email, display name, locale, role, department, profile active state, and
-profile setup status; it excludes Customers, Admins, UIDs, credentials,
-claims, timestamps, Auth-provider details, and provisioning action records.
+provisioning dashboard, the read-only all-role `GET /admin/users` directory,
+and the R2B read-only account-detail drawer are implemented for the local
+prototype. The directory and drawer expose only email, display name, locale,
+role, department, profile active state, and profile setup status; they exclude
+UIDs, credentials, claims, timestamps, Auth-provider details, and provisioning
+action records.
 It supports approved role/department/status/search filters, a bounded
 200-profile scan, page sizes from 1 to 50, and opaque cursor pagination. Its
 Pending/Active wording represents Firestore profile state only and does not
@@ -216,6 +217,29 @@ Admin analytics remain future work while bounded aggregation and completeness
 semantics are unresolved. Manager technical evidence remains Manager-only;
 Admin governance summaries must remain aggregate and must not expose raw
 complaint narratives or ticket-level model evidence.
+
+## R2C0 future Admin account lifecycle boundary
+
+The approved future account lifecycle is documented in
+[`admin_account_lifecycle_contract.md`](admin_account_lifecycle_contract.md).
+It is a trusted-backend design only, not current architecture behavior. The
+current Admin surface remains a read-only all-role directory and a
+Staff/Manager-only pending provisioning flow.
+
+Future mutations must authorize a verified active strict Admin before resolving
+an opaque backend-issued account reference. They must preserve role and
+department invariants, use deterministic idempotency/action records, apply
+expected-state concurrency checks, and recover Firebase Auth/Firestore partial
+failures without activating a profile prematurely. Profile inactivity is the
+first disablement boundary; Auth enablement is the first reactivation step.
+Self-targeting, last-valid-Admin disablement, explicitly assigned unresolved
+Staff work, malformed profiles, `pending_setup` activation, role changes, and
+permanent deletion remain blocked or deferred by policy. Unresolved complaints
+that are unassigned to the target Staff member remain in their department
+queue; no future reassignment operation may move or reroute them automatically.
+
+No frontend account mutation, Auth management, claims operation, rule/index
+change, notification trigger, or runtime verification is introduced by R2C0.
 
 The Secure & Approachable UI/UX Slices A-D are implemented locally and
 automated-test verified without changing authorization. Customer and landing

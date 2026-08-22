@@ -288,3 +288,26 @@ scheduled worker.
   anonymization; stored operational complaint text remains sensitive.
 - No approved retention/deletion workflow, rate limiting, production monitoring,
   disaster recovery, penetration test, or independent audit exists.
+
+## R2C0 future lifecycle records (not implemented)
+
+R2C0 does not add or migrate any Firestore collection. A later implementation
+may use trusted-only lifecycle action records and an opaque account-reference
+lookup. These records must remain inaccessible to direct clients under the
+deny-by-default rules and must not be added to browser projections.
+
+The future action record may contain only an action domain/version, opaque
+action reference, trusted actor/target references, operation type, request and
+idempotency fingerprints, safe role/department metadata where required,
+lifecycle state, safe result code, and server timestamps. It must not contain
+passwords, tokens, claims, credentials, arbitrary reasons, Auth provider
+records, complaint/message/event data, or raw browser requests.
+
+The future profile mutation must use expected-state/version checks and trusted
+transactions for Firestore phases. Firebase Auth disable/enable and refresh
+token revocation are outside a Firestore transaction and therefore require the
+documented `auth_disable_pending`, `auth_enable_pending`, and
+`profile_activation_pending` recovery states. No lifecycle field, index, rule,
+or worker is implemented by R2C0. Permanent deletion and cleanup remain
+deferred pending retention, anonymization, ownership, cascade, audit, and
+recovery policy approval.

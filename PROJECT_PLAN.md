@@ -1018,7 +1018,7 @@ Frozen evidence:
 | 1. Master plan and architecture documentation | Completed with this reconciliation commit | Documentation reconciliation only. |
 | 2. Cloud Firebase staging migration | Preparation complete; overall Phase 2 remains in progress as a deferred boundary because runtime and application connection are deferred by the no-budget/no-billing decision | `complaintguard` is preserved for possible future staging; no Cloud runtime or workflow is verified. |
 | 3. Registration, login, and account lifecycle | Implemented locally; runtime pending | Customer-only registration/recovery is pure-tested; Emulator E2E remains pending. |
-| 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, and current Staff/Manager read-only directory exist; runtime execution remains pending and the approved all-role directory/lifecycle expansion is future work. |
+| 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, the read-only all-role directory, and the read-only account-detail drawer exist; lifecycle mutation remains future work and runtime execution remains pending. |
 | 5. Secure & Approachable UI/UX upgrade | Slices A-D implemented locally; runtime pending | Customer/landing safety, accessible Staff workspace, auth theme/polish, and Manager analytics readability are automated-test verified; no browser visual verification was performed. |
 | 6. Model, dataset, equations, and analytics presentation | Implemented locally; runtime pending | Manager-only read-only equations and separate frozen/controlled evidence presentation. |
 | 7. Controlled six-department user testing | V1/V2 evidence implemented locally; runtime pending | Small-sample synthetic evidence, not formal model accuracy or live-user performance. |
@@ -1141,6 +1141,30 @@ Next local roadmap order is: documentation reconciliation; status lifecycle
 design and implementation; broader UI/UX refinement; final local packaging and
 teacher-facing evidence. Cloud work remains gated on future budget and owner
 approval, and model hunting remains separately approval-gated.
+
+### R2C0 - Approved Admin account lifecycle contract
+
+R2C0 is documentation and contract approval only. The future lifecycle contract
+is defined in [`docs/admin_account_lifecycle_contract.md`](docs/admin_account_lifecycle_contract.md).
+No lifecycle route, schema, action record, Auth operation, profile mutation,
+department reassignment, UI control, rule, index, migration, test, or runtime
+behavior was implemented by this checkpoint.
+
+The approved future design covers trusted disable/reactivate for complete
+Customer, Staff, and Manager profiles; separately safeguarded disable/reactivate
+for other Admins; Staff-only six-department reassignment; immutable role
+boundaries; opaque backend-issued account references; deterministic
+idempotency/action records; and recoverable Firebase Auth/Firestore partial
+failures. Self-disable, last-active-Admin disablement, Staff reassignment when
+the target has explicitly assigned unresolved work, malformed profiles,
+`pending_setup` activation, and permanent deletion remain safely blocked or
+deferred as defined by the contract. Unassigned unresolved complaints remain
+in their existing department queue and are not automatically moved or rerouted.
+
+The current Admin directory and provisioning behavior are unchanged. Existing
+sessions, Auth token revocation, and all lifecycle runtime behavior remain
+unverified. `cloud_staging_not_adopted`, the no-budget Cloud deferral, the
+owner-only local activation helper, and frozen evidence remain unchanged.
 
 ### Current Secure & Approachable UI/UX checkpoint
 
