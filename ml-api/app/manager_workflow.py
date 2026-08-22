@@ -183,18 +183,28 @@ class InMemoryManagerBackend(ManagerBackend):
 class FirebaseAdminManagerBackend(ManagerBackend):
     """Production Firestore backend using Firebase Admin SDK."""
 
-    def __init__(self, db: Any = None) -> None:
+    def __init__(self, db: Any = None, notification_writer: Any = None) -> None:
         if db is not None:
             self.db = db
+            from firebase_admin import firestore
+
+            self.server_timestamp = firestore.SERVER_TIMESTAMP
         else:
             try:
                 from app.ticketing import firebase_admin_clients
 
-                _, self.db, _ = firebase_admin_clients()
+                _, self.db, self.server_timestamp = firebase_admin_clients()
             except Exception as exc:
                 from app.ticketing import PersistenceError
 
                 raise PersistenceError("Firebase Admin is not configured") from exc
+        if notification_writer is None:
+            from app.notifications import FirebaseAdminNotificationBackend
+
+            notification_writer = FirebaseAdminNotificationBackend(
+                db=self.db, server_timestamp=self.server_timestamp
+            )
+        self._notification_writer = notification_writer
 
     def get_all_tickets(self) -> list[dict[str, Any]]:
         docs = self.db.collection("tickets").stream()
@@ -252,6 +262,27 @@ class FirebaseAdminManagerBackend(ManagerBackend):
                 doc_data = snapshot.to_dict()
                 previous_department_id = doc_data.get("departmentId")
                 result = {**doc_data, **updates, "id": ticket_id}
+                if previous_department_id != new_department_id:
+                    from app.notifications import (
+                        build_customer_notification_request,
+                        stage_customer_notification,
+                    )
+
+                    stage_customer_notification(
+                        transaction=transaction,
+                        db=self.db,
+                        writer=self._notification_writer,
+                        request=build_customer_notification_request(
+                            notification_type="department_assigned",
+                            recipient_uid=doc_data["customerId"],
+                            ticket_ref=ticket_id,
+                            source_key=(
+                                f"ticket:{ticket_id}:department:{new_department_id}:"
+                                f"manager_override:{action_id}"
+                            ),
+                            department_key=new_department_id,
+                        ),
+                    )
                 transaction.update(doc_ref, updates)
                 transaction.set(
                     audit_ref,

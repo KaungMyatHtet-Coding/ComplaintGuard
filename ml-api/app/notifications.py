@@ -252,6 +252,14 @@ class NotificationBackend(Protocol):
     def unread_count(self, recipient_uid: str, *, now: datetime) -> int: ...
 
 
+class NotificationWriter(Protocol):
+    """Trusted transaction participant for workflow-triggered notifications."""
+
+    def stage_create(
+        self, transaction: Any, request: NotificationCreateRequest
+    ) -> NotificationRecord: ...
+
+
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -473,6 +481,123 @@ def validate_creation(request: NotificationCreateRequest, *, now: datetime) -> N
         expires_at=created_at + NOTIFICATION_RETENTION,
         dedupe_key_hash=reference,
     )
+
+
+_PUBLIC_CUSTOMER_STATUSES = frozenset(
+    {"submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"}
+)
+_CUSTOMER_TRIGGER_SPECS = {
+    "complaint_received": ("complaint", "notifications.complaint_received", {"ticketRef"}),
+    "department_assigned": ("assignment", "notifications.department_assigned", {"ticketRef", "departmentKey"}),
+    "staff_reply": ("response", "notifications.staff_reply", {"ticketRef"}),
+    "information_requested": ("response", "notifications.information_requested", {"ticketRef"}),
+    "status_changed": ("complaint", "notifications.status_changed", {"ticketRef", "status"}),
+    "complaint_resolved": ("complaint", "notifications.complaint_resolved", {"ticketRef"}),
+}
+
+
+def build_customer_notification_request(
+    *,
+    notification_type: str,
+    recipient_uid: str,
+    ticket_ref: str,
+    source_key: str,
+    department_key: str | None = None,
+    status: str | None = None,
+) -> NotificationCreateRequest:
+    """Build only the approved Customer trigger shapes for trusted workflows."""
+
+    spec = _CUSTOMER_TRIGGER_SPECS.get(notification_type)
+    if spec is None:
+        raise NotificationValidationError("unsupported Customer workflow notification")
+    category, key_prefix, allowed_params = spec
+    if notification_type == "department_assigned" and department_key not in DEPARTMENT_IDS:
+        raise NotificationValidationError("Customer department notification requires a safe department")
+    if notification_type == "status_changed" and status not in _PUBLIC_CUSTOMER_STATUSES:
+        raise NotificationValidationError("Customer status notification requires a public status")
+    params: dict[str, str] = {"ticketRef": ticket_ref}
+    if department_key is not None:
+        params["departmentKey"] = department_key
+    if status is not None:
+        params["status"] = status
+    if set(params) != allowed_params:
+        raise NotificationValidationError("Customer notification parameters are incomplete")
+    return NotificationCreateRequest(
+        recipient_uid=recipient_uid,
+        recipient_role="customer",
+        type=notification_type,
+        severity="info",
+        category=category,
+        title_key=f"{key_prefix}.title",
+        body_key=f"{key_prefix}.body",
+        source_key=source_key,
+        navigation_target="customer_ticket",
+        related_ticket_ref=ticket_ref,
+        params=params,
+    )
+
+
+def validate_customer_recipient_profile(
+    profile: Any, *, recipient_uid: str, require_active: bool = True
+) -> None:
+    """Fail closed for malformed Customer recipients and optional active state."""
+
+    if (
+        not isinstance(profile, dict)
+        or profile.get("role") != "customer"
+        or not isinstance(profile.get("active"), bool)
+        or (require_active and profile.get("active") is not True)
+        or profile.get("departmentId") is not None
+        or not isinstance(profile.get("email"), str)
+        or not _EMAIL_PATTERN.fullmatch(profile["email"].strip())
+        or not isinstance(profile.get("displayName"), str)
+        or not profile["displayName"].strip()
+        or profile.get("locale") not in {"en", "my"}
+        or profile.get("createdAt") is None
+        or profile.get("updatedAt") is None
+    ):
+        raise NotificationProfileError("Customer notification recipient is invalid")
+    profile_uid = profile.get("uid")
+    if profile_uid is not None and profile_uid != recipient_uid:
+        raise NotificationProfileError("Customer notification recipient is invalid")
+
+
+def stage_customer_notification(
+    *,
+    transaction: Any,
+    db: Any,
+    writer: NotificationWriter,
+    request: NotificationCreateRequest,
+    require_active_profile: bool = False,
+) -> NotificationRecord:
+    """Validate the trusted ticket owner and stage one notification atomically.
+
+    Initial complaint creation opts into active-profile validation. Later trusted
+    ticket mutations may notify a structurally valid inactive owner so that
+    existing Staff/Manager work is not blocked; notification read APIs retain
+    their separate active-profile authorization.
+    """
+
+    recipient_uid = request.recipient_uid
+    if (
+        not isinstance(recipient_uid, str)
+        or not recipient_uid
+        or len(recipient_uid) > 128
+        or recipient_uid != recipient_uid.strip()
+        or any(ord(character) < 32 for character in recipient_uid)
+    ):
+        raise NotificationProfileError("Customer notification recipient is invalid")
+
+    profile_ref = db.collection("users").document(recipient_uid)
+    profile_snapshot = next(transaction.get(profile_ref))
+    if not profile_snapshot.exists:
+        raise NotificationProfileError("Customer notification recipient is invalid")
+    validate_customer_recipient_profile(
+        profile_snapshot.to_dict(),
+        recipient_uid=recipient_uid,
+        require_active=require_active_profile,
+    )
+    return writer.stage_create(transaction, request)
 
 
 def _immutable_payload(record: NotificationRecord) -> dict[str, Any]:
@@ -719,19 +844,28 @@ class FirebaseAdminNotificationBackend:
             dedupe_key_hash=data["dedupeKeyHash"],
         ))
 
-    def create(self, record: NotificationRecord) -> NotificationRecord:
+    def _stage_record(
+        self, transaction: Any, record: NotificationRecord
+    ) -> NotificationRecord:
         reference = self._db.collection("notifications").document(record.notification_ref)
         document = _immutable_payload(record) | {"createdAt": self._server_timestamp, "readAt": None, "expiresAt": record.expires_at}
+        snapshot = next(transaction.get(reference))
+        if snapshot.exists:
+            existing = self._record_from_document(snapshot.to_dict(), snapshot.id)
+            if _immutable_payload(existing) != _immutable_payload(record):
+                raise NotificationConflictError("notification reference conflict")
+            return existing
+        transaction.create(reference, document)
+        return record
 
+    def stage_create(
+        self, transaction: Any, request: NotificationCreateRequest
+    ) -> NotificationRecord:
+        return self._stage_record(transaction, validate_creation(request, now=_utc_now()))
+
+    def create(self, record: NotificationRecord) -> NotificationRecord:
         def operation(transaction: Any) -> NotificationRecord:
-            snapshot = next(transaction.get(reference))
-            if snapshot.exists:
-                existing = self._record_from_document(snapshot.to_dict(), snapshot.id)
-                if _immutable_payload(existing) != _immutable_payload(record):
-                    raise NotificationConflictError("notification reference conflict")
-                return existing
-            transaction.create(reference, document)
-            return record
+            return self._stage_record(transaction, record)
 
         try:
             return run_firestore_transaction(self._db, operation)

@@ -235,13 +235,20 @@ def _bearer_token(authorization: str | None) -> str:
 class FirebaseAdminTicketBackend:
     """Firebase Admin adapter initialized from Application Default Credentials."""
 
-    def __init__(self, db: Any = None) -> None:
+    def __init__(self, db: Any = None, notification_writer: Any = None) -> None:
         if db is not None:
             self._db = db
             from firebase_admin import firestore
 
             self.server_timestamp = firestore.SERVER_TIMESTAMP
             self._auth = None
+            if notification_writer is None:
+                from app.notifications import FirebaseAdminNotificationBackend
+
+                notification_writer = FirebaseAdminNotificationBackend(
+                    db=self._db, server_timestamp=self.server_timestamp
+                )
+            self._notification_writer = notification_writer
             return
         try:
             self._auth, self._db, self.server_timestamp = firebase_admin_clients()
@@ -251,6 +258,13 @@ class FirebaseAdminTicketBackend:
                 type(exc).__name__,
             )
             raise PersistenceError("Firebase Admin is not configured") from exc
+        if notification_writer is None:
+            from app.notifications import FirebaseAdminNotificationBackend
+
+            notification_writer = FirebaseAdminNotificationBackend(
+                db=self._db, server_timestamp=self.server_timestamp
+            )
+        self._notification_writer = notification_writer
 
     def verify_id_token(self, token: str) -> str:
         decoded = self._auth.verify_id_token(token)
@@ -269,6 +283,10 @@ class FirebaseAdminTicketBackend:
         ).hexdigest()[:32]
         ticket_id = f"ticket_{digest}"
         reference = self._db.collection("tickets").document(ticket_id)
+        from app.notifications import (
+            build_customer_notification_request,
+            stage_customer_notification,
+        )
 
         def operation(transaction: Any) -> str:
             snapshot = next(transaction.get(reference))
@@ -276,7 +294,31 @@ class FirebaseAdminTicketBackend:
                 existing = snapshot.to_dict()
                 if existing.get("customerId") != document["customerId"]:
                     raise PersistenceError("submission ownership conflict")
+                stage_customer_notification(
+                    transaction=transaction,
+                    db=self._db,
+                    writer=self._notification_writer,
+                    require_active_profile=True,
+                    request=build_customer_notification_request(
+                        notification_type="complaint_received",
+                        recipient_uid=existing["customerId"],
+                        ticket_ref=ticket_id,
+                        source_key=f"ticket:{ticket_id}:complaint_received",
+                    ),
+                )
                 return ticket_id
+            stage_customer_notification(
+                transaction=transaction,
+                db=self._db,
+                writer=self._notification_writer,
+                require_active_profile=True,
+                request=build_customer_notification_request(
+                    notification_type="complaint_received",
+                    recipient_uid=document["customerId"],
+                    ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:complaint_received",
+                ),
+            )
             transaction.set(reference, document)
             return ticket_id
 
@@ -325,6 +367,24 @@ class FirebaseAdminTicketBackend:
                 status=status,
                 routing_source=routing_source,
             )
+            if department_id is not None:
+                from app.notifications import (
+                    build_customer_notification_request,
+                    stage_customer_notification,
+                )
+
+                stage_customer_notification(
+                    transaction=transaction,
+                    db=self._db,
+                    writer=self._notification_writer,
+                    request=build_customer_notification_request(
+                        notification_type="department_assigned",
+                        recipient_uid=ticket["customerId"],
+                        ticket_ref=ticket_id,
+                        source_key=f"ticket:{ticket_id}:department:{department_id}:model_v1_routing",
+                        department_key=department_id,
+                    ),
+                )
             transaction.update(reference, updates)
             transaction.set(
                 event_reference,

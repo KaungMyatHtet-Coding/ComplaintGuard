@@ -244,14 +244,21 @@ def _bearer_token(authorization: str | None) -> str:
 class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
     """Admin-SDK adapter. All mutations recheck department inside transactions."""
 
-    def __init__(self, db: Any = None) -> None:
+    def __init__(self, db: Any = None, notification_writer: Any = None) -> None:
         if db is None:
-            super().__init__()
+            super().__init__(notification_writer=notification_writer)
             return
         self._db = db
         from firebase_admin import firestore
 
         self.server_timestamp = firestore.SERVER_TIMESTAMP
+        if notification_writer is None:
+            from app.notifications import FirebaseAdminNotificationBackend
+
+            notification_writer = FirebaseAdminNotificationBackend(
+                db=self._db, server_timestamp=self.server_timestamp
+            )
+        self._notification_writer = notification_writer
 
     def _summary(self, snapshot: Any) -> dict[str, Any]:
         data = snapshot.to_dict()
@@ -334,6 +341,22 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
             event_ref = ticket_ref.collection("events").document(f"reply_{action_id}")
             if next(transaction.get(event_ref)).exists:
                 return MutationResult(ticket_id, action_id, ticket["status"], True)
+            from app.notifications import (
+                build_customer_notification_request,
+                stage_customer_notification,
+            )
+
+            stage_customer_notification(
+                transaction=transaction,
+                db=self._db,
+                writer=self._notification_writer,
+                request=build_customer_notification_request(
+                    notification_type="staff_reply",
+                    recipient_uid=ticket["customerId"],
+                    ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:staff_reply:{action_id}",
+                ),
+            )
             transaction.set(
                 message_ref,
                 {
@@ -391,6 +414,30 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
                         "resolvedAt": self.server_timestamp,
                     }
                 )
+            notification_type = {
+                "awaiting_customer": "information_requested",
+                "resolved": "complaint_resolved",
+            }.get(to_status, "status_changed")
+            notification_kwargs: dict[str, Any] = {}
+            if notification_type == "status_changed":
+                notification_kwargs["status"] = to_status
+            from app.notifications import (
+                build_customer_notification_request,
+                stage_customer_notification,
+            )
+
+            stage_customer_notification(
+                transaction=transaction,
+                db=self._db,
+                writer=self._notification_writer,
+                request=build_customer_notification_request(
+                    notification_type=notification_type,
+                    recipient_uid=ticket["customerId"],
+                    ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:status:{to_status}:{action_id}",
+                    **notification_kwargs,
+                ),
+            )
             transaction.update(ticket_ref, changes)
             transaction.set(
                 event_ref,
