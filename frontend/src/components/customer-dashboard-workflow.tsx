@@ -69,6 +69,13 @@ export function CustomerDashboardWorkflow() {
   );
 
   useEffect(() => {
+    const requestedTicket = new URLSearchParams(window.location.search).get("ticketRef");
+    if (requestedTicket && /^[A-Za-z0-9_-]{1,128}$/.test(requestedTicket)) {
+      queueMicrotask(() => setSelectedTicketId(requestedTicket));
+    }
+  }, []);
+
+  useEffect(() => {
     queueMicrotask(() => void loadTickets());
   }, [loadTickets]);
 

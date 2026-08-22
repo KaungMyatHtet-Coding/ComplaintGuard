@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { useApp } from "@/components/app-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { NotificationCenter } from "@/components/notification-center";
 
 const roleLabelKeys = {
   customer: "customerShell",
@@ -31,6 +32,7 @@ export function AppHeader() {
           </span>
         ) : null}
         <LanguageSwitcher />
+        {profile ? <NotificationCenter key={profile.uid} /> : null}
         {profile ? (
           <button className="flex items-center justify-center p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-black transition-colors shrink-0" type="button" onClick={() => void signOut()} aria-label={t("signOut")} title={t("signOut")}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
