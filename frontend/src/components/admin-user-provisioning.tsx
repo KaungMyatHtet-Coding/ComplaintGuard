@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useApp } from "@/components/app-provider";
+import { AdminOverview, type AdminOverviewSnapshot } from "@/components/admin-overview";
 import { AdminUserDirectory } from "@/components/admin-user-directory";
 import {
   createIdempotencyKey,
@@ -51,11 +52,18 @@ export function AdminUserProvisioning() {
   const [success, setSuccess] = useState<AdminProvisioningResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [directoryRefreshKey, setDirectoryRefreshKey] = useState(0);
+  const [directorySnapshot, setDirectorySnapshot] = useState<AdminOverviewSnapshot>({ state: "loading", rows: [] });
   const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const reviewHeadingRef = useRef<HTMLHeadingElement>(null);
+  const formHeadingRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     if (errorCode) errorSummaryRef.current?.focus();
   }, [errorCode]);
+
+  useEffect(() => {
+    if (confirmed) reviewHeadingRef.current?.focus();
+  }, [confirmed]);
 
   function updateForm(next: Partial<AdminProvisioningFormInput>) {
     setForm((current) => ({ ...current, ...next }));
@@ -109,11 +117,17 @@ export function AdminUserProvisioning() {
     departmentId ? getDepartmentLabel(departmentId, language) ?? t("adminNotSelected") : t("adminNotApplicable");
 
   return (
-    <section id="admin-provisioning" className="admin-provisioning-card w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8" aria-labelledby="admin-provisioning-title">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{t("adminWorkspaceEyebrow")}</p>
-      <h2 id="admin-provisioning-title" className="mt-2 text-2xl font-semibold text-gray-950">{t("adminWorkspaceTitle")}</h2>
-      <p className="mt-3 text-sm leading-6 text-gray-600">{t("adminWorkspaceLead")}</p>
-      <div className="mt-4 rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+    <div className="admin-workspace-stack">
+      <AdminOverview snapshot={directorySnapshot} />
+      <section id="admin-provisioning" className="admin-provisioning-card" aria-labelledby="admin-provisioning-title">
+      <div className="admin-section-heading">
+        <div>
+          <p className="admin-section-eyebrow">{t("adminWorkspaceEyebrow")}</p>
+          <h2 ref={formHeadingRef} id="admin-provisioning-title" tabIndex={-1}>{t("adminWorkspaceTitle")}</h2>
+          <p>{t("adminWorkspaceLead")}</p>
+        </div>
+      </div>
+      <div className="admin-policy-note">
         <p>{t("adminPendingExplanation")}</p>
         <p className="mt-2">{t("adminOwnerActivationNotice")}</p>
       </div>
@@ -126,7 +140,7 @@ export function AdminUserProvisioning() {
       ) : null}
 
       {success ? (
-        <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900" role="status" aria-live="polite">
+        <div className="admin-success-panel" role="status" aria-live="polite">
           <h2 className="font-semibold">{t("adminPendingSuccess")}</h2>
           <dl className="mt-3 grid gap-2 sm:grid-cols-2">
             <div><dt className="font-medium">{t("adminRole")}</dt><dd>{roleLabel(success.role)}</dd></div>
@@ -139,64 +153,65 @@ export function AdminUserProvisioning() {
       ) : null}
 
       {!confirmed ? (
-        <form className="mt-6 grid gap-5" onSubmit={review} noValidate>
-          <div>
+        <form className="admin-form-grid" onSubmit={review} noValidate>
+          <div className="admin-form-field">
             <label className="field-label" htmlFor="admin-role">{t("adminRole")}</label>
-            <select id="admin-role" className="field-input" value={form.role} onChange={(event) => updateForm({ role: event.target.value as "staff" | "manager", departmentId: null })}>
+            <select id="admin-role" className="admin-field-input" value={form.role} onChange={(event) => updateForm({ role: event.target.value as "staff" | "manager", departmentId: null })} aria-describedby="admin-role-help">
               <option value="staff">{t("adminStaff")}</option>
               <option value="manager">{t("adminManager")}</option>
             </select>
-            <p className="field-help">{form.role === "staff" ? t("adminStaffDescription") : t("adminManagerDescription")}</p>
+            <p id="admin-role-help" className="field-help">{form.role === "staff" ? t("adminStaffDescription") : t("adminManagerDescription")}</p>
           </div>
-          <div>
+          <div className="admin-form-field">
             <label className="field-label" htmlFor="admin-email">{t("adminEmail")}</label>
-            <input id="admin-email" className="field-input" type="email" autoComplete="email" value={form.email} onChange={(event) => updateForm({ email: event.target.value })} aria-invalid={Boolean(fieldError(form, "email"))} />
-            {fieldError(form, "email") ? <p className="field-error">{t(fieldError(form, "email") as never)}</p> : null}
+            <input id="admin-email" className="admin-field-input" type="email" autoComplete="email" value={form.email} onChange={(event) => updateForm({ email: event.target.value })} aria-invalid={Boolean(fieldError(form, "email"))} aria-describedby="admin-email-error" required />
+            <p id="admin-email-error" className="field-error">{fieldError(form, "email") ? t(fieldError(form, "email") as never) : ""}</p>
           </div>
-          <div>
+          <div className="admin-form-field">
             <label className="field-label" htmlFor="admin-display-name">{t("adminDisplayName")}</label>
-            <input id="admin-display-name" className="field-input" type="text" autoComplete="name" value={form.displayName} onChange={(event) => updateForm({ displayName: event.target.value })} aria-invalid={Boolean(fieldError(form, "displayName"))} />
-            {fieldError(form, "displayName") ? <p className="field-error">{t(fieldError(form, "displayName") as never)}</p> : null}
+            <input id="admin-display-name" className="admin-field-input" type="text" autoComplete="name" value={form.displayName} onChange={(event) => updateForm({ displayName: event.target.value })} aria-invalid={Boolean(fieldError(form, "displayName"))} aria-describedby="admin-display-name-error" required />
+            <p id="admin-display-name-error" className="field-error">{fieldError(form, "displayName") ? t(fieldError(form, "displayName") as never) : ""}</p>
           </div>
-          <div>
+          <div className="admin-form-field">
             <label className="field-label" htmlFor="admin-locale">{t("adminLocale")}</label>
-            <select id="admin-locale" className="field-input" value={form.locale} onChange={(event) => updateForm({ locale: event.target.value as Locale })}>
+            <select id="admin-locale" className="admin-field-input" value={form.locale} onChange={(event) => updateForm({ locale: event.target.value as Locale })}>
               <option value="en">{t("english")}</option>
               <option value="my">{t("myanmar")}</option>
             </select>
           </div>
           {form.role === "staff" ? (
-            <div>
+            <div className="admin-form-field">
               <label className="field-label" htmlFor="admin-department">{t("adminDepartment")}</label>
-              <select id="admin-department" className="field-input" value={form.departmentId ?? ""} onChange={(event) => updateForm({ departmentId: event.target.value as DepartmentId })} aria-invalid={Boolean(fieldError(form, "departmentId"))}>
+              <select id="admin-department" className="admin-field-input" value={form.departmentId ?? ""} onChange={(event) => updateForm({ departmentId: event.target.value as DepartmentId })} aria-invalid={Boolean(fieldError(form, "departmentId"))} aria-describedby="admin-department-error" required>
                 <option value="">{t("adminChooseDepartment")}</option>
                 {departmentIds.map((departmentId) => <option key={departmentId} value={departmentId}>{getDepartmentLabel(departmentId, locale)}</option>)}
               </select>
-              {fieldError(form, "departmentId") ? <p className="field-error">{t("adminDepartmentRequired")}</p> : null}
+              <p id="admin-department-error" className="field-error">{fieldError(form, "departmentId") ? t("adminDepartmentRequired") : ""}</p>
             </div>
           ) : null}
-          <button className="primary-button w-full sm:w-fit" type="submit">{t("adminReview")}</button>
+          <button className="admin-primary-button" type="submit">{t("adminReview")}</button>
         </form>
       ) : (
-        <div className="mt-6 rounded-xl border border-gray-200 p-5">
-          <h2 className="text-lg font-semibold text-gray-950">{t("adminConfirmationTitle")}</h2>
-          <p className="mt-2 text-sm text-gray-600">{t("adminConfirmationLead")}</p>
-          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <div className="admin-review-card">
+          <h3 ref={reviewHeadingRef} tabIndex={-1}>{t("adminConfirmationTitle")}</h3>
+          <p>{t("adminConfirmationLead")}</p>
+          <dl className="admin-review-grid">
             <div><dt className="font-medium text-gray-500">{t("adminRole")}</dt><dd>{roleLabel(confirmed.role)}</dd></div>
             <div><dt className="font-medium text-gray-500">{t("adminDepartment")}</dt><dd>{departmentLabel(confirmed.departmentId, confirmed.locale)}</dd></div>
             <div><dt className="font-medium text-gray-500">{t("adminEmail")}</dt><dd className="break-words">{confirmed.email}</dd></div>
             <div><dt className="font-medium text-gray-500">{t("adminDisplayName")}</dt><dd>{confirmed.displayName}</dd></div>
           </dl>
-          <p className="mt-4 text-sm text-gray-600">{t("adminConfirmationNotice")}</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button className="secondary-button" type="button" onClick={() => { setConfirmed(null); setIdempotencyKey(null); }}>{t("adminEdit")}</button>
-            <button className="primary-button" type="button" onClick={() => void submitConfirmed()} disabled={submitting} aria-busy={submitting}>
+          <p>{t("adminConfirmationNotice")}</p>
+          <div className="admin-review-actions">
+            <button className="admin-secondary-button" type="button" onClick={() => { setConfirmed(null); setIdempotencyKey(null); requestAnimationFrame(() => formHeadingRef.current?.focus()); }}>{t("adminEdit")}</button>
+            <button className="admin-primary-button" type="button" onClick={() => void submitConfirmed()} disabled={submitting} aria-busy={submitting}>
               {submitting ? t("adminSubmitting") : t("adminConfirm")}
             </button>
           </div>
         </div>
       )}
-      <div id="admin-directory"><AdminUserDirectory refreshKey={directoryRefreshKey} /></div>
-    </section>
+      </section>
+      <div id="admin-directory"><AdminUserDirectory refreshKey={directoryRefreshKey} onSummaryChange={setDirectorySnapshot} /></div>
+    </div>
   );
 }
