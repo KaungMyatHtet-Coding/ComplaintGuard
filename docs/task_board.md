@@ -414,6 +414,22 @@ implemented until a corresponding evidence-backed completion entry is added.
 - [ ] Keep Spark/no billing, App Check unconfigured, and the local index
   manifest undeployed.
 
+### Completed - R0.1 dashboard and workflow contract approval
+
+- [x] Consolidate the dashboard/account audit and focused workflow audit in
+  `docs/dashboard_account_audit.md`.
+- [x] Record the approved Customer-safe History, durable notification,
+  assignment, response-target, escalation, and evidence-boundary contracts in
+  `docs/workflow_notification_contract.md`.
+- [x] Record all-role Admin visibility and future trusted lifecycle safeguards.
+- [x] Record that no application code, API, schema, rule, index, notification,
+  assignment, SLA, UI, worker, or runtime behavior was implemented by R0.1.
+- [x] Preserve Customer ownership, Staff department isolation, Manager-only
+  technical evidence, frozen artifacts and hashes, and
+  `cloud_staging_not_adopted`.
+- R0.1 status: Complete as documentation/contract approval only; implementation
+  remains pending later local-only slices and verification.
+
 ### Current local-only implementation order
 
 The local Firebase Emulator using `demo-complaintguard` remains the source of
@@ -428,18 +444,21 @@ and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
 3. [x] Admin-only pending-account dashboard with bilingual confirmation UX.
 4. [x] Commit owner-only local Admin bootstrap and pending-user activation
    helpers; both remain unexecuted.
-5. [x] Read-only Admin `GET /admin/users` endpoint and pure/fake tests. It
-   returns only safe Staff/Manager operational fields, excludes Customers,
-   Admins, UIDs, credentials, claims, timestamps, Auth-provider details, and
-   provisioning action records, and supports role/department/status/search
-   filters with a bounded 200-profile scan, page sizes from 1 to 50, and
-   opaque cursor pagination.
+5. [x] Read-only Admin `GET /admin/users` endpoint and pure/fake tests. The
+   current implementation returns only safe Staff/Manager operational fields,
+   excludes Customers and Admins, and supports role/department/status/search
+   filters with a bounded 200-profile scan, page sizes from 1 to 50, and opaque
+   cursor pagination. R0.1 approves a future strict-Admin all-role projection
+   with the safe fields and opaque account reference defined in the approved
+   contract; that expansion is not implemented.
 6. [x] Bilingual read-only Admin Staff/Manager directory UI without
    activation, editing, reassignment, disable/reactivate, or deletion
    controls. Pending/Active labels represent Firestore profile state only;
    Firebase Auth state is not independently verified by the directory.
-7. [ ] Status lifecycle design and implementation: activation, disable, and
-   reactivation policy with separate owner approval.
+7. [ ] Status lifecycle implementation: activation, disable, reactivation,
+   display-name/locale editing, and Staff department reassignment remain
+   future trusted-backend work. R0.1 approves the policy safeguards and keeps
+   permanent deletion deferred.
 8. [x] UI/UX Slices A-D implemented locally without changing authorization:
    Customer/landing safety and containment, accessible Staff tabs, semantic
    auth theme/form polish, and Manager analytics readability. Automated

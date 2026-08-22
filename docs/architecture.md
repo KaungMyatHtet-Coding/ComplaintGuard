@@ -190,6 +190,15 @@ a live Emulator because
 Firebase CLI startup stopped at a network-dependent MOTD/auto-download boundary;
 no product defect was proven.
 
+R0.1 approves future strict-active-Admin all-role governance using safe browser
+fields and an opaque account reference, Customer-safe History projections,
+durable in-app notifications, trusted assignment controls, response-target
+presentation, and aggregate Admin governance summaries. These are approved
+design contracts, not current runtime behavior. The current Customer API still
+requires a future data-minimization projection, the current Staff workflow
+remains department-level with no claim or assignment enforcement, proactive
+notification delivery is unavailable, and no scheduled worker is approved.
+
 The Manager-only Model & Dataset Analytics workspace also presents the frozen
 TF-IDF and MultinomialNB equations plus separate aggregate-safe controlled V1
 and V2 evidence. V1 is a small short-English challenge (`2/6` classifier
@@ -203,8 +212,10 @@ routed-case correctness, never overall model accuracy, and is shown with its
 production evidence. Confidence is uncalibrated and macro-F1 remains below
 the 0.70 target. This presentation is pure/frontend/static-tested, but browser
 and Emulator runtime verification remains incomplete. Operational aggregate
-Slice 2 remains deferred while bounded aggregation and completeness semantics
-are unresolved.
+Admin analytics remain future work while bounded aggregation and completeness
+semantics are unresolved. Manager technical evidence remains Manager-only;
+Admin governance summaries must remain aggregate and must not expose raw
+complaint narratives or ticket-level model evidence.
 
 The Secure & Approachable UI/UX Slices A-D are implemented locally and
 automated-test verified without changing authorization. Customer and landing

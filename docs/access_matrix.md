@@ -20,10 +20,14 @@ classified as follows:
   theme and form polish, and Manager has the readable Model & Dataset Analytics
   presentation. No Customer, Staff, or Admin access was added to Manager-only
   technical evidence.
-- **Designed/planned:** account listing, status management, reassignment,
-  deletion, password reset/invitation, Customer management, Admin creation, and
-  broader assignment, priority, escalation, reopen/close, and department
-  administration.
+- **Current versus approved future:** the current read-only Admin directory is
+  Staff/Manager-only. R0.1 approves a future strict-active-Admin all-role
+  directory and safe opaque account detail reference, plus trusted display-name,
+  locale, Staff reassignment, disable, and reactivate controls. None of those
+  future expansions is implemented by R0.1.
+- **Designed/planned:** deletion, password reset/invitation, Customer
+  management, Admin creation, broader assignment, priority, escalation,
+  reopen/close, and department administration.
 - **Future Cloud staging work:** trusted provisioning, Cloud rules/indexes,
   deployment configuration, and production-equivalent security evidence.
 
@@ -103,6 +107,15 @@ underlying workflow boundaries are verified locally with emulator and browser
 tests. This does not constitute browser-based visual verification of UI/UX
 Slices A-D.
 
+R0.1 records approved future policy only. The current Customer API still has a
+future data-minimization projection requirement: Customer responses must later
+exclude customer IDs, model fields, message/sender IDs, raw event/action names
+and IDs, actor IDs, model rationale, and internal reassignment/escalation
+reasons. The current Staff workflow remains department-level and does not
+enforce claim or assignment ownership. Durable in-app notifications, Customer
+History pagination/unread state, response-target calculation, proactive alerts,
+and all-role Admin listing remain unimplemented.
+
 ### Customer — implemented locally
 
 - Authenticates through the current local setup, submits complaints, views only
@@ -120,7 +133,10 @@ Slices A-D.
 - Cannot see null-department manual-review tickets or tickets in other
   departments.
 - Designed assignment, priority, escalation, reopen, and close operations are
-  not all implemented.
+  not all implemented. R0.1 approves Department Queue versus My Work, atomic
+  Staff claim, Manager assignment/reassignment, and blocking Staff disable or
+  department change while active assignments exist; these are future design,
+  not current behavior.
 
 ### Manager — limited operational implementation
 
@@ -155,3 +171,10 @@ provision accounts. Public registration cannot create Staff, Manager, or Admin;
 Admin cannot create Customer or another Admin in the first version. The Admin
 must never rewrite original model prediction evidence. Production Firebase
 deployment is unverified.
+
+R0.1 additionally approves future strict-Admin visibility of Customer, Staff,
+Manager, and Admin profiles using only display name, email, role, locale,
+localized department, profile active state, derived setup status, and an opaque
+account reference for detail navigation. UIDs, Auth provider records, tokens,
+claims, internal actions, complaint narratives, messages, and private ticket
+information remain prohibited.

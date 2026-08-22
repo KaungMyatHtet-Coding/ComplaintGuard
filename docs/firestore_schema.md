@@ -12,6 +12,10 @@ Lifecycle and action descriptions below distinguish implemented local behavior
 from the original design. Future schema or rules changes require separate
 review and approval in Phases 2–4.
 
+R0.1 adds approved future contract boundaries without changing the current
+schema or rules. No notification, History projection, assignment, SLA, or
+lifecycle collection is implemented by this checkpoint.
+
 Firestore is the source of truth for live application tickets and their workflow. It must never contain the historical CFPB dataset, historical narratives, training or evaluation data, model-normalized text, translated text, prompts, feature data, or model artifacts. Dashboard summaries, if later needed, are derived operational data and are never authoritative.
 
 The application may retain only the minimum PII-redacted complaint text submitted directly to ComplaintGuard, preserved in the original submitted language. A trusted backend must redact PII before persistence. Production deployment requires an approved configurable retention and deletion policy; Day 4 intentionally does not invent a retention duration.
@@ -159,6 +163,29 @@ Customers may read participant-safe events for their own ticket only if the late
 
 This future collection may cache aggregate counts derived exclusively from operational tickets. It is not required on Day 4, is not a source of truth, must contain no complaint text or historical CFPB aggregates, and is writable only by trusted backend code. Managers and admins may read it; all other access is denied.
 
+### Approved future `notifications/{notificationId}`
+
+R0.1 approves a future top-level notification collection. It is not implemented
+and no index is deployed or added by this checkpoint.
+
+Trusted persistence may contain `recipientUid` and deduplication material, but
+these fields must never be returned to the browser. The safe browser projection
+may contain only an opaque notification reference, stable type, severity,
+category, optional safe public ticket reference, localization keys,
+allowlisted parameters and navigation target, `createdAt`, `readAt`, derived
+unread state, and policy version where required.
+
+Notifications are trusted-backend-created, recipient-bound, idempotent, and
+free of complaint narratives, credentials, tokens, actor IDs, raw event IDs,
+model rationale, and arbitrary free-form text. Application notifications have
+an approved initial retention period of 90 days; this does not shorten
+audit-event retention. Cleanup automation remains deferred until a trusted
+worker exists.
+
+Likely future query indexes are recipient plus created time and recipient plus
+read state plus created time. They remain a proposal until the real API query
+contract is implemented and locally measured.
+
 ## Relationships and query boundaries
 
 - A user is identified by Firebase Authentication UID.
@@ -167,6 +194,13 @@ This future collection may cache aggregate counts derived exclusively from opera
 - `assignedStaffId`, when set, references an active staff user in the same department; rules cannot safely validate all cross-document invariants in every multi-step workflow, so trusted backend transactions must enforce this.
 - Messages and events inherit access from their parent ticket.
 - Required indexes will be defined when real queries are implemented, not guessed on Day 4.
+
+R0.1 approves future deterministic Customer cursor pagination, status,
+department, date-range, and safe public ticket-reference filters. Raw full-text
+complaint search is not approved. The future Customer response must be a
+server-side projection that excludes customer IDs, model fields, message or
+sender IDs, raw event/action names and IDs, actor IDs, model rationale, and
+internal reassignment/escalation reasons.
 
 ## Lifecycle
 
@@ -209,6 +243,10 @@ No other transitions are allowed. Customers cannot directly change status. Admin
 - Assignment/reassignment: designed for manager use through a trusted backend;
   broad assignment management is not currently implemented. Staff may claim
   only if a later transactional backend safely proves same-department eligibility.
+  R0.1 approves an atomic same-department Staff claim and Manager
+  assignment/reassignment, with explicit confirmation, idempotency, safe audit
+  events, and no automatic Staff assignment. Disable or department-change must
+  initially fail when active assignments exist.
 - Department rerouting: manager through a trusted backend; model output may set initial routing through the inference backend.
 - Priority and escalation: designed for manager use through a trusted backend;
   broad management is not currently implemented.
@@ -221,6 +259,13 @@ No other transitions are allowed. Customers cannot directly change status. Admin
 - Prediction fields: inference backend only and immutable to ordinary clients. A manager override changes routing fields but does not rewrite the original prediction.
 - Role/department administration: designed for Admin use through a trusted
   backend, with minimal scope and audit records; not currently implemented.
+
+R0.1 approves future response-target presentation using urgent/high/normal
+operational goals, Asia/Yangon Monday-Friday 09:00–17:00 business hours, no
+initial public-holiday exclusion, and unavailable results for invalid legacy
+timestamps. Model confidence is never an SLA estimate. Read-time calculation
+may precede proactive alerts; proactive alerts require a future trusted
+scheduled worker.
 
 ## Privacy and retention controls
 

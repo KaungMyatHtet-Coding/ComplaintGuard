@@ -17,6 +17,15 @@ bounded filters/pagination, and has no account mutation controls. Pending/Active
 labels describe Firestore profile state only, not independently verified
 Firebase Auth state.
 
+R0.1 documentation approval does not add all-role Admin listing, account detail,
+account lifecycle mutations, Customer History, durable notifications, Staff
+claim/assignment enforcement, response-target calculations, escalation alerts,
+or a redesigned shell. The current Customer API still requires a future
+data-minimization projection, the current Staff workflow remains
+department-level, proactive notification delivery is unavailable, and no
+off-browser delivery should be claimed. `cloud_staging_not_adopted` and the
+no-budget Cloud deferral remain enforced.
+
 ## Prerequisites
 
 - Repository at a writable local path; commands below use `D:\ComplaintGuard`
@@ -400,6 +409,10 @@ after import. Keep the export local and ignored. Never:
 - Coverage over all mapped/raw complaints
 - Runtime Admin provisioning, Staff/Manager directory, bootstrap, and
   activation (implemented locally but not runtime verified)
+- All-role Admin directory, account detail, account lifecycle mutations,
+  Customer History, durable notifications, Staff claim/assignment enforcement,
+  response-target calculations, escalation alerts, and redesigned navigation
+  (approved design only; not implemented)
 - Production Firebase or public deployment
 - QR code
 - Automatic Myanmar routing

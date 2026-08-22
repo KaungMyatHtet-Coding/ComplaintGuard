@@ -1018,7 +1018,7 @@ Frozen evidence:
 | 1. Master plan and architecture documentation | Completed with this reconciliation commit | Documentation reconciliation only. |
 | 2. Cloud Firebase staging migration | Preparation complete; overall Phase 2 remains in progress as a deferred boundary because runtime and application connection are deferred by the no-budget/no-billing decision | `complaintguard` is preserved for possible future staging; no Cloud runtime or workflow is verified. |
 | 3. Registration, login, and account lifecycle | Implemented locally; runtime pending | Customer-only registration/recovery is pure-tested; Emulator E2E remains pending. |
-| 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, and Admin UI exist; execution and account listing remain pending. |
+| 4. Roles and System Admin functionality | Partially implemented locally; runtime pending | Active Admin authorization, pending Staff/Manager provisioning, bootstrap/activation helpers, and current Staff/Manager read-only directory exist; runtime execution remains pending and the approved all-role directory/lifecycle expansion is future work. |
 | 5. Secure & Approachable UI/UX upgrade | Slices A-D implemented locally; runtime pending | Customer/landing safety, accessible Staff workspace, auth theme/polish, and Manager analytics readability are automated-test verified; no browser visual verification was performed. |
 | 6. Model, dataset, equations, and analytics presentation | Implemented locally; runtime pending | Manager-only read-only equations and separate frozen/controlled evidence presentation. |
 | 7. Controlled six-department user testing | V1/V2 evidence implemented locally; runtime pending | Small-sample synthetic evidence, not formal model accuracy or live-user performance. |
@@ -1041,6 +1041,35 @@ adopted by the application, and exact deployed-rules byte equality remains
 pending. `cloud_staging_not_adopted` remains enforced. Every local slice below
 must use the `demo-complaintguard` emulators, synthetic data, and reproducible
 fixtures; it must not change Cloud accounts or data.
+
+### R0.1 — Approved dashboard and workflow contracts
+
+R0.1 is complete as documentation and contract approval only. The approved
+contracts are consolidated in `docs/dashboard_account_audit.md` and
+`docs/workflow_notification_contract.md`.
+
+R0.1 does not implement application code, API routes, schemas, Firestore
+rules, indexes, notifications, Customer History, Staff claim/assignment
+enforcement, SLA calculation, escalation alerts, UI, scheduled workers, or
+runtime behavior. No notification, History, assignment, SLA, all-role Admin
+directory, account lifecycle mutation, or redesigned shell may be described as
+implemented because of this checkpoint.
+
+The approved future design includes strict active-Admin all-role governance,
+safe opaque account references, trusted lifecycle controls, Department Queue
+and My Work separation, Customer-safe History projections, durable in-app
+notifications, the approved 90-day application-notification retention policy,
+Asia/Yangon business-hour response goals, and aggregate-only Admin analytics.
+Manager ticket-level routing review and technical model evidence remain
+Manager-only. Permanent deletion, proactive workers, browser notifications,
+email/SMS, Cloud work, and public-holiday handling remain deferred.
+
+The current Customer API still requires a future data-minimization projection;
+the current Staff workflow remains department-level with no claim or assignment
+enforcement; and proactive notification delivery is unavailable. Browser and
+Emulator verification remains incomplete. `cloud_staging_not_adopted`, the
+no-budget Cloud deferral, and all frozen model/evaluation/V1/V2/similarity
+artifacts and hashes remain unchanged.
 
 ### Current account-lifecycle reconciliation checkpoint
 
