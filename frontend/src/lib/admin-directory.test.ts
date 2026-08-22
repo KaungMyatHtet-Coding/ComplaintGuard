@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { getFirebaseServices } = vi.hoisted(() => ({ getFirebaseServices: vi.fn() }));
 vi.mock("@/lib/firebase", () => ({ getFirebaseServices }));
 
-import { AdminDirectoryError, loadAdminDirectory, parseAdminDirectoryResponse, validateAdminDirectoryFilters } from "./admin-directory";
+import { AdminDirectoryError, loadAdminDirectory, loadAdminLifecycleEligibility, parseAdminDirectoryResponse, parseAdminLifecycleEligibility, validateAdminDirectoryFilters } from "./admin-directory";
 
 beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
@@ -29,10 +29,10 @@ describe("validateAdminDirectoryFilters", () => {
   it("strictly parses all safe roles and rejects private or malformed fields", () => {
     const safe = {
       rows: [
-        { email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, setupStatus: "active" },
-        { email: "staff@example.test", displayName: "Staff", locale: "my", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" },
-        { email: "manager@example.test", displayName: "Manager", locale: "en", role: "manager", departmentId: null, active: true, setupStatus: "active" },
-        { email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, setupStatus: "active" },
+        { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, setupStatus: "active" },
+        { accountRef: "acct_v1_1111111111111111111111111111111111111111111111111111111111111111", email: "staff@example.test", displayName: "Staff", locale: "my", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" },
+        { accountRef: "acct_v1_2222222222222222222222222222222222222222222222222222222222222222", email: "manager@example.test", displayName: "Manager", locale: "en", role: "manager", departmentId: null, active: true, setupStatus: "active" },
+        { accountRef: "acct_v1_3333333333333333333333333333333333333333333333333333333333333333", email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, setupStatus: "active" },
       ],
       nextCursor: null,
       hasMore: false,
@@ -40,6 +40,44 @@ describe("validateAdminDirectoryFilters", () => {
     expect(parseAdminDirectoryResponse(safe).rows).toHaveLength(4);
     expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], uid: "private" }] })).toThrowError(AdminDirectoryError);
     expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], role: "owner" }] })).toThrowError(AdminDirectoryError);
+    expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], accountRef: "private" }] })).toThrowError(AdminDirectoryError);
+  });
+});
+
+describe("lifecycle eligibility", () => {
+  const accountRef = "acct_v1_0000000000000000000000000000000000000000000000000000000000000000";
+  const safe = {
+    accountRef,
+    profileState: "active",
+    operations: {
+      disable: { eligible: true, reason: null },
+      reactivate: { eligible: false, reason: "already_active" },
+      reassignDepartment: { eligible: false, reason: "role_not_reassignable" },
+    },
+  } as const;
+
+  it("strictly parses only approved advisory fields", () => {
+    expect(parseAdminLifecycleEligibility(safe)).toEqual(safe);
+    expect(() => parseAdminLifecycleEligibility({ ...safe, uid: "private" })).toThrowError(AdminDirectoryError);
+    expect(() => parseAdminLifecycleEligibility({ ...safe, operations: { ...safe.operations, disable: { eligible: true, reason: "private_reason" } } })).toThrowError(AdminDirectoryError);
+  });
+
+  it("uses a fresh token and local API for the read-only check", async () => {
+    const getIdToken = vi.fn().mockResolvedValue("fresh-token");
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(safe), { status: 200 }));
+    await loadAdminLifecycleEligibility(accountRef, fetcher);
+    expect(getIdToken).toHaveBeenCalledWith(true);
+    expect(fetcher.mock.calls[0][0]).toBe(`http://127.0.0.1:8000/admin/users/${accountRef}/lifecycle-eligibility`);
+  });
+
+  it("rejects malformed references before auth or fetch", async () => {
+    const getIdToken = vi.fn();
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn();
+    await expect(loadAdminLifecycleEligibility("raw-uid", fetcher)).rejects.toMatchObject({ code: "validation" });
+    expect(getIdToken).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });
 

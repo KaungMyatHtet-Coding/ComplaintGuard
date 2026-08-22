@@ -31,6 +31,16 @@ AdminProvisioningRole = Literal["staff", "manager"]
 AdminDirectoryRole = Literal["customer", "staff", "manager", "admin"]
 AdminProvisioningStatus = Literal["pending_setup"]
 AdminDirectorySetupStatus = Literal["pending_setup", "active"]
+LifecycleProfileState = Literal["active", "inactive"]
+LifecycleEligibilityReason = Literal[
+    "already_active",
+    "already_inactive",
+    "self_target_forbidden",
+    "last_active_admin",
+    "role_not_reassignable",
+    "assigned_unresolved_work",
+    "pending_setup_activation_forbidden",
+]
 
 
 class AdminProvisioningRequest(BaseModel):
@@ -130,6 +140,7 @@ class AdminDirectoryRow(BaseModel):
     department_id: DepartmentId | None = Field(alias="departmentId")
     active: StrictBool
     setup_status: AdminDirectorySetupStatus = Field(alias="setupStatus")
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
 
 
 class AdminDirectoryResponse(BaseModel):
@@ -138,6 +149,29 @@ class AdminDirectoryResponse(BaseModel):
     rows: list[AdminDirectoryRow]
     next_cursor: str | None = Field(alias="nextCursor")
     has_more: StrictBool = Field(alias="hasMore")
+
+
+class LifecycleEligibilityOperation(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    eligible: StrictBool
+    reason: LifecycleEligibilityReason | None = None
+
+
+class LifecycleEligibilityOperations(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    disable: LifecycleEligibilityOperation
+    reactivate: LifecycleEligibilityOperation
+    reassign_department: LifecycleEligibilityOperation = Field(alias="reassignDepartment")
+
+
+class AdminLifecycleEligibilityResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    profile_state: LifecycleProfileState = Field(alias="profileState")
+    operations: LifecycleEligibilityOperations
 
 
 class CustomerProfileRequest(BaseModel):

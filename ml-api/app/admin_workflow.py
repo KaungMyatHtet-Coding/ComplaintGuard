@@ -52,6 +52,8 @@ class AdminProvisioningBackend(AdminAuthBackend, Protocol):
 
     def list_user_profiles(self, *, limit: int) -> list[tuple[str, dict[str, Any]]]: ...
 
+    def list_tickets(self, *, limit: int) -> list[dict[str, Any]]: ...
+
     def reserve_action(
         self,
         *,
@@ -385,3 +387,10 @@ class FirebaseAdminProvisioningBackend(FirebaseAdminAuthBackend):
             ]
         except Exception as exc:
             raise PersistenceError("directory lookup failed") from exc
+
+    def list_tickets(self, *, limit: int) -> list[dict[str, Any]]:
+        try:
+            snapshots = self._db.collection("tickets").limit(limit).stream()
+            return [snapshot.to_dict() or {} for snapshot in snapshots]
+        except Exception as exc:
+            raise PersistenceError("ticket eligibility lookup failed") from exc

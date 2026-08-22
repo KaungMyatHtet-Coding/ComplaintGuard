@@ -36,8 +36,9 @@ describe("AdminUserDirectory", () => {
   });
 
   it("limits owner-activation wording to pending Staff and Manager profiles", () => {
-    expect(shouldShowOwnerActivationNotice({ email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" })).toBe(true);
-    expect(shouldShowOwnerActivationNotice({ email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
-    expect(shouldShowOwnerActivationNotice({ email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
+    const base = { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000" };
+    expect(shouldShowOwnerActivationNotice({ ...base, email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" })).toBe(true);
+    expect(shouldShowOwnerActivationNotice({ ...base, email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
+    expect(shouldShowOwnerActivationNotice({ ...base, email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
   });
 });

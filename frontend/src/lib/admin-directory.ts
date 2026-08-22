@@ -13,6 +13,7 @@ export type AdminDirectoryFilters = {
 };
 
 export type AdminDirectoryRow = {
+  accountRef: string;
   email: string;
   displayName: string;
   locale: "en" | "my";
@@ -20,6 +21,30 @@ export type AdminDirectoryRow = {
   departmentId: DepartmentId | null;
   active: boolean;
   setupStatus: "pending_setup" | "active";
+};
+
+export type LifecycleEligibilityReason =
+  | "already_active"
+  | "already_inactive"
+  | "self_target_forbidden"
+  | "last_active_admin"
+  | "role_not_reassignable"
+  | "assigned_unresolved_work"
+  | "pending_setup_activation_forbidden";
+
+export type LifecycleEligibilityOperation = {
+  eligible: boolean;
+  reason: LifecycleEligibilityReason | null;
+};
+
+export type AdminLifecycleEligibility = {
+  accountRef: string;
+  profileState: "active" | "inactive";
+  operations: {
+    disable: LifecycleEligibilityOperation;
+    reactivate: LifecycleEligibilityOperation;
+    reassignDepartment: LifecycleEligibilityOperation;
+  };
 };
 
 export type AdminDirectoryResponse = {
@@ -32,6 +57,7 @@ export type AdminDirectoryErrorCode =
   | "authentication"
   | "permission"
   | "validation"
+  | "notFound"
   | "unavailable"
   | "unexpected";
 
@@ -44,15 +70,26 @@ export class AdminDirectoryError extends Error {
 const roles = new Set<AdminDirectoryRole>(["customer", "staff", "manager", "admin"]);
 const setupStatuses = new Set(["pending_setup", "active"]);
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const accountReferencePattern = /^acct_v1_[0-9a-f]{64}$/;
+const eligibilityReasons = new Set<LifecycleEligibilityReason>([
+  "already_active",
+  "already_inactive",
+  "self_target_forbidden",
+  "last_active_admin",
+  "role_not_reassignable",
+  "assigned_unresolved_work",
+  "pending_setup_activation_forbidden",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function parseRow(value: unknown): AdminDirectoryRow {
-  if (!isRecord(value) || Object.keys(value).length !== 7) throw new AdminDirectoryError("validation");
-  const { email, displayName, locale, role, departmentId, active, setupStatus } = value;
+  if (!isRecord(value) || Object.keys(value).length !== 8) throw new AdminDirectoryError("validation");
+  const { accountRef, email, displayName, locale, role, departmentId, active, setupStatus } = value;
   if (
+    typeof accountRef !== "string" || !accountReferencePattern.test(accountRef) ||
     typeof email !== "string" || email !== email.trim().toLowerCase() || !emailPattern.test(email) || email.length > 254 ||
     typeof displayName !== "string" || displayName !== displayName.trim() || !displayName || displayName.length > 100 ||
     (locale !== "en" && locale !== "my") ||
@@ -64,7 +101,28 @@ function parseRow(value: unknown): AdminDirectoryRow {
   if (role === "staff" && !isDepartmentId(departmentId as string)) throw new AdminDirectoryError("validation");
   if (role !== "staff" && departmentId !== null) throw new AdminDirectoryError("validation");
   if ((active && setupStatus !== "active") || (!active && setupStatus !== "pending_setup")) throw new AdminDirectoryError("validation");
-  return { email, displayName, locale, role: role as AdminDirectoryRole, departmentId: departmentId as DepartmentId | null, active, setupStatus: setupStatus as AdminDirectoryRow["setupStatus"] };
+  return { accountRef, email, displayName, locale, role: role as AdminDirectoryRole, departmentId: departmentId as DepartmentId | null, active, setupStatus: setupStatus as AdminDirectoryRow["setupStatus"] };
+}
+
+function parseEligibilityOperation(value: unknown): LifecycleEligibilityOperation {
+  if (!isRecord(value) || Object.keys(value).length !== 2 || typeof value.eligible !== "boolean") throw new AdminDirectoryError("validation");
+  if (value.reason !== null && (typeof value.reason !== "string" || !eligibilityReasons.has(value.reason as LifecycleEligibilityReason))) throw new AdminDirectoryError("validation");
+  return { eligible: value.eligible, reason: value.reason as LifecycleEligibilityReason | null };
+}
+
+export function parseAdminLifecycleEligibility(value: unknown): AdminLifecycleEligibility {
+  if (!isRecord(value) || Object.keys(value).length !== 3 || typeof value.accountRef !== "string" || !accountReferencePattern.test(value.accountRef) || (value.profileState !== "active" && value.profileState !== "inactive") || !isRecord(value.operations) || Object.keys(value.operations).length !== 3) throw new AdminDirectoryError("validation");
+  const operations = value.operations;
+  if (!("disable" in operations) || !("reactivate" in operations) || !("reassignDepartment" in operations)) throw new AdminDirectoryError("validation");
+  return {
+    accountRef: value.accountRef,
+    profileState: value.profileState,
+    operations: {
+      disable: parseEligibilityOperation(operations.disable),
+      reactivate: parseEligibilityOperation(operations.reactivate),
+      reassignDepartment: parseEligibilityOperation(operations.reassignDepartment),
+    },
+  };
 }
 
 export function parseAdminDirectoryResponse(value: unknown): AdminDirectoryResponse {
@@ -118,8 +176,47 @@ function mapStatus(status: number): AdminDirectoryErrorCode {
   if (status === 401) return "authentication";
   if (status === 403) return "permission";
   if (status === 422) return "validation";
+  if (status === 404) return "notFound";
   if (status === 503) return "unavailable";
   return "unexpected";
+}
+
+export async function loadAdminLifecycleEligibility(
+  accountRef: string,
+  fetcher: typeof fetch = fetch,
+): Promise<AdminLifecycleEligibility> {
+  if (!accountReferencePattern.test(accountRef)) throw new AdminDirectoryError("validation");
+  let apiBase: string;
+  try {
+    apiBase = resolveLocalMlApiBaseUrl();
+  } catch {
+    throw new AdminDirectoryError("unavailable");
+  }
+  let user;
+  try {
+    user = getFirebaseServices().auth.currentUser;
+  } catch {
+    throw new AdminDirectoryError("unavailable");
+  }
+  if (!user) throw new AdminDirectoryError("authentication");
+  let token: string;
+  try {
+    token = await user.getIdToken(true);
+  } catch {
+    throw new AdminDirectoryError("authentication");
+  }
+  if (!token) throw new AdminDirectoryError("authentication");
+  try {
+    const response = await fetcher(`${apiBase}/admin/users/${encodeURIComponent(accountRef)}/lifecycle-eligibility`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new AdminDirectoryError(mapStatus(response.status));
+    return parseAdminLifecycleEligibility(await response.json());
+  } catch (error) {
+    if (error instanceof AdminDirectoryError) throw error;
+    throw new AdminDirectoryError("unavailable");
+  }
 }
 
 export async function loadAdminDirectory(

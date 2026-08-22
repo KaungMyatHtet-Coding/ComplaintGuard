@@ -4,11 +4,15 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
+from app.admin_directory import (
+    MAX_DIRECTORY_SCAN,
+    decode_directory_cursor,
+    encode_directory_cursor,
+)
 from app.main import create_app
-from app.admin_directory import MAX_DIRECTORY_SCAN, decode_directory_cursor, encode_directory_cursor
 from app.ticketing import AuthenticationError, PersistenceError
 
 
@@ -66,7 +70,8 @@ def test_directory_returns_all_roles_as_safe_rows_and_bounded_page() -> None:
     assert response.status_code == 200
     body = response.json()
     assert [row["role"] for row in body["rows"]] == ["admin", "customer"]
-    assert all(set(row) == {"email", "displayName", "locale", "role", "departmentId", "active", "setupStatus"} for row in body["rows"])
+    assert all(set(row) == {"accountRef", "email", "displayName", "locale", "role", "departmentId", "active", "setupStatus"} for row in body["rows"])
+    assert all(row["accountRef"].startswith("acct_v1_") and len(row["accountRef"]) == 72 for row in body["rows"])
     assert backend.limit == 200
 
 
@@ -181,7 +186,7 @@ def test_malformed_profile_is_not_partially_exposed() -> None:
         ("active", 1),
         ("createdAt", None),
         ("updatedAt", None),
-        ("createdAt", datetime(2026, 1, 1)),
+        ("createdAt", datetime.fromisoformat("2026-01-01")),
         ("updatedAt", "malformed-timestamp"),
         ("email", " Manager@EXAMPLE.TEST "),
         ("displayName", "   "),

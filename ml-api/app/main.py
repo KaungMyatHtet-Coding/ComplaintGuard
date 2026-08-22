@@ -67,6 +67,7 @@ from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
     AdminDirectoryRequest,
     AdminDirectoryResponse,
+    AdminLifecycleEligibilityResponse,
     AdminProvisioningRequest,
     AdminProvisioningResponse,
     CustomerFeedbackRequest,
@@ -547,6 +548,88 @@ def create_app(
                 message="The account directory is temporarily unavailable.",
             ) from None
 
+    @api.get(
+        "/admin/users/{account_ref}/lifecycle-eligibility",
+        response_model=AdminLifecycleEligibilityResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            404: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def get_admin_lifecycle_eligibility(
+        account_ref: str,
+        authorization: str | None = Header(default=None),
+    ) -> AdminLifecycleEligibilityResponse:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        if not authorization.split(" ", 1)[1].strip():
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        try:
+            backend = (
+                admin_directory_backend
+                or admin_provisioning_backend
+                or FirebaseAdminProvisioningBackend()
+            )
+            actor = require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except AdminPermissionError:
+            raise ApiError(
+                status_code=403,
+                code="admin_required",
+                message="Active administrative access is required.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="The lifecycle check is temporarily unavailable.",
+            ) from None
+        try:
+            return AdminDirectoryService(backend).lifecycle_eligibility(
+                actor.uid,
+                account_ref,
+            )
+        except ValueError:
+            raise ApiError(
+                status_code=422,
+                code="validation_error",
+                message="The account reference is invalid.",
+            ) from None
+        except LookupError:
+            raise ApiError(
+                status_code=404,
+                code="account_not_found",
+                message="The account was not found.",
+            ) from None
+        except DirectoryDataIntegrityError:
+            raise ApiError(
+                status_code=503,
+                code="directory_data_integrity",
+                message="The lifecycle check is temporarily unavailable.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="The lifecycle check is temporarily unavailable.",
+            ) from None
     @api.post(
         "/tickets",
         response_model=SubmitComplaintResponse,

@@ -44,6 +44,7 @@ const refs = {
 
 function row(role: "customer" | "staff" | "manager" | "admin", active = true) {
   return {
+    accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000",
     email: `${role}@example.test`,
     displayName: role,
     locale: "en" as const,

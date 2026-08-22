@@ -24,10 +24,10 @@ import { AdminOverview } from "./admin-overview";
 describe("AdminOverview", () => {
   it("counts only visible all-role directory rows", () => {
     const markup = renderToStaticMarkup(<AdminOverview snapshot={{ state: "ready", rows: [
-      { email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, setupStatus: "active" },
-      { email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: true, setupStatus: "active" },
-      { email: "manager@example.test", displayName: "Manager", locale: "my", role: "manager", departmentId: null, active: false, setupStatus: "pending_setup" },
-      { email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, setupStatus: "active" },
+      { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, setupStatus: "active" },
+      { accountRef: "acct_v1_1111111111111111111111111111111111111111111111111111111111111111", email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: true, setupStatus: "active" },
+      { accountRef: "acct_v1_2222222222222222222222222222222222222222222222222222222222222222", email: "manager@example.test", displayName: "Manager", locale: "my", role: "manager", departmentId: null, active: false, setupStatus: "pending_setup" },
+      { accountRef: "acct_v1_3333333333333333333333333333333333333333333333333333333333333333", email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, setupStatus: "active" },
     ] }} />);
     expect(markup).toContain("Visible team accounts");
     expect(markup).toContain("Staff profiles");
