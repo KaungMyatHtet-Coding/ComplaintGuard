@@ -376,7 +376,6 @@ class FirebaseAdminProvisioningBackend(FirebaseAdminAuthBackend):
         try:
             snapshots = (
                 self._db.collection("users")
-                .where("role", "in", ["staff", "manager"])
                 .limit(limit)
                 .stream()
             )

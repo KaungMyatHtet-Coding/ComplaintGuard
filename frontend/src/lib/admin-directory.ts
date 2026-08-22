@@ -2,7 +2,7 @@ import { getFirebaseServices } from "./firebase";
 import { isDepartmentId, type DepartmentId } from "./department-labels";
 import { resolveLocalMlApiBaseUrl } from "./runtime-environment";
 
-export type AdminDirectoryRole = "staff" | "manager";
+export type AdminDirectoryRole = "customer" | "staff" | "manager" | "admin";
 export type AdminDirectoryFilters = {
   role?: AdminDirectoryRole;
   departmentId?: DepartmentId;
@@ -41,6 +41,42 @@ export class AdminDirectoryError extends Error {
   }
 }
 
+const roles = new Set<AdminDirectoryRole>(["customer", "staff", "manager", "admin"]);
+const setupStatuses = new Set(["pending_setup", "active"]);
+const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseRow(value: unknown): AdminDirectoryRow {
+  if (!isRecord(value) || Object.keys(value).length !== 7) throw new AdminDirectoryError("validation");
+  const { email, displayName, locale, role, departmentId, active, setupStatus } = value;
+  if (
+    typeof email !== "string" || email !== email.trim().toLowerCase() || !emailPattern.test(email) || email.length > 254 ||
+    typeof displayName !== "string" || displayName !== displayName.trim() || !displayName || displayName.length > 100 ||
+    (locale !== "en" && locale !== "my") ||
+    (typeof role !== "string" || !roles.has(role as AdminDirectoryRole)) ||
+    (departmentId !== null && typeof departmentId !== "string" && departmentId !== undefined) ||
+    typeof active !== "boolean" ||
+    typeof setupStatus !== "string" || !setupStatuses.has(setupStatus)
+  ) throw new AdminDirectoryError("validation");
+  if (role === "staff" && !isDepartmentId(departmentId as string)) throw new AdminDirectoryError("validation");
+  if (role !== "staff" && departmentId !== null) throw new AdminDirectoryError("validation");
+  if ((active && setupStatus !== "active") || (!active && setupStatus !== "pending_setup")) throw new AdminDirectoryError("validation");
+  return { email, displayName, locale, role: role as AdminDirectoryRole, departmentId: departmentId as DepartmentId | null, active, setupStatus: setupStatus as AdminDirectoryRow["setupStatus"] };
+}
+
+export function parseAdminDirectoryResponse(value: unknown): AdminDirectoryResponse {
+  if (!isRecord(value) || Object.keys(value).length !== 3 || !Array.isArray(value.rows)) throw new AdminDirectoryError("validation");
+  if (typeof value.nextCursor !== "string" && value.nextCursor !== null) throw new AdminDirectoryError("validation");
+  if (typeof value.nextCursor === "string" && (!value.nextCursor || value.nextCursor.length > 128)) throw new AdminDirectoryError("validation");
+  if (typeof value.hasMore !== "boolean") throw new AdminDirectoryError("validation");
+  const rows = value.rows.map(parseRow);
+  if (value.hasMore !== (value.nextCursor !== null)) throw new AdminDirectoryError("validation");
+  return { rows, nextCursor: value.nextCursor, hasMore: value.hasMore };
+}
+
 export function validateAdminDirectoryFilters(value: unknown): AdminDirectoryFilters {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new AdminDirectoryError("validation");
@@ -48,7 +84,7 @@ export function validateAdminDirectoryFilters(value: unknown): AdminDirectoryFil
   const record = value as Record<string, unknown>;
   const allowed = new Set(["role", "departmentId", "active", "search", "pageSize", "cursor"]);
   if (Object.keys(record).some((key) => !allowed.has(key))) throw new AdminDirectoryError("validation");
-  if (record.role !== undefined && record.role !== "staff" && record.role !== "manager") {
+  if (record.role !== undefined && !roles.has(record.role as AdminDirectoryRole)) {
     throw new AdminDirectoryError("validation");
   }
   if (record.departmentId !== undefined && !isDepartmentId(record.departmentId as string)) {
@@ -67,9 +103,9 @@ export function validateAdminDirectoryFilters(value: unknown): AdminDirectoryFil
   if (record.cursor !== undefined && (typeof record.cursor !== "string" || !record.cursor || record.cursor.length > 128)) {
     throw new AdminDirectoryError("validation");
   }
-  if (record.role === "manager" && record.departmentId !== undefined) throw new AdminDirectoryError("validation");
+  if (record.role !== "staff" && record.departmentId !== undefined) throw new AdminDirectoryError("validation");
   return {
-    ...(record.role ? { role: record.role } : {}),
+    ...(record.role ? { role: record.role as AdminDirectoryRole } : {}),
     ...(record.departmentId ? { departmentId: record.departmentId as DepartmentId } : {}),
     ...(record.active !== undefined ? { active: record.active } : {}),
     ...(search ? { search } : {}),
@@ -126,7 +162,7 @@ export async function loadAdminDirectory(
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new AdminDirectoryError(mapStatus(response.status));
-    return (await response.json()) as AdminDirectoryResponse;
+    return parseAdminDirectoryResponse(await response.json());
   } catch (error) {
     if (error instanceof AdminDirectoryError) throw error;
     throw new AdminDirectoryError("unavailable");

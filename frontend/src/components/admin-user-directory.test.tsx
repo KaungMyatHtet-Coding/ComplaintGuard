@@ -11,7 +11,7 @@ vi.mock("@/components/app-provider", () => ({
 }));
 vi.mock("@/lib/admin-directory", () => ({ loadAdminDirectory: vi.fn(() => new Promise(() => undefined)) }));
 
-import { AdminUserDirectory } from "./admin-user-directory";
+import { AdminUserDirectory, shouldShowOwnerActivationNotice } from "./admin-user-directory";
 
 describe("AdminUserDirectory", () => {
   it("renders read-only accessible filters and no mutation controls", () => {
@@ -21,6 +21,8 @@ describe("AdminUserDirectory", () => {
     expect(markup).toContain('for="admin-directory-status"');
     expect(markup).toContain('for="admin-directory-search"');
     expect(markup).toContain("adminDirectoryTitle");
+    expect(markup).toContain('value="customer"');
+    expect(markup).toContain('value="admin"');
     expect(markup).not.toContain("activate");
     expect(markup).not.toContain("delete");
     expect(markup).not.toContain("password");
@@ -31,5 +33,11 @@ describe("AdminUserDirectory", () => {
     state.profile = { role: "manager", active: true, departmentId: null };
     expect(renderToStaticMarkup(<AdminUserDirectory />)).toBe("");
     state.profile = { role: "admin", active: true, departmentId: null };
+  });
+
+  it("limits owner-activation wording to pending Staff and Manager profiles", () => {
+    expect(shouldShowOwnerActivationNotice({ email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" })).toBe(true);
+    expect(shouldShowOwnerActivationNotice({ email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
+    expect(shouldShowOwnerActivationNotice({ email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
   });
 });

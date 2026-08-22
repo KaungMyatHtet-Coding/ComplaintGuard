@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { getFirebaseServices } = vi.hoisted(() => ({ getFirebaseServices: vi.fn() }));
 vi.mock("@/lib/firebase", () => ({ getFirebaseServices }));
 
-import { AdminDirectoryError, loadAdminDirectory, validateAdminDirectoryFilters } from "./admin-directory";
+import { AdminDirectoryError, loadAdminDirectory, parseAdminDirectoryResponse, validateAdminDirectoryFilters } from "./admin-directory";
 
 beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
@@ -20,9 +20,26 @@ describe("validateAdminDirectoryFilters", () => {
 
   it("rejects unknown, invalid, and Manager department filters", () => {
     expect(() => validateAdminDirectoryFilters({ unknown: "value" })).toThrowError(AdminDirectoryError);
-    expect(() => validateAdminDirectoryFilters({ role: "customer" })).toThrowError(AdminDirectoryError);
+    expect(validateAdminDirectoryFilters({ role: "customer" })).toEqual({ role: "customer" });
+    expect(validateAdminDirectoryFilters({ role: "admin" })).toEqual({ role: "admin" });
     expect(() => validateAdminDirectoryFilters({ departmentId: "unknown" })).toThrowError(AdminDirectoryError);
     expect(() => validateAdminDirectoryFilters({ role: "manager", departmentId: "card_atm" })).toThrowError(AdminDirectoryError);
+  });
+
+  it("strictly parses all safe roles and rejects private or malformed fields", () => {
+    const safe = {
+      rows: [
+        { email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, setupStatus: "active" },
+        { email: "staff@example.test", displayName: "Staff", locale: "my", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" },
+        { email: "manager@example.test", displayName: "Manager", locale: "en", role: "manager", departmentId: null, active: true, setupStatus: "active" },
+        { email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, setupStatus: "active" },
+      ],
+      nextCursor: null,
+      hasMore: false,
+    };
+    expect(parseAdminDirectoryResponse(safe).rows).toHaveLength(4);
+    expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], uid: "private" }] })).toThrowError(AdminDirectoryError);
+    expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], role: "owner" }] })).toThrowError(AdminDirectoryError);
   });
 });
 
@@ -43,7 +60,7 @@ describe("loadAdminDirectory", () => {
     const getIdToken = vi.fn();
     getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
     const fetcher = vi.fn();
-    await expect(loadAdminDirectory({ role: "admin" }, fetcher)).rejects.toMatchObject({ code: "validation" });
+    await expect(loadAdminDirectory({ role: "owner" }, fetcher)).rejects.toMatchObject({ code: "validation" });
     expect(getIdToken).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
     for (const [status, code] of [[401, "authentication"], [403, "permission"], [422, "validation"], [503, "unavailable"]] as const) {

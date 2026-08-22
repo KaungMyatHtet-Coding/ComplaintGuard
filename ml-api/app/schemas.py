@@ -28,6 +28,7 @@ DepartmentId = Literal[
 ]
 
 AdminProvisioningRole = Literal["staff", "manager"]
+AdminDirectoryRole = Literal["customer", "staff", "manager", "admin"]
 AdminProvisioningStatus = Literal["pending_setup"]
 AdminDirectorySetupStatus = Literal["pending_setup", "active"]
 
@@ -103,7 +104,7 @@ class AdminDirectoryRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    role: AdminProvisioningRole | None = None
+    role: AdminDirectoryRole | None = None
     department_id: DepartmentId | None = Field(default=None, alias="departmentId")
     active: bool | None = None
     search: Annotated[StrictStr, Field(min_length=1, max_length=80)] | None = None
@@ -125,7 +126,7 @@ class AdminDirectoryRow(BaseModel):
     email: str
     display_name: str = Field(alias="displayName")
     locale: Literal["en", "my"]
-    role: AdminProvisioningRole
+    role: AdminDirectoryRole
     department_id: DepartmentId | None = Field(alias="departmentId")
     active: StrictBool
     setup_status: AdminDirectorySetupStatus = Field(alias="setupStatus")
