@@ -273,7 +273,7 @@ export function NotificationCenter() {
   };
 
   return (
-    <div className="notification-center">
+    <div id="notification-center" className="notification-center">
       <button
         ref={bellRef}
         type="button"

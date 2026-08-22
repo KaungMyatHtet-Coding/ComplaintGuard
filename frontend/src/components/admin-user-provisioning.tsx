@@ -109,9 +109,9 @@ export function AdminUserProvisioning() {
     departmentId ? getDepartmentLabel(departmentId, language) ?? t("adminNotSelected") : t("adminNotApplicable");
 
   return (
-    <section className="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8" aria-labelledby="admin-provisioning-title">
+    <section id="admin-provisioning" className="admin-provisioning-card w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8" aria-labelledby="admin-provisioning-title">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{t("adminWorkspaceEyebrow")}</p>
-      <h1 id="admin-provisioning-title" className="mt-2 text-2xl font-semibold text-gray-950">{t("adminWorkspaceTitle")}</h1>
+      <h2 id="admin-provisioning-title" className="mt-2 text-2xl font-semibold text-gray-950">{t("adminWorkspaceTitle")}</h2>
       <p className="mt-3 text-sm leading-6 text-gray-600">{t("adminWorkspaceLead")}</p>
       <div className="mt-4 rounded-xl bg-gray-50 p-4 text-sm leading-6 text-gray-700">
         <p>{t("adminPendingExplanation")}</p>
@@ -196,7 +196,7 @@ export function AdminUserProvisioning() {
           </div>
         </div>
       )}
-      <AdminUserDirectory refreshKey={directoryRefreshKey} />
+      <div id="admin-directory"><AdminUserDirectory refreshKey={directoryRefreshKey} /></div>
     </section>
   );
 }
