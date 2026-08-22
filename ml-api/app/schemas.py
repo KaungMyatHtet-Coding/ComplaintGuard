@@ -461,6 +461,68 @@ class CustomerMessageRequest(BaseModel):
         return normalized
 
 
+NotificationType = Literal[
+    "complaint_received", "department_assigned", "staff_reply", "information_requested",
+    "status_changed", "complaint_resolved", "response_target_approaching", "response_target_overdue",
+    "department_complaint_available", "ticket_assigned", "customer_reply", "high_priority_ticket",
+    "manager_reassigned", "escalation_updated", "manual_review_required", "unassigned_ticket",
+    "overdue_ticket", "escalation_requested", "workload_imbalance_observed", "pending_account_setup",
+    "account_operation_issue", "department_workload_observation", "system_operational_alert",
+]
+NotificationSeverity = Literal["info", "attention", "urgent"]
+NotificationCategory = Literal[
+    "complaint", "assignment", "response", "sla", "account", "workload", "system"
+]
+NotificationNavigationTarget = Literal[
+    "notifications", "customer_ticket", "staff_queue", "staff_ticket",
+    "manager_operations", "manager_manual_review", "admin_accounts", "admin_overview",
+]
+
+
+class NotificationItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    notification_ref: str = Field(alias="notificationRef", pattern=r"^[0-9a-f]{64}$")
+    type: NotificationType
+    severity: NotificationSeverity
+    category: NotificationCategory
+    related_ticket_ref: str | None = Field(default=None, alias="relatedTicketRef")
+    title_key: str = Field(alias="titleKey")
+    body_key: str = Field(alias="bodyKey")
+    params: dict[str, str | int | bool] = Field(default_factory=dict)
+    navigation_target: NotificationNavigationTarget = Field(alias="navigationTarget")
+    created_at: datetime = Field(alias="createdAt")
+    read_at: datetime | None = Field(default=None, alias="readAt")
+    unread: StrictBool
+
+
+class NotificationListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    notifications: list[NotificationItem]
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
+
+
+class NotificationUnreadCountResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    unread_count: Annotated[int, Field(ge=0)] = Field(alias="unreadCount")
+
+
+class NotificationReadResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    notification_ref: str = Field(alias="notificationRef", pattern=r"^[0-9a-f]{64}$")
+    read_at: datetime = Field(alias="readAt")
+    unread: Literal[False] = False
+
+
+class NotificationReadAllResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    updated_count: Annotated[int, Field(ge=0, le=150)] = Field(alias="updatedCount")
+
+
 class CustomerFeedbackRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 

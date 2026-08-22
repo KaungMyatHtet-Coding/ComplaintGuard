@@ -21,6 +21,25 @@ const expectedIndexes = {
         { fieldPath: "createdAt", order: "DESCENDING" },
       ],
     },
+    {
+      collectionGroup: "notifications",
+      queryScope: "COLLECTION",
+      fields: [
+        { fieldPath: "recipientUid", order: "ASCENDING" },
+        { fieldPath: "expiresAt", order: "DESCENDING" },
+        { fieldPath: "createdAt", order: "DESCENDING" },
+      ],
+    },
+    {
+      collectionGroup: "notifications",
+      queryScope: "COLLECTION",
+      fields: [
+        { fieldPath: "recipientUid", order: "ASCENDING" },
+        { fieldPath: "readAt", order: "ASCENDING" },
+        { fieldPath: "expiresAt", order: "DESCENDING" },
+        { fieldPath: "createdAt", order: "DESCENDING" },
+      ],
+    },
   ],
   fieldOverrides: [],
 };

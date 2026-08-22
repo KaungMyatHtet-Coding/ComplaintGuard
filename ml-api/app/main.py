@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import Depends, FastAPI, Header, Request, Response
+from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -54,12 +54,21 @@ from app.manager_workflow import (
     TicketNotFound as ManagerTicketNotFound,
 )
 from app.model import FrozenDepartmentClassifier, ModelArtifactError
+from app.notifications import (
+    FirebaseAdminNotificationBackend,
+    NotificationBackend,
+    NotificationNotFoundError,
+    NotificationProfileError,
+    NotificationService,
+    NotificationValidationError,
+    require_active_notification_profile,
+)
 from app.routing import OfflineMyanmarTranslator, TrustedRoutingInference
 from app.schemas import (
-    AdminProvisioningRequest,
-    AdminProvisioningResponse,
     AdminDirectoryRequest,
     AdminDirectoryResponse,
+    AdminProvisioningRequest,
+    AdminProvisioningResponse,
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
     CustomerMessageItem,
@@ -75,6 +84,11 @@ from app.schemas import (
     ManagerAnalyticsResponse,
     ManagerOverrideRequest,
     ManagerOverrideResponse,
+    NotificationItem,
+    NotificationListResponse,
+    NotificationReadAllResponse,
+    NotificationReadResponse,
+    NotificationUnreadCountResponse,
     PredictRequest,
     PredictResponse,
     StaffMutationResponse,
@@ -149,6 +163,7 @@ def create_app(
     customer_profile_backend: CustomerProfileBackend | None = None,
     admin_provisioning_backend: AdminProvisioningBackend | None = None,
     admin_directory_backend: AdminDirectoryBackend | None = None,
+    notification_backend: NotificationBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -1118,6 +1133,170 @@ def create_app(
             routingSource="manager_override",
             updatedAt=doc["updatedAt"],
         )
+
+    def notification_service() -> NotificationService:
+        if notification_backend is not None:
+            return NotificationService(notification_backend)
+        try:
+            return NotificationService(FirebaseAdminNotificationBackend())
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Notifications are temporarily unavailable.",
+            ) from None
+
+    def notification_actor(authorization: str | None) -> str:
+        try:
+            backend = ticket_backend or FirebaseAdminTicketBackend()
+            return require_active_notification_profile(authorization, backend).uid
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except NotificationProfileError:
+            raise ApiError(
+                status_code=403,
+                code="active_profile_required",
+                message="An active application profile is required.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Authentication could not be completed.",
+            ) from None
+
+    def _notification_item(record: Any) -> NotificationItem:
+        return NotificationItem(
+            notificationRef=record.notification_ref,
+            type=record.type,
+            severity=record.severity,
+            category=record.category,
+            relatedTicketRef=record.related_ticket_ref,
+            titleKey=record.title_key,
+            bodyKey=record.body_key,
+            params=record.params,
+            navigationTarget=record.navigation_target,
+            createdAt=record.created_at,
+            readAt=record.read_at,
+            unread=record.read_at is None,
+        )
+
+    @api.get(
+        "/notifications",
+        response_model=NotificationListResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def list_notifications(
+        authorization: str | None = Header(default=None),
+        page_size: int = Query(default=20, alias="pageSize", ge=1, le=50),
+        unread_only: bool = Query(default=False, alias="unreadOnly"),
+        cursor: str | None = Query(default=None, max_length=512),
+    ) -> NotificationListResponse:
+        recipient_uid = notification_actor(authorization)
+        try:
+            page = notification_service().list(
+                recipient_uid,
+                unread_only=unread_only,
+                cursor=cursor,
+                page_size=page_size,
+            )
+        except NotificationValidationError:
+            raise ApiError(
+                status_code=422,
+                code="invalid_request",
+                message="The notification request is invalid.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Notifications are temporarily unavailable.",
+            ) from None
+        return NotificationListResponse(
+            notifications=[_notification_item(record) for record in page.records],
+            nextCursor=page.next_cursor,
+        )
+
+    @api.get(
+        "/notifications/unread-count",
+        response_model=NotificationUnreadCountResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def unread_notification_count(
+        authorization: str | None = Header(default=None),
+    ) -> NotificationUnreadCountResponse:
+        recipient_uid = notification_actor(authorization)
+        try:
+            count = notification_service().unread_count(recipient_uid)
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Notifications are temporarily unavailable.",
+            ) from None
+        return NotificationUnreadCountResponse(unreadCount=count)
+
+    @api.post(
+        "/notifications/{notification_ref}/read",
+        response_model=NotificationReadResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def mark_notification_read(
+        notification_ref: str,
+        authorization: str | None = Header(default=None),
+    ) -> NotificationReadResponse:
+        recipient_uid = notification_actor(authorization)
+        try:
+            record = notification_service().mark_read(recipient_uid, notification_ref)
+        except NotificationValidationError:
+            raise ApiError(
+                status_code=422,
+                code="invalid_request",
+                message="The notification reference is invalid.",
+            ) from None
+        except NotificationNotFoundError:
+            raise ApiError(
+                status_code=404,
+                code="notification_not_found",
+                message="Notification not found.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Notifications are temporarily unavailable.",
+            ) from None
+        return NotificationReadResponse(
+            notificationRef=record.notification_ref,
+            readAt=record.read_at,
+        )
+
+    @api.post(
+        "/notifications/read-all",
+        response_model=NotificationReadAllResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def mark_all_notifications_read(
+        authorization: str | None = Header(default=None),
+    ) -> NotificationReadAllResponse:
+        recipient_uid = notification_actor(authorization)
+        try:
+            updated_count = notification_service().mark_all_read(recipient_uid)
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Notifications are temporarily unavailable.",
+            ) from None
+        return NotificationReadAllResponse(updatedCount=updated_count)
 
     return api
 
