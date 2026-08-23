@@ -29,7 +29,9 @@ ACCOUNT_REFERENCE_DOMAIN = "complaintguard:admin-account-ref:v1"
 ACCOUNT_REFERENCE_PROJECT = "local-emulator:demo-complaintguard"
 ACCOUNT_REFERENCE_PATTERN = re.compile(r"^acct_v1_[0-9a-f]{64}$")
 UNRESOLVED_TICKET_STATUSES = {"submitted", "triaged", "in_progress", "awaiting_customer"}
+_TICKET_STATUSES = UNRESOLVED_TICKET_STATUSES | {"resolved", "closed"}
 _EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_STAFF_UID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 _DEPARTMENTS = {
     "transfer_payment",
     "account_support",
@@ -298,6 +300,9 @@ class AdminDirectoryService:
         if row.role != "staff":
             reassignment_reason = "role_not_reassignable"
             reassignment_eligible = False
+        elif not row.active:
+            reassignment_reason = "already_inactive"
+            reassignment_eligible = False
         else:
             try:
                 tickets = self._backend.list_tickets(limit=MAX_TICKET_ELIGIBILITY_SCAN + 1)
@@ -312,14 +317,23 @@ class AdminDirectoryService:
                     raise DirectoryDataIntegrityError("ticket eligibility data is malformed")
                 status = ticket.get("status")
                 assigned_staff_id = ticket.get("assignedStaffId")
-                if not isinstance(status, str) or (
-                    assigned_staff_id is not None and not isinstance(assigned_staff_id, str)
+                if status not in _TICKET_STATUSES or (
+                    assigned_staff_id is not None
+                    and (
+                        not isinstance(assigned_staff_id, str)
+                        or not _STAFF_UID_PATTERN.fullmatch(assigned_staff_id)
+                    )
                 ):
                     raise DirectoryDataIntegrityError("ticket eligibility data is malformed")
                 if status in UNRESOLVED_TICKET_STATUSES and assigned_staff_id == target_uid:
                     reassignment_reason = "assigned_unresolved_work"
                     reassignment_eligible = False
                     break
+            if reassignment_eligible:
+                checker = getattr(self._backend, "reassignment_eligibility_reason", None)
+                if callable(checker):
+                    reassignment_reason = checker(target_uid=target_uid)
+                    reassignment_eligible = reassignment_reason is None
         operations = LifecycleEligibilityOperations(
             disable=disable,
             reactivate=reactivate,

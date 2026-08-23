@@ -132,6 +132,22 @@ immutable audit event, and releasing the guard. Pending owner activation,
 Admin-target mutation, frontend controls, and runtime/Emulator verification
 remain unavailable.
 
+### R2C5 Staff department reassignment
+
+The trusted pure-tested route is
+`POST /admin/users/{accountRef}/reassign-department` for active Staff only.
+It updates only `users/{uid}.departmentId` and `updatedAt`; role, identity,
+profile fields, tickets, and history are preserved. The transaction reads at
+most 201 ticket documents from the top-level `tickets` collection to detect a
+bounded scan overflow. Only `assignedStaffId == targetUid` with status
+`submitted`, `triaged`, `in_progress`, or `awaiting_customer` blocks. Resolved,
+unassigned, and other-Staff tickets do not block, and no ticket is modified.
+Malformed ticket state or overflow fails closed. The current runtime has no
+writer that changes `assignedStaffId` after ticket creation; any future
+assignment feature must use this same coordination boundary to prevent races.
+The route has no Auth operation, frontend control, notification, rules/index
+change, or runtime/Emulator verification.
+
 ### `departments/{departmentId}`
 
 Canonical operational department metadata. Document IDs must use the six stable IDs.

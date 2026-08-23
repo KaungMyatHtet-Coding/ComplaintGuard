@@ -26,9 +26,10 @@ classified as follows:
   rows. R2C3A adds the trusted, pure/fake-tested Customer, Staff, and Manager
   disable workflow, and R2C4A adds the trusted, pure/fake-tested Customer,
   Staff, and Manager reactivation workflow only for accounts proven disabled by
-  that lifecycle workflow. No frontend control or Emulator verification is
-  claimed. Admin lifecycle mutation, pending owner activation, Staff
-  reassignment, role changes, and deletion remain unavailable.
+  that lifecycle workflow. R2C5 adds the pure/fake-tested active-Staff
+  department reassignment workflow. No frontend control or Emulator
+  verification is claimed. Admin lifecycle mutation, pending owner activation,
+  role changes, and deletion remain unavailable.
 - **Designed/planned:** deletion, password reset/invitation, Customer
   management, Admin creation, broader assignment, priority, escalation,
   reopen/close, and department administration.
@@ -195,20 +196,23 @@ safeguard.
 
 R2C3A implements only Customer, Staff, and Manager disablement through the
 trusted backend route. Admin disablement remains deferred to R2C3B because it
-requires the separate global last-active-Admin concurrency guard. Reactivate,
-reassignment, role changes, deletion, and lifecycle notifications remain
-unimplemented.
+requires the separate global last-active-Admin concurrency guard. R2C4A
+implements reactivation for targets proven disabled by that workflow, and R2C5
+implements active-Staff department reassignment through a bounded transaction.
+Lifecycle notifications remain unimplemented.
 
-Staff department reassignment is future Staff-only governance. It accepts only
+Staff department reassignment is implemented as pure-tested Staff-only
+governance. It accepts only
 the six authoritative department IDs, never changes role, never assigns a
 department to Customer, Manager, or Admin, and never retroactively moves
-complaints. The future trusted, concurrency-safe operation blocks only when
+complaints. The trusted, concurrency-safe operation blocks only when
 the target Staff account is explicitly assigned to one or more unresolved
 complaints. Unresolved complaints that are unassigned to that Staff member
 remain in their existing department queue for other authorized Staff. No
-complaint is automatically moved, rerouted, or modified. Concurrent assignment
-changes fail safely with `409`, and a Manager must resolve or reassign affected
-complaints before retry. This policy is approved future design, not implemented.
+complaint is automatically moved, rerouted, or modified. The current runtime
+has no assignedStaffId writer after ticket creation; any future assignment
+feature must participate in the same transaction/guard boundary before it is
+enabled. No runtime or Emulator verification is claimed.
 
 No role change, permanent deletion, password/claims operation, Auth-provider
 inspection, direct frontend write, or Firebase IAM operation is permitted.

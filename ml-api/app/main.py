@@ -45,6 +45,18 @@ from app.admin_reactivate import (
     ReactivatePendingSetup,
     ReactivateSelfTarget,
 )
+from app.admin_reassign import (
+    AdminReassignBackend,
+    AdminReassignService,
+    FirebaseAdminReassignmentBackend,
+    ReassignAdminTarget,
+    ReassignAssignedWork,
+    ReassignPendingOrInactive,
+    ReassignRoleNotReassignable,
+    ReassignSameDepartment,
+    ReassignScanIncomplete,
+    ReassignSelfTarget,
+)
 from app.admin_workflow import (
     AdminProvisioningBackend,
     AdminProvisioningService,
@@ -101,6 +113,8 @@ from app.schemas import (
     AdminProvisioningResponse,
     AdminReactivateRequest,
     AdminReactivateResponse,
+    AdminReassignDepartmentRequest,
+    AdminReassignDepartmentResponse,
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
     CustomerMessageItem,
@@ -197,6 +211,7 @@ def create_app(
     admin_directory_backend: AdminDirectoryBackend | None = None,
     admin_disable_backend: AdminDisableBackend | None = None,
     admin_reactivate_backend: AdminReactivateBackend | None = None,
+    admin_reassign_backend: AdminReassignBackend | None = None,
     notification_backend: NotificationBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
@@ -540,6 +555,7 @@ def create_app(
                 admin_directory_backend
                 or admin_provisioning_backend
                 or admin_reactivate_backend
+                or admin_reassign_backend
                 or FirebaseAdminReactivationBackend()
             )
             require_active_admin(authorization, backend)
@@ -616,6 +632,7 @@ def create_app(
                 admin_directory_backend
                 or admin_provisioning_backend
                 or admin_reactivate_backend
+                or admin_reassign_backend
                 or FirebaseAdminReactivationBackend()
             )
             actor = require_active_admin(authorization, backend)
@@ -754,6 +771,7 @@ def create_app(
             raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
         except PersistenceError:
             raise ApiError(status_code=503, code="service_unavailable", message="Account disablement is temporarily unavailable.") from None
+
         try:
             return AdminDisableService(backend).disable(
                 actor, account_ref=account_ref, idempotency_key=payload.idempotency_key
@@ -779,6 +797,68 @@ def create_app(
         except PersistenceError:
             raise ApiError(status_code=503, code="service_unavailable", message="Account disablement is temporarily unavailable.") from None
 
+    @api.post(
+        "/admin/users/{account_ref}/reassign-department",
+        response_model=AdminReassignDepartmentResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            404: {"model": ErrorResponse},
+            409: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def reassign_admin_staff_department(
+        account_ref: str,
+        payload: AdminReassignDepartmentRequest,
+        authorization: str | None = Header(default=None),
+    ) -> AdminReassignDepartmentResponse:
+        if not authorization or not authorization.startswith("Bearer ") or not authorization.split(" ", 1)[1].strip():
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.")
+        try:
+            backend = admin_reassign_backend or FirebaseAdminReassignmentBackend()
+            actor = require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except AdminPermissionError:
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department reassignment is temporarily unavailable.") from None
+        try:
+            return AdminReassignService(backend).reassign(
+                actor,
+                account_ref=account_ref,
+                idempotency_key=payload.idempotency_key,
+                department_id=payload.department_id,
+            )
+        except ValueError:
+            raise ApiError(status_code=422, code="invalid_request", message="The account reference or request is invalid.") from None
+        except ReassignAdminTarget:
+            raise ApiError(status_code=409, code="admin_reassign_not_available", message="This account operation is not available.") from None
+        except ReassignSelfTarget:
+            raise ApiError(status_code=409, code="lifecycle_conflict", message="This account operation is not available.") from None
+        except LookupError:
+            raise ApiError(status_code=404, code="account_not_found", message="The account was not found.") from None
+        except ReassignPendingOrInactive:
+            raise ApiError(status_code=409, code="role_not_reassignable", message="Only active Staff accounts can be reassigned.") from None
+        except ReassignRoleNotReassignable:
+            raise ApiError(status_code=409, code="role_not_reassignable", message="This account role cannot be reassigned.") from None
+        except ReassignSameDepartment:
+            raise ApiError(status_code=409, code="department_unchanged", message="The Staff account is already in that department.") from None
+        except ReassignAssignedWork:
+            raise ApiError(status_code=409, code="assigned_unresolved_work", message="The Staff account has unresolved assigned work.") from None
+        except LifecycleIdempotencyConflict:
+            raise ApiError(status_code=409, code="idempotency_conflict", message="This request key was already used for different details.") from None
+        except LifecycleStateConflict:
+            raise ApiError(status_code=409, code="lifecycle_conflict", message="The account operation cannot proceed safely.") from None
+        except ReassignScanIncomplete:
+            raise ApiError(status_code=503, code="bounded_scan_incomplete", message="Department reassignment is temporarily unavailable.") from None
+        except DirectoryDataIntegrityError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department reassignment is temporarily unavailable.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department reassignment is temporarily unavailable.") from None
     @api.post(
         "/tickets",
         response_model=SubmitComplaintResponse,

@@ -43,6 +43,13 @@ class Reference:
         self.key = key
 
 
+class Query:
+    def __init__(self, db: "FakeDb", collection: str, limit: int) -> None:
+        self.db = db
+        self.collection = collection
+        self.limit_count = limit
+
+
 class Collection:
     def __init__(self, db: "FakeDb", name: str) -> None:
         self.db = db
@@ -51,13 +58,26 @@ class Collection:
     def document(self, document_id: str) -> Reference:
         return Reference(self.db, (self.name, document_id))
 
+    def limit(self, count: int) -> Query:
+        return Query(self.db, self.name, count)
+
 
 class FakeTransaction:
     def __init__(self, db: "FakeDb", values: dict[tuple[str, str], dict[str, Any]]) -> None:
         self.db = db
         self.values = values
 
-    def get(self, reference: Reference):
+    def get(self, reference: Reference | Query):
+        if isinstance(reference, Query):
+            self.db.operations.append(("read", (reference.collection, "*")))
+            matches = [
+                (key, value)
+                for key, value in self.values.items()
+                if key[0] == reference.collection
+            ][: reference.limit_count]
+            for key, value in matches:
+                yield Snapshot(key, value)
+            return
         self.db.operations.append(("read", reference.key))
         yield Snapshot(reference.key, self.values.get(reference.key))
 
@@ -483,3 +503,76 @@ def test_existing_audit_collision_is_a_persistence_conflict() -> None:
     db.values[event_key]["resultCode"] = "ok"
     with pytest.raises(LifecycleConflictError):
         repo.transition(record.action_ref, expected_version=1, to_state="profile_inactivated", result_code="profile_inactivated", now=NOW)
+
+
+def test_reassignment_transaction_checks_bounded_work_and_preserves_profile() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    profile = {
+        "email": "staff-1@example.test",
+        "displayName": "Staff One",
+        "locale": "en",
+        "role": "staff",
+        "departmentId": "account_support",
+        "active": True,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    db.values[("users", "target-1")] = profile
+    record = LifecycleActionService(repo, clock=lambda: NOW).reserve(
+        actor_uid="admin-actor",
+        target_uid="target-1",
+        target_role="staff",
+        operation="reassign_department",
+        idempotency_key="action_001",
+        account_ref="acct_v1_" + "a" * 64,
+        requested_department="card_atm",
+    )
+    db.operations.clear()
+    result = repo.reassign_department(record.action_ref, expected_version=1, now=NOW)
+    assert result.state == "completed"
+    assert db.values[("users", "target-1")] == {
+        **profile,
+        "departmentId": "card_atm",
+        "updatedAt": NOW,
+    }
+    guard = next(value for (collection, _), value in db.values.items() if collection == LIFECYCLE_TARGET_GUARDS_COLLECTION)
+    assert guard["state"] == "inactive"
+    assert len([key for key in db.values if key[0] == LIFECYCLE_AUDIT_EVENTS_COLLECTION]) == 1
+    writes = [index for index, operation in enumerate(db.operations) if operation[0] == "write"]
+    reads = [index for index, operation in enumerate(db.operations) if operation[0] == "read"]
+    assert max(reads) < min(writes)
+
+
+def test_reassignment_assigned_unresolved_work_releases_guard_without_profile_change() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    db.values[("users", "target-1")] = {
+        "email": "staff-1@example.test",
+        "displayName": "Staff One",
+        "locale": "en",
+        "role": "staff",
+        "departmentId": "account_support",
+        "active": True,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    db.values[("tickets", "ticket-1")] = {
+        "assignedStaffId": "target-1",
+        "status": "awaiting_customer",
+    }
+    record = LifecycleActionService(repo, clock=lambda: NOW).reserve(
+        actor_uid="admin-actor",
+        target_uid="target-1",
+        target_role="staff",
+        operation="reassign_department",
+        idempotency_key="action_001",
+        account_ref="acct_v1_" + "a" * 64,
+        requested_department="card_atm",
+    )
+    result = repo.reassign_department(record.action_ref, expected_version=1, now=NOW)
+    assert result.state == "conflict"
+    assert result.result_code == "assigned_unresolved_work"
+    assert db.values[("users", "target-1")]["departmentId"] == "account_support"
+    guard = next(value for (collection, _), value in db.values.items() if collection == LIFECYCLE_TARGET_GUARDS_COLLECTION)
+    assert guard["state"] == "inactive"

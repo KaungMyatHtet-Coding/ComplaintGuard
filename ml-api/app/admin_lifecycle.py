@@ -48,6 +48,7 @@ _IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 _RESULT_CODE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 MAX_ACTION_VERSION = 2_147_483_647
+MAX_REASSIGNMENT_TICKET_SCAN = 200
 LIFECYCLE_RESULT_CODES = frozenset(
     {
         "ok",
@@ -1437,6 +1438,205 @@ class FirebaseLifecycleRepository:
             raise
         except Exception as exc:
             raise PersistenceError("lifecycle action transition failed") from exc
+
+    def reassign_department(
+        self,
+        action_ref: str,
+        *,
+        expected_version: int,
+        now: datetime,
+    ) -> LifecycleActionRecord:
+        """Atomically check assigned work and complete Staff reassignment."""
+
+        action_reference = self._action_reference(action_ref)
+
+        def operation(transaction: Any) -> LifecycleActionRecord:
+            action_snapshot = self._snapshot(transaction, action_reference)
+            if not action_snapshot.exists:
+                raise LifecycleStateConflict("lifecycle action not found")
+            current = validate_action_document(action_snapshot.to_dict() or {})
+            if current.operation != "reassign_department" or current.target_role != "staff":
+                raise PersistenceError("reassignment action mismatch")
+            guard_ref = lifecycle_target_guard_reference(
+                target_uid=current.target_uid,
+                project_id=self._project_id,
+                environment=self._environment,
+            )
+            guard_reference = self._guard_reference(guard_ref)
+            profile_reference = self._db.collection("users").document(current.target_uid)
+            ticket_query = self._db.collection("tickets").limit(MAX_REASSIGNMENT_TICKET_SCAN + 1)
+            transition_version = current.version + 1 if current.state == "reserved" else current.version
+            final_event_ref = lifecycle_audit_event_reference(
+                action_ref=current.action_ref,
+                operation="reassign_department",
+                from_state="reserved",
+                to_state="completed",
+                result_code="completed",
+                version=transition_version,
+            )
+            conflict_event_ref = lifecycle_audit_event_reference(
+                action_ref=current.action_ref,
+                operation="reassign_department",
+                from_state="reserved",
+                to_state="conflict",
+                result_code="assigned_unresolved_work",
+                version=transition_version,
+            )
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            profile_snapshot = self._snapshot(transaction, profile_reference)
+            ticket_snapshots = list(transaction.get(ticket_query))
+            final_event_snapshot = self._snapshot(
+                transaction, self._audit_reference(final_event_ref)
+            )
+            conflict_event_snapshot = self._snapshot(
+                transaction, self._audit_reference(conflict_event_ref)
+            )
+            # All reads, including the bounded work scan and both deterministic
+            # audit destinations, precede every write in this transaction.
+            if not guard_snapshot.exists or not profile_snapshot.exists:
+                raise PersistenceError("reassignment target persistence is incomplete")
+            guard = validate_target_guard_document(guard_snapshot.to_dict() or {})
+            profile = _validate_disable_profile(profile_snapshot.to_dict() or {}, current.target_uid)
+            if current.state == "completed":
+                if (
+                    current.account_ref is None
+                    or current.requested_department not in DEPARTMENT_IDS
+                    or profile["departmentId"] != current.requested_department
+                    or guard.guard_ref != guard_ref
+                    or guard.target_uid != current.target_uid
+                    or guard.action_ref != current.action_ref
+                    or guard.operation != current.operation
+                    or guard.state != "inactive"
+                ):
+                    raise LifecycleStateConflict("completed reassignment is inconsistent")
+                if not final_event_snapshot.exists:
+                    raise PersistenceError("reassignment audit is missing")
+                validate_audit_document(final_event_snapshot.to_dict() or {})
+                return current
+            if (
+                current.action_ref != action_ref
+                or current.version != expected_version
+                or current.account_ref is None
+                or current.requested_department not in DEPARTMENT_IDS
+                or current.target_role != "staff"
+                or profile["role"] != "staff"
+                or profile["active"] is not True
+                or profile["departmentId"] not in DEPARTMENT_IDS
+                or guard.guard_ref != guard_ref
+                or guard.target_uid != current.target_uid
+                or guard.action_ref != current.action_ref
+                or guard.operation != current.operation
+                or guard.state != "active"
+            ):
+                raise LifecycleStateConflict("reassignment precondition failed")
+            if current.state != "reserved" or current.result_code is not None:
+                raise LifecycleStateConflict("reassignment action is not recoverable")
+            assigned_work = False
+            for snapshot in ticket_snapshots:
+                ticket = snapshot.to_dict()
+                if not isinstance(ticket, dict):
+                    raise PersistenceError("ticket assignment data is malformed")
+                status = ticket.get("status")
+                assigned_uid = ticket.get("assignedStaffId")
+                if status not in {"submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"}:
+                    raise PersistenceError("ticket assignment data is malformed")
+                if assigned_uid is not None and (not isinstance(assigned_uid, str) or not _UID_PATTERN.fullmatch(assigned_uid)):
+                    raise PersistenceError("ticket assignment data is malformed")
+                if status in {"submitted", "triaged", "in_progress", "awaiting_customer"} and assigned_uid == current.target_uid:
+                    assigned_work = True
+            if len(ticket_snapshots) > MAX_REASSIGNMENT_TICKET_SCAN:
+                raise PersistenceError("reassignment ticket scan is incomplete")
+            timestamp = _aware(now, "updatedAt")
+            if current.version >= MAX_ACTION_VERSION or guard.version >= MAX_ACTION_VERSION:
+                raise LifecycleStateConflict("lifecycle version exhausted")
+            next_state: LifecycleState = "conflict" if assigned_work else "completed"
+            result_code = "assigned_unresolved_work" if assigned_work else "completed"
+            updated = replace(
+                current,
+                state=next_state,
+                result_code=result_code,
+                updated_at=timestamp,
+                version=current.version + 1,
+                completed_at=timestamp if next_state == "completed" else None,
+            )
+            event_ref = conflict_event_ref if assigned_work else final_event_ref
+            event_snapshot = conflict_event_snapshot if assigned_work else final_event_snapshot
+            event = LifecycleAuditEvent(
+                event_ref=event_ref,
+                action_ref=current.action_ref,
+                operation=current.operation,
+                actor_uid=current.actor_uid,
+                target_uid=current.target_uid,
+                from_state="reserved",
+                to_state=next_state,
+                result_code=result_code,
+                version=updated.version,
+                created_at=timestamp,
+            )
+            if event_snapshot.exists:
+                if validate_audit_document(event_snapshot.to_dict() or {}).to_document() != event.to_document():
+                    raise LifecycleConflictError("immutable audit event conflict")
+            else:
+                transaction.create(self._audit_reference(event_ref), event.to_document())
+            updated_guard = replace(
+                guard,
+                state="inactive",
+                version=guard.version + 1,
+                updated_at=timestamp,
+            )
+            if not assigned_work:
+                transaction.update(profile_reference, {"departmentId": current.requested_department, "updatedAt": timestamp})
+            transaction.update(action_reference, updated.to_document())
+            transaction.update(guard_reference, updated_guard.to_document())
+            return updated
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleConflictError, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("department reassignment transaction failed") from exc
+
+    def reassignment_eligibility_reason(self, *, target_uid: str) -> str | None:
+        """Return only a safe advisory reason for an existing target guard."""
+
+        guard_ref = lifecycle_target_guard_reference(
+            target_uid=target_uid,
+            project_id=self._project_id,
+            environment=self._environment,
+        )
+        guard_reference = self._guard_reference(guard_ref)
+
+        def operation(transaction: Any) -> str | None:
+            snapshot = self._snapshot(transaction, guard_reference)
+            if not snapshot.exists:
+                return None
+            guard = validate_target_guard_document(snapshot.to_dict() or {})
+            if guard.guard_ref != guard_ref or guard.target_uid != target_uid:
+                raise PersistenceError("lifecycle target guard ownership mismatch")
+            owner_snapshot = self._snapshot(
+                transaction, self._action_reference(guard.action_ref)
+            )
+            if not owner_snapshot.exists:
+                raise PersistenceError("lifecycle target guard owner is missing")
+            owner = validate_action_document(owner_snapshot.to_dict() or {})
+            if (
+                owner.action_ref != guard.action_ref
+                or owner.target_uid != target_uid
+                or owner.operation != guard.operation
+                or _guard_state_for_action(owner.state) != guard.state
+            ):
+                raise PersistenceError("lifecycle target guard owner is inconsistent")
+            if guard.state in {"active", "blocked"}:
+                return "lifecycle_conflict"
+            return None
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("reassignment eligibility lookup failed") from exc
 
     def append_audit(self, event: LifecycleAuditEvent) -> LifecycleAuditEvent:
         reference = self._audit_reference(event.event_ref)

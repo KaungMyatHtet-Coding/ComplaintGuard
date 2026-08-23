@@ -27,6 +27,14 @@ completed trusted disable action; inactive `pending_setup` profiles and
 unproven inactive profiles cannot be activated. Admin lifecycle mutation,
 frontend controls, and runtime verification remain unavailable.
 
+R2C5 now implements the trusted pure/fake-tested backend
+`POST /admin/users/{accountRef}/reassign-department` workflow for active Staff
+targets. It changes only the Staff profile department after a bounded,
+transactional check for explicitly assigned unresolved work. Unassigned queue
+work does not block and no complaint is moved or modified. The current runtime
+has no assignedStaffId writer; any future assignment feature must participate
+in this same lifecycle transaction/guard boundary before it is enabled.
+
 The contract applies to Customer, Staff, Manager, and carefully governed Admin
 profiles. Firebase Console/IAM ownership is separate from the application
 `role: admin` and is never granted by these operations.
@@ -228,10 +236,11 @@ workflow before the Staff department change is retried. An unresolved
 complaint that is unassigned to that Staff member does not block reassignment;
 it remains in its existing department queue for other authorized Staff.
 Reassignment must not automatically move, reroute, or modify any complaint.
-If an assignment is created or changed concurrently with the check, the
-reassignment must fail safely with `409 lifecycle_conflict`. Resolved history
-and all historical routing/assignment records remain unchanged. This is an
-approved future precondition, not current behavior.
+The implementation performs this check in the reassignment transaction with a
+bounded local scan of at most 200 ticket documents (201 are requested to detect
+overflow). A scan overflow or malformed ticket fails closed. The current
+runtime has no assignedStaffId writer; any future assignment feature must join
+this same lifecycle transaction/guard boundary before it is enabled.
 
 Department reassignment is one audited, idempotent operation with an expected
 profile-state/version check. A retry with the same request returns the same
@@ -331,6 +340,18 @@ enablement is performed by trusted UID only and remains outside Firestore
 transactions. Pending owner activation remains separate. No frontend control,
 Emulator/runtime verification, Cloud support, notification, or operator unlock
 behavior is claimed.
+
+## R2C5 department reassignment implementation status
+
+The route accepts exactly `{ "idempotencyKey": "...", "departmentId":
+"..." }`, using the six approved department IDs, and returns exactly
+`accountRef`, `operation`, `status`, and `departmentId`. It uses
+`reserved -> completed` for a safe reassignment, or an audited conflict that
+releases only its owned guard when explicitly assigned unresolved work is
+found. Same-department requests return `409 department_unchanged` without a
+lifecycle write. Customer, Manager, Admin, pending Staff, and inactive Staff
+targets are not reassigned. No Auth operation, complaint mutation, frontend
+control, notification, operator unlock, or runtime verification is included.
 
 ## Notification boundary
 
