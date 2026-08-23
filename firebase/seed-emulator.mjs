@@ -118,6 +118,7 @@ await testEnvironment.withSecurityRulesDisabled(async (context) => {
       displayName: existingData.displayName ?? `Emulator ${identity.key}`,
       role: identity.role,
       active: true,
+      accountState: "active",
       locale: identity.locale,
       departmentId: identity.departmentId ?? null,
       createdAt: existingData.createdAt ?? serverTimestamp(),

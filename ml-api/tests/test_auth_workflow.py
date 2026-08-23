@@ -114,6 +114,7 @@ def complete_profile(identity_value: VerifiedFirebaseIdentity, **overrides: Any)
         "role": "customer",
         "departmentId": None,
         "active": True,
+        "accountState": "active",
         "createdAt": "created",
         "updatedAt": "updated",
     }

@@ -25,6 +25,7 @@ def profile(email: str, role: str, department: str | None, active: bool = True) 
         "role": role,
         "departmentId": department,
         "active": active,
+        "accountState": "active" if active else ("disabled" if role != "admin" else "inactive_unverified"),
         "createdAt": datetime(2026, 1, 1, tzinfo=timezone.utc),
         "updatedAt": datetime(2026, 1, 2, tzinfo=timezone.utc),
     }

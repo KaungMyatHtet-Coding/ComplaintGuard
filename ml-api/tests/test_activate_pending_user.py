@@ -39,6 +39,7 @@ def _admin_profile() -> dict[str, object]:
         "role": "admin",
         "departmentId": None,
         "active": True,
+        "accountState": "active",
         "createdAt": "created",
         "updatedAt": "updated",
     }
@@ -52,6 +53,7 @@ def _target_profile(role: str = "staff", department: str | None = "card_atm") ->
         "role": role,
         "departmentId": department if role == "staff" else None,
         "active": False,
+        "accountState": "pending_setup",
         "createdAt": "created",
         "updatedAt": "updated",
     }
@@ -120,6 +122,7 @@ class FakeBackend:
             raise RuntimeError("safe fake failure")
         self.events.append(("profile", "activate"))
         self.profile["active"] = True
+        self.profile["accountState"] = "active"
         self.profile["updatedAt"] = self.server_timestamp
 
 
@@ -218,9 +221,10 @@ def test_sequence_sets_password_disabled_then_enables_then_activates() -> None:
         ("action", "active"),
     ]
     for key in before:
-        if key not in {"active", "updatedAt"}:
+        if key not in {"active", "accountState", "updatedAt"}:
             assert backend.profile[key] == before[key]
     assert backend.profile["active"] is True
+    assert backend.profile["accountState"] == "active"
     assert backend.profile["updatedAt"] == backend.server_timestamp
 
 
@@ -228,6 +232,7 @@ def test_existing_activation_is_unchanged_and_does_not_prompt() -> None:
     backend = FakeBackend(action_status="active")
     backend.auth = AuthRecord(backend.auth.uid, backend.auth.email, backend.auth.display_name, False)
     backend.profile["active"] = True
+    backend.profile["accountState"] = "active"
     before = copy.deepcopy(backend.profile)
     result = activation.activate_pending_user(
         backend=backend,
@@ -257,6 +262,7 @@ def test_active_profile_retries_finalize_action_without_password_reset() -> None
     backend = FakeBackend(action_status="auth_enabled")
     backend.auth = AuthRecord(backend.auth.uid, backend.auth.email, backend.auth.display_name, False)
     backend.profile["active"] = True
+    backend.profile["accountState"] = "active"
     backend.fail_on.add("active")
     with pytest.raises(BootstrapDependencyError):
         _run(backend, passwords=[])

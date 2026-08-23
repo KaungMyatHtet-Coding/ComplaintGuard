@@ -30,7 +30,7 @@ DepartmentId = Literal[
 AdminProvisioningRole = Literal["staff", "manager"]
 AdminDirectoryRole = Literal["customer", "staff", "manager", "admin"]
 AdminProvisioningStatus = Literal["pending_setup"]
-AdminDirectorySetupStatus = Literal["pending_setup", "active"]
+AdminDirectoryAccountState = Literal["active", "pending_setup", "disabled", "inactive_unverified"]
 LifecycleProfileState = Literal["active", "inactive"]
 LifecycleRecoveryState = Literal["none", "recoverable", "completed", "operator_required"]
 LifecycleRecoveryOperation = Literal["disable", "reactivate", "reassign_department"]
@@ -247,7 +247,7 @@ class AdminDirectoryRow(BaseModel):
     role: AdminDirectoryRole
     department_id: DepartmentId | None = Field(alias="departmentId")
     active: StrictBool
-    setup_status: AdminDirectorySetupStatus = Field(alias="setupStatus")
+    account_state: AdminDirectoryAccountState = Field(alias="accountState")
     account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
 
 

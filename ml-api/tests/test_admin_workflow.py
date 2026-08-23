@@ -59,6 +59,7 @@ class FakeProvisioningBackend:
             "role": self.role,
             "departmentId": None,
             "active": self.active,
+            "accountState": "active" if self.active else "inactive_unverified",
             "createdAt": "created",
             "updatedAt": "updated",
         }

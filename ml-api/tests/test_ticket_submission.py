@@ -26,7 +26,7 @@ class FakeBackend:
 
     def __init__(self) -> None:
         self.uid = "verified-customer-uid"
-        self.profile: dict[str, Any] | None = {"role": "customer", "active": True}
+        self.profile: dict[str, Any] | None = {"role": "customer", "active": True, "accountState": "active"}
         self.documents: list[dict[str, Any]] = []
         self.fail_write = False
 

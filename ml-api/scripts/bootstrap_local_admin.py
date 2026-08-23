@@ -14,6 +14,7 @@ from typing import Any, Protocol
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.account_state import AccountStateValidationError, validate_account_state
 from app.firebase_environment import (
     FirebaseEnvironmentSafetyError,
     LocalEmulatorEnvironment,
@@ -115,12 +116,21 @@ def _profile_matches(profile: Any, *, active: bool | None = None) -> bool:
         "role",
         "departmentId",
         "active",
+        "accountState",
         "createdAt",
         "updatedAt",
     }
     if set(profile) != expected_keys:
         return False
     if active is not None and profile.get("active") is not active:
+        return False
+    try:
+        validate_account_state(
+            active=profile.get("active"),
+            role=profile.get("role"),
+            account_state=profile.get("accountState"),
+        )
+    except AccountStateValidationError:
         return False
     return (
         profile.get("email") == FIXED_EMAIL
@@ -311,6 +321,7 @@ class FirebaseAdminBootstrapBackend:
             "role": FIXED_ROLE,
             "departmentId": None,
             "active": False,
+            "accountState": "inactive_unverified",
             "createdAt": self.server_timestamp,
             "updatedAt": self.server_timestamp,
         }
@@ -336,7 +347,7 @@ class FirebaseAdminBootstrapBackend:
                 return
             transaction.update(
                 reference,
-                {"active": True, "updatedAt": self.server_timestamp},
+                {"active": True, "accountState": "active", "updatedAt": self.server_timestamp},
             )
 
         run_firestore_transaction(self._db, operation)

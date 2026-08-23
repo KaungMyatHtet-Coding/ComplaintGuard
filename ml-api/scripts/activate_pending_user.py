@@ -13,6 +13,7 @@ from typing import Any, Protocol
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from app.account_state import AccountStateValidationError, validate_account_state
 from app.ticketing import firebase_admin_clients, run_firestore_transaction
 from scripts.bootstrap_local_admin import (
     AuthRecord,
@@ -80,6 +81,7 @@ def _profile_matches_target(profile: Any, auth: AuthRecord) -> bool:
         "role",
         "departmentId",
         "active",
+        "accountState",
         "createdAt",
         "updatedAt",
     }
@@ -98,6 +100,7 @@ def _profile_matches_target(profile: Any, auth: AuthRecord) -> bool:
         or profile.get("locale") not in {"en", "my"}
         or profile.get("role") not in {"staff", "manager"}
         or profile.get("active") is not True and profile.get("active") is not False
+        or _invalid_account_state(profile)
         or profile.get("createdAt") is None
         or profile.get("updatedAt") is None
     ):
@@ -112,6 +115,18 @@ def _profile_matches_target(profile: Any, auth: AuthRecord) -> bool:
     return profile.get("departmentId") is None
 
 
+def _invalid_account_state(profile: dict[str, Any]) -> bool:
+    try:
+        validate_account_state(
+            active=profile.get("active"),
+            role=profile.get("role"),
+            account_state=profile.get("accountState"),
+        )
+    except AccountStateValidationError:
+        return True
+    return False
+
+
 def _admin_actor_is_valid(profile: Any) -> bool:
     if not isinstance(profile, dict):
         return False
@@ -122,6 +137,7 @@ def _admin_actor_is_valid(profile: Any) -> bool:
         "role",
         "departmentId",
         "active",
+        "accountState",
         "createdAt",
         "updatedAt",
     }
@@ -135,6 +151,7 @@ def _admin_actor_is_valid(profile: Any) -> bool:
         and profile.get("role") == "admin"
         and profile.get("departmentId") is None
         and profile.get("active") is True
+        and profile.get("accountState") == "active"
         and profile.get("createdAt") is not None
         and profile.get("updatedAt") is not None
     )
@@ -196,7 +213,7 @@ def activate_pending_user(
 
     status = action["status"]
     if status == "active":
-        if auth.disabled or profile.get("active") is not True:
+        if auth.disabled or profile.get("active") is not True or profile.get("accountState") != "active":
             raise BootstrapConflict("activation_state_conflict")
         return ActivationResult("existing")
     if profile.get("active") is True:
@@ -352,6 +369,7 @@ class FirebaseAdminActivationBackend:
                 return
             if (
                 value.get("active") is not False
+                or value.get("accountState") != "pending_setup"
                 or value.get("role") not in {"staff", "manager"}
                 or value.get("locale") not in {"en", "my"}
                 or not isinstance(value.get("email"), str)
@@ -370,7 +388,7 @@ class FirebaseAdminActivationBackend:
                 raise BootstrapConflict("profile_conflict")
             transaction.update(
                 reference,
-                {"active": True, "updatedAt": self.server_timestamp},
+                {"active": True, "accountState": "active", "updatedAt": self.server_timestamp},
             )
 
         run_firestore_transaction(self._db, operation)

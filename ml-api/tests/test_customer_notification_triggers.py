@@ -168,6 +168,7 @@ def _profile(uid: str = "customer-1", *, active: bool = True) -> dict[str, Any]:
         "uid": uid,
         "role": "customer",
         "active": active,
+        "accountState": "active" if active else "disabled",
         "displayName": "Customer One",
         "email": "customer@example.test",
         "locale": "en",

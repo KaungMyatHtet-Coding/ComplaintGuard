@@ -26,6 +26,7 @@ def _profile(uid: str, role: str = "admin", active: bool = True) -> dict[str, An
         "role": role,
         "departmentId": "card_atm" if role == "staff" else None,
         "active": active,
+        "accountState": "active" if active else "disabled",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -65,7 +66,7 @@ class FakeStatusBackend:
             role=value["role"],
             departmentId=value["departmentId"],
             active=value["active"],
-            setupStatus="active" if value["active"] else "pending_setup",
+            accountState=value["accountState"],
             accountRef=TARGET_REF,
         )
 

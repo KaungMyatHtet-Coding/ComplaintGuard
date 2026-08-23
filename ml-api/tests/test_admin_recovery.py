@@ -35,6 +35,7 @@ def _profile(active: bool = True, role: str = "customer") -> dict[str, Any]:
         "role": role,
         "departmentId": "card_atm" if role == "staff" else None,
         "active": active,
+        "accountState": "active" if active else "disabled",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -86,6 +87,7 @@ class FakeRecoveryBackend(InMemoryLifecycleRepository):
                 "role": "admin",
                 "departmentId": None,
                 "active": True,
+                "accountState": "active",
                 "createdAt": NOW,
                 "updatedAt": NOW,
             }
@@ -100,7 +102,7 @@ class FakeRecoveryBackend(InMemoryLifecycleRepository):
             role=self.action.target_role,
             departmentId="card_atm" if self.action.target_role == "staff" else None,
             active=self.profiles["target-uid"]["active"],
-            setupStatus="active",
+            accountState=self.profiles["target-uid"]["accountState"],
             accountRef=account_ref,
         )
 

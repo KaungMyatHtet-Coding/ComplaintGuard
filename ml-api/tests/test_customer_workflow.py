@@ -22,9 +22,9 @@ class FakeTicketBackend:
 
     def get_user_profile(self, uid: str) -> dict[str, Any] | None:
         if uid in ("cust_123", "cust_456"):
-            return {"role": "customer", "active": True}
+            return {"role": "customer", "active": True, "accountState": "active"}
         if uid == "staff_999":
-            return {"role": "staff", "active": True, "departmentId": "transfer_payment"}
+            return {"role": "staff", "active": True, "accountState": "active", "departmentId": "transfer_payment"}
         return None
 
 

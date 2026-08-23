@@ -60,6 +60,7 @@ class FakeStaffBackend:
         self.uid = "staff-card-uid"
         self.profile: dict[str, Any] | None = {
             "active": True,
+            "accountState": "active",
             "role": "staff",
             "departmentId": "card_atm",
         }

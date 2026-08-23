@@ -95,6 +95,7 @@ class FakeBootstrapBackend:
             "role": FIXED_ROLE,
             "departmentId": None,
             "active": False,
+            "accountState": "inactive_unverified",
             "createdAt": self.server_timestamp,
             "updatedAt": self.server_timestamp,
         }
@@ -115,6 +116,7 @@ def matching_profile(*, active: bool, created: str = "created") -> dict[str, Any
         "role": FIXED_ROLE,
         "departmentId": None,
         "active": active,
+        "accountState": "active" if active else "inactive_unverified",
         "createdAt": created,
         "updatedAt": "updated",
     }

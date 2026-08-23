@@ -58,6 +58,7 @@ def valid_admin_profile(email: str = "admin@example.test") -> dict[str, Any]:
         "role": "admin",
         "departmentId": None,
         "active": True,
+        "accountState": "active",
         "createdAt": "created",
         "updatedAt": "updated",
     }

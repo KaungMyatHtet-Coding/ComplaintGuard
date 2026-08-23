@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
+from app.account_state import AccountStateValidationError, validate_account_state
 from app.language import normalize_input
 from app.ticketing import AuthenticationError, PersistenceError, firebase_admin_clients
 
@@ -82,6 +83,14 @@ def _valid_admin_profile(
         or profile.get("createdAt") is None
         or profile.get("updatedAt") is None
     ):
+        return None
+    try:
+        validate_account_state(
+            active=profile.get("active"),
+            role=profile.get("role"),
+            account_state=profile.get("accountState"),
+        )
+    except AccountStateValidationError:
         return None
     return AdminPrincipal(
         uid=uid,

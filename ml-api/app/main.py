@@ -12,6 +12,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.account_state import (
+    AccountStateValidationError,
+    validate_profile_account_state,
+)
 from app.admin_auth import AdminPermissionError, require_active_admin
 from app.admin_directory import (
     AdminDirectoryBackend,
@@ -202,6 +206,14 @@ class ApiError(RuntimeError):
         self.code = code
         self.message = message
         self.details = details or []
+
+
+def _persisted_profile_state_is_valid(profile: Any) -> bool:
+    try:
+        validate_profile_account_state(profile)
+    except (AccountStateValidationError, AttributeError):
+        return False
+    return True
 
 
 def _error_payload(
@@ -1285,6 +1297,7 @@ def create_app(
                 not profile
                 or profile.get("role") != "customer"
                 or profile.get("active") is not True
+                or not _persisted_profile_state_is_valid(profile)
             ):
                 raise ApiError(
                     status_code=403,
@@ -1321,6 +1334,7 @@ def create_app(
             not profile
             or profile.get("role") != "customer"
             or profile.get("active") is not True
+            or not _persisted_profile_state_is_valid(profile)
         ):
             raise ApiError(
                 status_code=403,
@@ -1496,6 +1510,7 @@ def create_app(
                 not profile
                 or profile.get("role") != "manager"
                 or profile.get("active") is not True
+                or not _persisted_profile_state_is_valid(profile)
             ):
                 raise ApiError(
                     status_code=403,
@@ -1532,6 +1547,7 @@ def create_app(
             not profile
             or profile.get("role") != "manager"
             or profile.get("active") is not True
+            or not _persisted_profile_state_is_valid(profile)
         ):
             raise ApiError(
                 status_code=403,

@@ -15,6 +15,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any, Literal, Protocol
 
+from app.account_state import AccountStateValidationError, validate_account_state
 from app.language import normalize_input
 from app.ticketing import (
     DEPARTMENT_IDS,
@@ -117,6 +118,7 @@ _PROFILE_FIELDS = {
     "role",
     "departmentId",
     "active",
+    "accountState",
     "createdAt",
     "updatedAt",
 }
@@ -159,11 +161,20 @@ def _validate_disable_profile(document: Mapping[str, object], target_uid: str) -
         or document["locale"] not in {"en", "my"}
         or role not in _PROFILE_ROLES
         or type(document["active"]) is not bool
+        or "accountState" not in document
         or updated_at < created_at
         or (role == "staff" and department not in _PROFILE_DEPARTMENTS)
         or (role != "staff" and department is not None)
     ):
         raise LifecycleValidationError("lifecycle target profile is invalid")
+    try:
+        validate_account_state(
+            active=document["active"],
+            role=role,
+            account_state=document["accountState"],
+        )
+    except AccountStateValidationError as exc:
+        raise LifecycleValidationError("lifecycle target profile is invalid") from exc
     _require_uid(target_uid, "target UID")
     return dict(document)
 
@@ -1545,7 +1556,10 @@ class FirebaseLifecycleRepository:
                 version=guard.version + 1,
                 updated_at=timestamp,
             )
-            transaction.update(profile_reference, {"active": True, "updatedAt": timestamp})
+            transaction.update(
+                profile_reference,
+                {"active": True, "accountState": "active", "updatedAt": timestamp},
+            )
             transaction.update(action_reference, updated.to_document())
             transaction.update(guard_reference, updated_guard.to_document())
             return updated
@@ -1682,7 +1696,10 @@ class FirebaseLifecycleRepository:
                 version=guard.version + 1,
                 updated_at=timestamp,
             )
-            transaction.update(profile_reference, {"active": False, "updatedAt": timestamp})
+            transaction.update(
+                profile_reference,
+                {"active": False, "accountState": "disabled", "updatedAt": timestamp},
+            )
             transaction.update(action_reference, updated.to_document())
             transaction.update(guard_reference, updated_guard.to_document())
             return updated

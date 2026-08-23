@@ -51,6 +51,7 @@ def _complete_customer_profile(
         and value.get("role") == "customer"
         and value.get("departmentId") is None
         and value.get("active") is True
+        and value.get("accountState") == "active"
         and value.get("createdAt") is not None
         and value.get("updatedAt") is not None
     )
@@ -107,6 +108,7 @@ class FirebaseAdminCustomerProfileBackend:
             "role": "customer",
             "departmentId": None,
             "active": True,
+            "accountState": "active",
             "createdAt": self._server_timestamp,
             "updatedAt": self._server_timestamp,
         }

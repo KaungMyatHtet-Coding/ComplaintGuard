@@ -30,6 +30,7 @@ def _profile(department: str = "account_support") -> dict[str, Any]:
         "role": "staff",
         "departmentId": department,
         "active": True,
+        "accountState": "active",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -50,7 +51,7 @@ class FakeReassignBackend(InMemoryLifecycleRepository):
             role="staff",
             departmentId=value["departmentId"],
             active=value["active"],
-            setupStatus="active",
+            accountState=value["accountState"],
             accountRef=account_ref,
         )
 

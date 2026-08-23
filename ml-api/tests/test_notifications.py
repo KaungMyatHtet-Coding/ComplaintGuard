@@ -62,6 +62,7 @@ class FakeAuthBackend:
                 "role": role,
                 "departmentId": department,
                 "active": True,
+                "accountState": "active",
                 "createdAt": "created",
                 "updatedAt": "updated",
             }
@@ -71,7 +72,7 @@ class FakeAuthBackend:
             "staff-1": profile("staff", department="transfer_payment"),
             "manager-1": profile("manager"),
             "admin-1": profile("admin"),
-            "inactive-1": {**profile("customer"), "active": False},
+            "inactive-1": {**profile("customer"), "active": False, "accountState": "disabled"},
             "malformed-1": {"role": "customer", "active": True},
             "conflicting-1": {**profile("customer"), "uid": "different-uid"},
         }

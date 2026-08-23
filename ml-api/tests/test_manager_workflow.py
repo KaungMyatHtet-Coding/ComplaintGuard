@@ -16,8 +16,8 @@ from fastapi.testclient import TestClient
 class FakeAuthTicketBackend:
     def __init__(self) -> None:
         self.user_profiles: dict[str, dict[str, Any]] = {
-            "mgr_01": {"role": "manager", "active": True},
-            "cust_01": {"role": "customer", "active": True},
+            "mgr_01": {"role": "manager", "active": True, "accountState": "active"},
+            "cust_01": {"role": "customer", "active": True, "accountState": "active"},
         }
 
     def verify_id_token(self, token: str) -> str:
@@ -206,6 +206,7 @@ def test_manager_missing_invalid_and_inactive_auth_are_denied(client, ticket_bac
     ticket_backend.user_profiles["inactive_mgr"] = {
         "role": "manager",
         "active": False,
+        "accountState": "disabled",
     }
     assert (
         client.get(

@@ -318,6 +318,7 @@ class FirebaseAdminProvisioningBackend(FirebaseAdminAuthBackend):
             "role": request.role,
             "departmentId": request.department_id,
             "active": False,
+            "accountState": "pending_setup",
             "createdAt": self.server_timestamp,
             "updatedAt": self.server_timestamp,
         }

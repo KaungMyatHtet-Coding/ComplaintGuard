@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, Protocol
 
+from app.account_state import (
+    AccountStateValidationError,
+    validate_profile_account_state,
+)
 from app.message_schema import normalize_message_document
 from app.schemas import DepartmentId
 from app.ticketing import (
@@ -120,6 +124,10 @@ class StaffWorkflowService:
             or profile.get("role") != "staff"
         ):
             raise PermissionError("active staff profile required")
+        try:
+            validate_profile_account_state(profile)
+        except AccountStateValidationError:
+            raise PermissionError("staff profile state is invalid") from None
         department_id = profile.get("departmentId")
         if not isinstance(department_id, str) or department_id not in DEPARTMENT_IDS:
             raise PermissionError("valid staff department required")

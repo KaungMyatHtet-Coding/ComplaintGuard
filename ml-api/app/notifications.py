@@ -16,6 +16,7 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
+from app.account_state import AccountStateValidationError, validate_account_state
 from app.ticketing import (
     DEPARTMENT_IDS,
     PersistenceError,
@@ -557,6 +558,14 @@ def validate_customer_recipient_profile(
         or profile.get("updatedAt") is None
     ):
         raise NotificationProfileError("Customer notification recipient is invalid")
+    try:
+        validate_account_state(
+            active=profile.get("active"),
+            role=profile.get("role"),
+            account_state=profile.get("accountState"),
+        )
+    except AccountStateValidationError as exc:
+        raise NotificationProfileError("Customer notification recipient is invalid") from exc
     profile_uid = profile.get("uid")
     if profile_uid is not None and profile_uid != recipient_uid:
         raise NotificationProfileError("Customer notification recipient is invalid")
@@ -782,6 +791,14 @@ def require_active_notification_profile(authorization: str | None, backend: Any)
         raise PersistenceError("profile lookup failed") from exc
     if not isinstance(profile, dict) or profile.get("active") is not True:
         raise NotificationProfileError("active application profile required")
+    try:
+        validate_account_state(
+            active=profile.get("active"),
+            role=profile.get("role"),
+            account_state=profile.get("accountState"),
+        )
+    except AccountStateValidationError as exc:
+        raise NotificationProfileError("active application profile required") from exc
     if (
         not isinstance(profile.get("email"), str)
         or not _EMAIL_PATTERN.fullmatch(profile["email"].strip())

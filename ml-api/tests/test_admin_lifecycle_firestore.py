@@ -260,6 +260,7 @@ def test_atomic_profile_inactivation_preserves_profile_fields_and_keeps_guard_ac
         "role": "customer",
         "departmentId": None,
         "active": True,
+        "accountState": "active",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -272,6 +273,7 @@ def test_atomic_profile_inactivation_preserves_profile_fields_and_keeps_guard_ac
         "role": "customer",
         "departmentId": None,
         "active": False,
+        "accountState": "disabled",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -344,6 +346,7 @@ def test_reactivation_reservation_lineage_and_final_activation_are_atomic() -> N
         "role": "customer",
         "departmentId": None,
         "active": False,
+        "accountState": "disabled",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -409,6 +412,7 @@ def test_reactivation_proof_collision_or_malformed_lineage_fails_without_writes(
         "role": "customer",
         "departmentId": None,
         "active": False,
+        "accountState": "disabled",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -515,6 +519,7 @@ def test_reassignment_transaction_checks_bounded_work_and_preserves_profile() ->
         "role": "staff",
         "departmentId": "account_support",
         "active": True,
+        "accountState": "active",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -554,6 +559,7 @@ def test_reassignment_assigned_unresolved_work_releases_guard_without_profile_ch
         "role": "staff",
         "departmentId": "account_support",
         "active": True,
+        "accountState": "active",
         "createdAt": NOW,
         "updatedAt": NOW,
     }

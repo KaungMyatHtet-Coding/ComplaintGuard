@@ -45,6 +45,7 @@ def profile(uid: str, role: str, *, active: bool) -> dict[str, Any]:
         "role": role,
         "departmentId": "card_atm" if role == "staff" else None,
         "active": active,
+        "accountState": "active" if active else "disabled",
         "createdAt": NOW,
         "updatedAt": NOW,
     }
@@ -139,7 +140,7 @@ class FakeReactivateBackend(InMemoryLifecycleRepository):
                     role=value["role"],
                     departmentId=value["departmentId"],
                     active=value["active"],
-                    setupStatus="active" if value["active"] else "pending_setup",
+                    accountState=value["accountState"],
                     accountRef=account_ref,
                 )
         raise LookupError("account reference not found")

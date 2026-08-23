@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
 
+from app.account_state import AccountStateValidationError, validate_account_state
 from app.admin_auth import AdminAuthBackend
 from app.language import normalize_input
 from app.schemas import (
@@ -146,6 +147,7 @@ def _parse_profile(uid: str, value: Any) -> AdminDirectoryRow | None:
         "role",
         "departmentId",
         "active",
+        "accountState",
         "createdAt",
         "updatedAt",
     }
@@ -156,6 +158,7 @@ def _parse_profile(uid: str, value: Any) -> AdminDirectoryRow | None:
     role = value["role"]
     department = value["departmentId"]
     active = value["active"]
+    account_state = value["accountState"]
     normalized_email = email.strip().lower() if isinstance(email, str) else ""
     normalized_display_name = normalize_input(display_name) if isinstance(display_name, str) else ""
     if (
@@ -168,12 +171,17 @@ def _parse_profile(uid: str, value: Any) -> AdminDirectoryRow | None:
         or value["locale"] not in {"en", "my"}
         or role not in {"customer", "staff", "manager", "admin"}
         or type(active) is not bool
+        or not isinstance(account_state, str)
         or not _valid_timestamp(value["createdAt"])
         or not _valid_timestamp(value["updatedAt"])
         or (role == "staff" and department not in _DEPARTMENTS)
         or (role != "staff" and department is not None)
     ):
         raise DirectoryDataIntegrityError("directory profile is malformed")
+    try:
+        validate_account_state(active=active, role=role, account_state=account_state)
+    except AccountStateValidationError as exc:
+        raise DirectoryDataIntegrityError("directory account state is malformed") from exc
     return AdminDirectoryRow(
         email=email,
         displayName=normalized_display_name,
@@ -181,7 +189,7 @@ def _parse_profile(uid: str, value: Any) -> AdminDirectoryRow | None:
         role=role,
         departmentId=department,
         active=active,
-        setupStatus="active" if active else "pending_setup",
+        accountState=account_state,
         accountRef=account_reference(uid),
     )
 

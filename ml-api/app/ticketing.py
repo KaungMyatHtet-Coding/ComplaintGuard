@@ -9,6 +9,10 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
+from app.account_state import (
+    AccountStateValidationError,
+    validate_profile_account_state,
+)
 from app.firebase_environment import (
     CloudStagingEnvironment,
     FirebaseEnvironmentSafetyError,
@@ -182,6 +186,10 @@ class ComplaintSubmissionService:
             raise PermissionError("active customer profile required")
         if profile.get("role") != "customer":
             raise PermissionError("customer role required")
+        try:
+            validate_profile_account_state(profile)
+        except AccountStateValidationError:
+            raise PermissionError("customer profile state is invalid") from None
 
         document = build_initial_ticket(
             customer_id=customer_id,

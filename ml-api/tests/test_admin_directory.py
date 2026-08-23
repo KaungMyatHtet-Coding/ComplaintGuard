@@ -24,6 +24,7 @@ def profile(email: str, role: str, department: str | None, active: bool = True) 
         "role": role,
         "departmentId": department,
         "active": active,
+        "accountState": "active" if active else ("pending_setup" if role in {"staff", "manager"} else "inactive_unverified"),
         "createdAt": datetime(2026, 1, 1, tzinfo=timezone.utc),
         "updatedAt": datetime(2026, 1, 2, tzinfo=timezone.utc),
     }
@@ -70,7 +71,7 @@ def test_directory_returns_all_roles_as_safe_rows_and_bounded_page() -> None:
     assert response.status_code == 200
     body = response.json()
     assert [row["role"] for row in body["rows"]] == ["admin", "customer"]
-    assert all(set(row) == {"accountRef", "email", "displayName", "locale", "role", "departmentId", "active", "setupStatus"} for row in body["rows"])
+    assert all(set(row) == {"accountRef", "email", "displayName", "locale", "role", "departmentId", "active", "accountState"} for row in body["rows"])
     assert all(row["accountRef"].startswith("acct_v1_") and len(row["accountRef"]) == 72 for row in body["rows"])
     assert backend.limit == 200
 
@@ -82,7 +83,7 @@ def test_all_role_rows_preserve_role_specific_department_contract() -> None:
     assert rows["staff"]["departmentId"] == "card_atm"
     assert rows["manager"]["departmentId"] is None
     assert rows["admin"]["departmentId"] is None
-    assert all(row["setupStatus"] == ("active" if row["active"] else "pending_setup") for row in body["rows"])
+    assert all(row["accountState"] == ("active" if row["active"] else "pending_setup") for row in body["rows"])
 
 
 @pytest.mark.parametrize("query", ["departmentId=unknown", "role=customer&departmentId=card_atm", "role=admin&departmentId=card_atm", "unknown=value", "pageSize=0", "pageSize=51"])
