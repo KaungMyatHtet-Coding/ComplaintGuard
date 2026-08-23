@@ -82,6 +82,88 @@ provisioned disabled/passwordless Staff or Manager account. A lifecycle
 operation must not turn `pending_setup` into an active account; the trusted
 owner activation workflow remains separate.
 
+## R2C8D0 approved durable account-state contract
+
+R2C8D0 approves this documentation and contract boundary only. It does not
+implement the field, change application behavior, migrate profiles, change
+rules or indexes, add tests, or claim Emulator, browser, Cloud, or runtime
+verification. The following contract supersedes the ambiguous use of
+`setupStatus` for future implementation work.
+
+The trusted profile document will add the durable `accountState` field. Its
+only public values are:
+
+- `active` — the profile is currently active.
+- `pending_setup` — only a newly provisioned inactive Staff or Manager account
+  awaiting trusted owner activation.
+- `disabled` — an inactive account intentionally disabled by a validated
+  lifecycle operation.
+- `inactive_unverified` — an inactive account whose provisioning or lifecycle
+  lineage is missing, malformed, ambiguous, or otherwise not safely proven.
+
+The invariants are strict: `accountState=active` requires `active=true`;
+`pending_setup` requires `active=false` and role Staff or Manager; and
+`disabled` and `inactive_unverified` require `active=false`. Customer and
+Admin profiles can never be `pending_setup`. The `active` boolean remains the
+application access and authorization primitive; `accountState` alone never
+authorizes a mutation. Every lifecycle endpoint continues to require strict
+active-Admin authorization and transactional revalidation.
+
+Lifecycle recovery remains a separate actor-bound operational projection with
+only `none`, `recoverable`, `completed`, and `operator_required`. Recovery
+status, action state, and target-guard state must not be folded into the
+durable profile `accountState`.
+
+Trusted state writes are defined as follows:
+
+| Trusted event | Required profile state |
+|---|---|
+| Customer registration/profile creation | `active=true`, `accountState=active` |
+| Admin Staff/Manager provisioning | `active=false`, `accountState=pending_setup` |
+| Trusted owner activation | `active=true`, `accountState=active` |
+| Disable profile transaction | Atomically write `active=false`, `accountState=disabled`, and `updatedAt`; preserve all other approved fields |
+| Incomplete disable after profile inactivation | Keep `accountState=disabled`; expose recovery separately |
+| Reactivation before final profile transaction | Keep `accountState=disabled` while Auth and profile activation recovery proceed |
+| Completed reactivation transaction | Atomically write `active=true`, `accountState=active`, and `updatedAt` |
+| Staff reassignment | Do not change `active` or `accountState` |
+| Failed action before profile inactivation | Preserve `active=true`, `accountState=active` |
+| Failed/blocked action after profile inactivation | Preserve `active=false`, `accountState=disabled`; expose operator status separately |
+
+Completed-disable lineage remains mandatory for reactivation. `accountState`
+`disabled` is not proof of reactivation eligibility. Missing or malformed
+lineage fails closed; it never becomes a guessed pending state.
+
+## R2C8D0 migration boundary and writer audit
+
+The future migration/backfill is a separate trusted tool, initially for the
+local Emulator only. Cloud migration is deferred and unexecuted. It must
+support dry-run mode, exact bounded inputs, an idempotent result report, strict
+profile/provisioning/lifecycle guard-action-audit validation, no Auth mutation,
+no complaint or ticket mutation, and no private UID or other private value in
+output or logs. Validated provisioning lineage may classify an inactive
+Staff/Manager as `pending_setup`; validated lifecycle-disable lineage may
+classify an inactive Customer/Staff/Manager as `disabled`; all other inactive,
+malformed, or ambiguous profiles become `inactive_unverified` or are rejected
+by the migration validator. No broad role-plus-`active=false` guessing is
+allowed. The migration must be separately implemented, reviewed,
+Emulator-tested, owner-approved, and executed.
+
+The implementation slice must audit and update every trusted profile writer:
+
+- Customer registration/profile creation;
+- Emulator seed and bootstrap profile writers;
+- Admin Staff/Manager provisioning;
+- the trusted owner activation helper;
+- the disable profile transaction;
+- the reactivation final profile transaction;
+- strict profile tests and fixtures;
+- the directory parser and backend projection; and
+- lifecycle eligibility and profile validators.
+
+R2C8C remains uncommitted and cannot be runtime-approved until the backend
+directory projection and frontend parser use `accountState` instead of the
+ambiguous public `setupStatus` contract.
+
 The future lifecycle action record uses a separate state machine. These states
 are trusted persistence values, not browser claims:
 

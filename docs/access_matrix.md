@@ -179,10 +179,31 @@ deployment is unverified.
 
 R0.1 additionally approves future strict-Admin visibility of Customer, Staff,
 Manager, and Admin profiles using only display name, email, role, locale,
-localized department, profile active state, derived setup status, and an opaque
+localized department, profile active state, trusted account state, and an opaque
 account reference for detail navigation. UIDs, Auth provider records, tokens,
 claims, internal actions, complaint narratives, messages, and private ticket
 information remain prohibited.
+
+### R2C8D0 account-state contract approval
+
+R2C8D0 is documentation and contract approval only. It does not change the
+current directory, parser, backend, rules, indexes, seeds, migration, tests,
+or runtime behavior. The future directory row replaces public `setupStatus`
+with trusted `accountState`: `active`, `pending_setup`, `disabled`, or
+`inactive_unverified`. `active` remains the access primitive and is not
+replaced.
+
+The temporary `active` filter may continue to mean active versus all inactive
+states. Future counts must distinguish Active, Pending setup, Disabled, and
+Inactive/unverified. Recovery required and Trusted operator review required
+belong only in the lifecycle drawer and use the actor-bound recovery projection,
+not directory-global account counts. Malformed or ambiguous inactive lineage
+must fail closed.
+
+English and Myanmar labels must remain semantically distinct: Pending setup is
+only newly prepared Staff/Manager awaiting trusted activation; Disabled means
+intentionally disabled; and Inactive status unavailable must not claim either
+pending activation or completed disablement.
 
 ## R2C0 future account lifecycle boundary
 

@@ -64,6 +64,23 @@ prototype now has the strict-Admin all-role read-only directory and the
 read-only account-detail drawer. Those slices do not add lifecycle mutation;
 browser and Emulator verification remain incomplete.
 
+## R2C8D0 account-state documentation approval
+
+R2C8D0 approves documentation and contract work only. The current seven-file
+R2C8C frontend slice remains uncommitted and unchanged by this checkpoint. A
+future trusted profile contract will replace the ambiguous public `setupStatus`
+with `accountState`: `active`, `pending_setup`, `disabled`, or
+`inactive_unverified`. The `active` boolean remains the access primitive.
+
+Pending setup is reserved for newly prepared Staff/Manager accounts awaiting
+trusted activation. Disabled means intentionally lifecycle-disabled. Inactive
+status unavailable means inactive lineage is missing, malformed, or ambiguous;
+it must not be presented as pending activation or completed disablement.
+Recovery required and trusted operator review are actor-bound lifecycle drawer
+states, not directory-global account states or overview counts. No application,
+migration, Emulator, Cloud, or runtime behavior is implemented or verified by
+R2C8D0.
+
 ## Security and privacy invariants
 
 - Public registration remains Customer-only.

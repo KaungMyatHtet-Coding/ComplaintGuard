@@ -173,13 +173,18 @@ active-Admin authorization, pending Staff/Manager provisioning, the Admin
 provisioning dashboard, the read-only all-role `GET /admin/users` directory,
 and the R2B read-only account-detail drawer are implemented for the local
 prototype. The directory and drawer expose only email, display name, locale,
-role, department, profile active state, and profile setup status; they exclude
+role, department, profile active state, and the future trusted account state;
+they exclude
 UIDs, credentials, claims, timestamps, Auth-provider details, and provisioning
 action records.
 It supports approved role/department/status/search filters, a bounded
 200-profile scan, page sizes from 1 to 50, and opaque cursor pagination. Its
-Pending/Active wording represents Firestore profile state only and does not
-independently verify Firebase Auth state. The directory has no edit,
+The current `setupStatus` projection is a known transitional defect because it
+maps every inactive profile to `pending_setup`. R2C8D0 approves replacing it in
+a future implementation slice with the trusted `accountState` values `active`,
+`pending_setup`, `disabled`, and `inactive_unverified`; recovery and operator
+states remain actor-bound lifecycle projections. The current directory has no
+edit,
 activation, reassignment, disable/reactivate, or deletion controls. The initial
 Admin bootstrap and pending-user activation scripts are committed but
 unexecuted. No public deployment, production Firebase verification, QR code,

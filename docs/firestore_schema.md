@@ -46,10 +46,43 @@ Operational profile keyed by the Firebase Authentication UID.
 | `role` | string | yes | admin/trusted backend only | One of the four role IDs |
 | `departmentId` | string or null | yes | admin/trusted backend only | Required for staff; null for non-staff roles |
 | `active` | boolean | yes | admin/trusted backend only | Access status |
+| `accountState` | string | future required | trusted backend only | `active`, `pending_setup`, `disabled`, or `inactive_unverified`; stable account state, never authorization by itself |
 | `createdAt` | timestamp | yes | trusted backend | Immutable creation time |
 | `updatedAt` | timestamp | yes | trusted backend | Last trusted update |
 
 Role, department, active status, ownership, and timestamps are never ordinary client-writable fields. Authentication credentials remain in Firebase Authentication, not this document.
+
+### R2C8D0 durable account state
+
+R2C8D0 approves the `accountState` contract as documentation and future
+implementation scope only. No field, writer, rule, index, migration, test, or
+runtime behavior is changed by this checkpoint. The four allowlisted values are
+`active`, `pending_setup`, `disabled`, and `inactive_unverified`.
+
+`active` requires `active=true`. `pending_setup` requires `active=false` and a
+Staff or Manager role with validated trusted provisioning lineage. `disabled`
+and `inactive_unverified` require `active=false`; Customer and Admin profiles
+can never be `pending_setup`. The existing `active` boolean remains the access
+and authorization primitive, and `accountState` is never sufficient authority
+for mutation.
+
+Lifecycle recovery remains actor-bound and separate from this profile field. Its
+public projection is `none`, `recoverable`, `completed`, or
+`operator_required`. Disable/recovery action and target-guard state must not be
+stored in `accountState`.
+
+The implementation slice must update Customer registration, Emulator
+seed/bootstrap writers, Admin provisioning, trusted owner activation, disable
+profile transactions, reactivation final transactions, strict profile tests and
+fixtures, directory parsing/projection, and lifecycle validators. Reassignment
+does not change `active` or `accountState`.
+
+Legacy profiles require a separately approved trusted backfill. Active profiles
+may deterministically receive `accountState=active`. Inactive profiles require
+validated provisioning or lifecycle lineage; ambiguous or malformed profiles
+must become `inactive_unverified` or fail closed. The backfill is local-Emulator
+only initially, dry-run and bounded, idempotent, report-only for private values,
+and must not mutate Auth, complaints, or tickets. Cloud execution is deferred.
 
 Public registration is Customer-only. Firebase Auth creates the identity and the
 trusted backend completes `users/{uid}` with `role: customer`,
