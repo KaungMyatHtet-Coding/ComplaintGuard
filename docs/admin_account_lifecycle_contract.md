@@ -77,6 +77,33 @@ has controlled state transitions; immutable audit events are append-only and
 backend-only. Firebase Auth calls are outside that transaction and are
 recovered through the action state below.
 
+## R2C2B persistence contract
+
+R2C2B uses exactly these backend-only top-level collections; no subcollections,
+aliases, client access, rules, or indexes are added:
+
+- `adminAccountLifecycleActions/{actionRef}` — mutable action coordination,
+  keyed by the existing deterministic lowercase SHA-256 `actionRef`.
+- `adminAccountLifecycleTargetGuards/{targetGuardRef}` — durable per-target
+  serialization guard, keyed by a new domain-separated/versioned lowercase
+  SHA-256 of the local project/environment boundary and trusted target UID.
+- `adminAccountLifecycleAuditEvents/{eventRef}` — create-once immutable audit
+  event, keyed by a domain-separated/versioned lowercase SHA-256 binding the
+  action reference and accepted transition identity.
+
+Reservation creates the action and its guard atomically after reading both
+destinations. A rejected reservation never changes another action's guard.
+Completion marks the owned guard inactive in the same transaction as the
+completed action and audit event. A conflict marks only its own guard inactive;
+a failed action retains its owned guard as blocked; retryable nonterminal states
+retain active ownership. Guard `version` is a bounded monotonically increasing
+guard-generation version, independent of the action state version. An inactive
+guard may be reacquired only by a new action in the same transaction after an
+explicit version-checked read; `createdAt` remains immutable while ownership
+fields and `updatedAt` change. Guards are never deleted. Force unlock,
+operator recovery, profile mutation, Firebase Auth mutation, routes, and UI
+remain unavailable.
+
 ## Lifecycle transitions
 
 | Operation | Allowed target | Required precondition | Result |

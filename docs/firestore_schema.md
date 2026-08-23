@@ -81,6 +81,41 @@ request retries are idempotent; a changed request conflicts, while different
 Admin actors remain isolated. Partial failures preserve disabled Auth and
 inactive profiles for safe recovery.
 
+### R2C2B trusted Admin lifecycle coordination
+
+The following top-level collections are backend-only and are accessed only by
+deterministic document lookup inside trusted Firestore transactions. They are
+not exposed to clients and require no query indexes:
+
+- `adminAccountLifecycleActions/{actionRef}` stores the mutable lifecycle
+  coordination action. `actionRef` is the existing lowercase SHA-256 R2C2A
+  reference. Completed records are preserved and never deleted.
+- `adminAccountLifecycleTargetGuards/{targetGuardRef}` stores one durable
+  target serialization guard. `targetGuardRef` is a domain-separated,
+  versioned lowercase SHA-256 binding the local project/environment boundary
+  and trusted target UID. Guard documents are never deleted; their validated
+  state is `active`, `inactive`, or `blocked`. `version` is a bounded,
+  monotonically increasing guard-generation version, independent of the
+  action state version.
+- `adminAccountLifecycleAuditEvents/{eventRef}` stores immutable accepted
+  transition events. `eventRef` is a domain-separated, versioned lowercase
+  SHA-256 binding the action reference, operation, from/to states, result code,
+  transition version, and audit domain/version. Events are create-once and are
+  never updated or deleted.
+
+Reservation reads the action and target guard before creating both documents,
+so an action cannot commit without its guard. Accepted transitions read the
+action, guard, and audit destination before writing the incremented action,
+the guard, and exactly one audit event. Completion marks the owned guard
+`inactive` atomically. A conflict releases only the guard owned by that action;
+a reservation rejected by another action never touches that other guard. A
+a failed action retains its owned guard as `blocked`; retryable nonterminal
+states retain `active` ownership. An inactive guard may be reacquired by a new
+action only through the same transaction's read/version precondition; its
+`createdAt` remains immutable while ownership fields and `updatedAt` change.
+Force unlock, operator recovery, profile mutation, and Auth mutation remain
+outside this checkpoint.
+
 ### `departments/{departmentId}`
 
 Canonical operational department metadata. Document IDs must use the six stable IDs.

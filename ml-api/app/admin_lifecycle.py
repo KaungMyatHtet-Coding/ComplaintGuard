@@ -13,10 +13,15 @@ import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from app.language import normalize_input
-from app.ticketing import DEPARTMENT_IDS
+from app.ticketing import (
+    DEPARTMENT_IDS,
+    PersistenceError,
+    firebase_admin_clients,
+    run_firestore_transaction,
+)
 
 LifecycleOperation = Literal["disable", "reactivate", "reassign_department"]
 LifecycleState = Literal[
@@ -32,7 +37,11 @@ LifecycleState = Literal[
 
 LIFECYCLE_ACTION_DOMAIN = "complaintguard:admin-lifecycle:v1"
 LIFECYCLE_AUDIT_DOMAIN = "complaintguard:admin-lifecycle-audit:v1"
+LIFECYCLE_TARGET_GUARD_DOMAIN = "complaintguard:admin-lifecycle-target-guard:v1"
 LIFECYCLE_POLICY_VERSION = "r2c2a-v1"
+LIFECYCLE_ACTIONS_COLLECTION = "adminAccountLifecycleActions"
+LIFECYCLE_TARGET_GUARDS_COLLECTION = "adminAccountLifecycleTargetGuards"
+LIFECYCLE_AUDIT_EVENTS_COLLECTION = "adminAccountLifecycleAuditEvents"
 LIFECYCLE_ACTION_REF_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 _UID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 _IDEMPOTENCY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
@@ -88,6 +97,27 @@ _AUDIT_FIELDS = {
     "version",
     "createdAt",
 }
+_GUARD_FIELDS = {
+    "guardRef",
+    "targetUid",
+    "actionRef",
+    "operation",
+    "state",
+    "version",
+    "createdAt",
+    "updatedAt",
+}
+_GUARD_STATES = frozenset({"active", "inactive", "blocked"})
+
+
+def _guard_state_for_action(
+    state: LifecycleState,
+) -> Literal["active", "inactive", "blocked"]:
+    if state == "failed":
+        return "blocked"
+    if state in {"completed", "conflict"}:
+        return "inactive"
+    return "active"
 
 # Same-state writes support recovery retries without inventing a new action.
 ALLOWED_LIFECYCLE_TRANSITIONS: dict[LifecycleState, frozenset[LifecycleState]] = {
@@ -273,19 +303,59 @@ def lifecycle_request_fingerprint(
 
 
 def lifecycle_audit_event_reference(
-    *, action_ref: str, to_state: str, version: int
+    *,
+    action_ref: str,
+    to_state: str,
+    version: int,
+    operation: str = "disable",
+    from_state: str = "reserved",
+    result_code: str | None = None,
 ) -> str:
     _require_hex(action_ref, "action reference")
+    op = _require_operation(operation)
+    if from_state not in ALLOWED_LIFECYCLE_TRANSITIONS:
+        raise LifecycleValidationError("from state is invalid")
     if to_state not in ALLOWED_LIFECYCLE_TRANSITIONS:
         raise LifecycleValidationError("state is invalid")
     if type(version) is not int or version < 1:
         raise LifecycleValidationError("version is invalid")
+    if result_code is not None and (
+        not isinstance(result_code, str)
+        or not _RESULT_CODE_PATTERN.fullmatch(result_code)
+        or result_code not in LIFECYCLE_RESULT_CODES
+    ):
+        raise LifecycleValidationError("result code is invalid")
     return _sha256(
         {
             "actionRef": action_ref,
             "domain": LIFECYCLE_AUDIT_DOMAIN,
-            "state": to_state,
+            "fromState": from_state,
+            "operation": op,
+            "policyVersion": LIFECYCLE_POLICY_VERSION,
+            "resultCode": result_code,
+            "toState": to_state,
             "version": version,
+        }
+    )
+
+
+def lifecycle_target_guard_reference(
+    *, target_uid: str, project_id: str, environment: str
+) -> str:
+    """Return an opaque target lock reference for one project boundary."""
+
+    target = _require_uid(target_uid, "target UID")
+    if not isinstance(project_id, str) or not project_id or len(project_id) > 128:
+        raise LifecycleValidationError("project boundary is invalid")
+    if not isinstance(environment, str) or not environment or len(environment) > 64:
+        raise LifecycleValidationError("environment boundary is invalid")
+    return _sha256(
+        {
+            "domain": LIFECYCLE_TARGET_GUARD_DOMAIN,
+            "environment": environment,
+            "policyVersion": LIFECYCLE_POLICY_VERSION,
+            "projectId": project_id,
+            "targetUid": target,
         }
     )
 
@@ -408,7 +478,12 @@ class LifecycleAuditEvent:
         if self.to_state not in ALLOWED_OPERATION_TRANSITIONS[self.operation][self.from_state]:
             raise LifecycleValidationError("audit transition is invalid")
         if self.event_ref != lifecycle_audit_event_reference(
-            action_ref=self.action_ref, to_state=self.to_state, version=self.version
+            action_ref=self.action_ref,
+            from_state=self.from_state,
+            operation=self.operation,
+            result_code=self.result_code,
+            to_state=self.to_state,
+            version=self.version,
         ):
             raise LifecycleValidationError("event reference does not match transition")
         if type(self.version) is not int or not 1 <= self.version <= MAX_ACTION_VERSION:
@@ -433,6 +508,44 @@ class LifecycleAuditEvent:
             "resultCode": self.result_code,
             "version": self.version,
             "createdAt": _aware(self.created_at, "createdAt"),
+        }
+
+
+@dataclass(frozen=True)
+class LifecycleTargetGuard:
+    guard_ref: str
+    target_uid: str
+    action_ref: str
+    operation: LifecycleOperation
+    state: Literal["active", "inactive", "blocked"]
+    version: int
+    created_at: datetime
+    updated_at: datetime
+
+    def __post_init__(self) -> None:
+        _require_hex(self.guard_ref, "target guard reference")
+        _require_uid(self.target_uid, "target UID")
+        _require_hex(self.action_ref, "action reference")
+        _require_operation(self.operation)
+        if self.state not in _GUARD_STATES:
+            raise LifecycleValidationError("target guard state is invalid")
+        if type(self.version) is not int or not 1 <= self.version <= MAX_ACTION_VERSION:
+            raise LifecycleValidationError("target guard version is invalid")
+        created = _aware(self.created_at, "createdAt")
+        updated = _aware(self.updated_at, "updatedAt")
+        if updated < created:
+            raise LifecycleValidationError("target guard updatedAt precedes createdAt")
+
+    def to_document(self) -> dict[str, object]:
+        return {
+            "guardRef": self.guard_ref,
+            "targetUid": self.target_uid,
+            "actionRef": self.action_ref,
+            "operation": self.operation,
+            "state": self.state,
+            "version": self.version,
+            "createdAt": _aware(self.created_at, "createdAt"),
+            "updatedAt": _aware(self.updated_at, "updatedAt"),
         }
 
 
@@ -480,6 +593,284 @@ def validate_audit_document(document: Mapping[str, object]) -> LifecycleAuditEve
         version=document["version"],  # type: ignore[arg-type]
         created_at=document["createdAt"],  # type: ignore[arg-type]
     )
+
+
+def validate_target_guard_document(document: Mapping[str, object]) -> LifecycleTargetGuard:
+    """Strictly parse a target serialization guard before use."""
+
+    if not isinstance(document, Mapping) or set(document) != _GUARD_FIELDS:
+        raise LifecycleValidationError("lifecycle target guard fields are invalid")
+    return LifecycleTargetGuard(
+        guard_ref=document["guardRef"],  # type: ignore[arg-type]
+        target_uid=document["targetUid"],  # type: ignore[arg-type]
+        action_ref=document["actionRef"],  # type: ignore[arg-type]
+        operation=document["operation"],  # type: ignore[arg-type]
+        state=document["state"],  # type: ignore[arg-type]
+        version=document["version"],  # type: ignore[arg-type]
+        created_at=document["createdAt"],  # type: ignore[arg-type]
+        updated_at=document["updatedAt"],  # type: ignore[arg-type]
+    )
+
+
+class FirebaseLifecycleRepository:
+    """Trusted Admin-SDK lifecycle coordinator; construction is explicit."""
+
+    def __init__(
+        self,
+        clients: tuple[object, Any, object] | None = None,
+        *,
+        project_id: str = "demo-complaintguard",
+        environment: str = "local-emulator",
+        transaction_runner: Callable[[Any, Any], Any] = run_firestore_transaction,
+    ) -> None:
+        if project_id != "demo-complaintguard" or environment != "local-emulator":
+            raise PersistenceError("cloud_staging_not_adopted")
+        try:
+            _, self._db, _ = clients or firebase_admin_clients()
+        except PersistenceError:
+            raise
+        except Exception as exc:
+            raise PersistenceError("Firebase lifecycle repository is not configured") from exc
+        self._project_id = project_id
+        self._environment = environment
+        self._run_transaction = transaction_runner
+
+    def _action_reference(self, action_ref: str) -> Any:
+        _require_hex(action_ref, "action reference")
+        return self._db.collection(LIFECYCLE_ACTIONS_COLLECTION).document(action_ref)
+
+    def _guard_reference(self, guard_ref: str) -> Any:
+        _require_hex(guard_ref, "target guard reference")
+        return self._db.collection(LIFECYCLE_TARGET_GUARDS_COLLECTION).document(guard_ref)
+
+    def _audit_reference(self, event_ref: str) -> Any:
+        _require_hex(event_ref, "event reference")
+        return self._db.collection(LIFECYCLE_AUDIT_EVENTS_COLLECTION).document(event_ref)
+
+    @staticmethod
+    def _snapshot(transaction: Any, reference: Any) -> Any:
+        return next(transaction.get(reference))
+
+    def reserve(self, record: LifecycleActionRecord) -> LifecycleActionRecord:
+        guard_ref = lifecycle_target_guard_reference(
+            target_uid=record.target_uid,
+            project_id=self._project_id,
+            environment=self._environment,
+        )
+        action_reference = self._action_reference(record.action_ref)
+        guard_reference = self._guard_reference(guard_ref)
+        guard = LifecycleTargetGuard(
+            guard_ref=guard_ref,
+            target_uid=record.target_uid,
+            action_ref=record.action_ref,
+            operation=record.operation,
+            state="active",
+            version=record.version,
+            created_at=record.created_at,
+            updated_at=record.updated_at,
+        )
+
+        def operation(transaction: Any) -> LifecycleActionRecord:
+            action_snapshot = self._snapshot(transaction, action_reference)
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            existing_action = (
+                validate_action_document(action_snapshot.to_dict() or {})
+                if action_snapshot.exists
+                else None
+            )
+            existing_guard = (
+                validate_target_guard_document(guard_snapshot.to_dict() or {})
+                if guard_snapshot.exists
+                else None
+            )
+            if existing_action is not None:
+                if existing_action.action_ref != record.action_ref:
+                    raise PersistenceError("lifecycle action reference mismatch")
+                if not _same_request(existing_action, record):
+                    raise LifecycleIdempotencyConflict("idempotency request conflict")
+                if existing_guard is None or existing_guard.guard_ref != guard_ref or existing_guard.action_ref != record.action_ref:
+                    raise PersistenceError("lifecycle action guard mismatch")
+                if existing_guard.target_uid != record.target_uid or existing_guard.operation != record.operation:
+                    raise PersistenceError("lifecycle target guard ownership mismatch")
+                if existing_guard.state != _guard_state_for_action(existing_action.state):
+                    raise PersistenceError("lifecycle action guard state mismatch")
+                return existing_action
+            if existing_guard is not None:
+                if existing_guard.state == "active":
+                    raise LifecycleStateConflict("target has an active lifecycle operation")
+                if existing_guard.state == "blocked":
+                    raise PersistenceError("blocked target guard requires operator recovery")
+                owner_reference = self._action_reference(existing_guard.action_ref)
+                owner_snapshot = self._snapshot(transaction, owner_reference)
+                if not owner_snapshot.exists:
+                    raise PersistenceError("lifecycle target guard owner missing")
+                owner_action = validate_action_document(owner_snapshot.to_dict() or {})
+                if (
+                    owner_action.action_ref != existing_guard.action_ref
+                    or owner_action.target_uid != existing_guard.target_uid
+                    or owner_action.operation != existing_guard.operation
+                    or owner_action.state not in {"completed", "conflict"}
+                    or _guard_state_for_action(owner_action.state) != existing_guard.state
+                ):
+                    raise PersistenceError("lifecycle target guard owner mismatch")
+                if existing_guard.version >= MAX_ACTION_VERSION:
+                    raise LifecycleStateConflict("target guard version exhausted")
+                replacement_guard = replace(
+                    existing_guard,
+                    action_ref=record.action_ref,
+                    operation=record.operation,
+                    state="active",
+                    version=existing_guard.version + 1,
+                    updated_at=record.updated_at,
+                )
+                # The action create and inactive-guard ownership transfer are
+                # one transaction. The read above is the guard version
+                # precondition; a concurrent owner cannot be overwritten.
+                transaction.create(action_reference, record.to_document())
+                transaction.update(guard_reference, replacement_guard.to_document())
+                return record
+            # Both reads precede both creates. The fake and the real SDK can
+            # therefore abort without committing a partial reservation.
+            transaction.create(action_reference, record.to_document())
+            transaction.create(guard_reference, guard.to_document())
+            return record
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleConflictError, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("lifecycle action reservation failed") from exc
+
+    def transition(
+        self,
+        action_ref: str,
+        *,
+        expected_version: int,
+        to_state: LifecycleState,
+        result_code: str | None,
+        now: datetime,
+    ) -> LifecycleActionRecord:
+        action_reference = self._action_reference(action_ref)
+
+        def operation(transaction: Any) -> LifecycleActionRecord:
+            action_snapshot = self._snapshot(transaction, action_reference)
+            if not action_snapshot.exists:
+                raise LifecycleConflictError("lifecycle action not found")
+            current = validate_action_document(action_snapshot.to_dict() or {})
+            guard_ref = lifecycle_target_guard_reference(
+                target_uid=current.target_uid,
+                project_id=self._project_id,
+                environment=self._environment,
+            )
+            guard_reference = self._guard_reference(guard_ref)
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            if not guard_snapshot.exists:
+                raise PersistenceError("lifecycle target guard missing")
+            guard = validate_target_guard_document(guard_snapshot.to_dict() or {})
+            if (
+                current.action_ref != action_ref
+                or guard.guard_ref != guard_ref
+                or guard.target_uid != current.target_uid
+                or guard.action_ref != current.action_ref
+                or guard.operation != current.operation
+                or guard.state != _guard_state_for_action(current.state)
+            ):
+                raise PersistenceError("lifecycle target guard ownership mismatch")
+            if current.version != expected_version:
+                raise LifecycleStateConflict("stale lifecycle action version")
+            if current.state in {"conflict", "failed"}:
+                raise LifecycleStateConflict("terminal lifecycle action cannot transition")
+            if to_state not in ALLOWED_OPERATION_TRANSITIONS[current.operation][current.state]:
+                raise LifecycleStateConflict("lifecycle transition is not allowed")
+            timestamp = _aware(now, "updatedAt")
+            if to_state == current.state:
+                if result_code != current.result_code:
+                    raise LifecycleStateConflict("same-state result conflict")
+                return current
+            new_version = current.version + 1
+            if new_version > MAX_ACTION_VERSION:
+                raise LifecycleStateConflict("lifecycle action version exhausted")
+            if guard.version >= MAX_ACTION_VERSION:
+                raise LifecycleStateConflict("target guard version exhausted")
+            completed_at = current.completed_at
+            if to_state == "completed" and completed_at is None:
+                completed_at = timestamp
+            updated = replace(
+                current,
+                state=to_state,
+                result_code=result_code,
+                updated_at=timestamp,
+                version=new_version,
+                completed_at=completed_at,
+            )
+            event_ref = lifecycle_audit_event_reference(
+                action_ref=current.action_ref,
+                operation=current.operation,
+                from_state=current.state,
+                result_code=result_code,
+                to_state=to_state,
+                version=new_version,
+            )
+            event_reference = self._audit_reference(event_ref)
+            audit_snapshot = self._snapshot(transaction, event_reference)
+            event = LifecycleAuditEvent(
+                event_ref=event_ref,
+                action_ref=current.action_ref,
+                operation=current.operation,
+                actor_uid=current.actor_uid,
+                target_uid=current.target_uid,
+                from_state=current.state,
+                to_state=to_state,
+                result_code=result_code,
+                version=new_version,
+                created_at=timestamp,
+            )
+            if audit_snapshot.exists:
+                if validate_audit_document(audit_snapshot.to_dict() or {}).to_document() != event.to_document():
+                    raise LifecycleConflictError("immutable audit event conflict")
+            else:
+                transaction.create(event_reference, event.to_document())
+            guard_state = _guard_state_for_action(to_state)
+            updated_guard = replace(
+                guard,
+                state=guard_state,
+                version=guard.version + 1,
+                updated_at=timestamp,
+            )
+            transaction.update(action_reference, updated.to_document())
+            transaction.update(guard_reference, updated_guard.to_document())
+            return updated
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleConflictError, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("lifecycle action transition failed") from exc
+
+    def append_audit(self, event: LifecycleAuditEvent) -> LifecycleAuditEvent:
+        reference = self._audit_reference(event.event_ref)
+
+        def operation(transaction: Any) -> LifecycleAuditEvent:
+            snapshot = self._snapshot(transaction, reference)
+            if snapshot.exists:
+                existing = validate_audit_document(snapshot.to_dict() or {})
+                if existing.to_document() != event.to_document():
+                    raise LifecycleConflictError("immutable audit event conflict")
+                return existing
+            transaction.create(reference, event.to_document())
+            return event
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleConflictError, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("lifecycle audit append failed") from exc
+
+
+FirestoreLifecycleRepository = FirebaseLifecycleRepository
 
 
 class LifecycleRepository(Protocol):
@@ -587,6 +978,7 @@ def _same_request(left: LifecycleActionRecord, right: LifecycleActionRecord) -> 
         and left.request_fingerprint == right.request_fingerprint
         and left.target_role == right.target_role
         and left.requested_department == right.requested_department
+        and left.account_ref == right.account_ref
     )
 
 
@@ -679,6 +1071,9 @@ class LifecycleActionService:
     ) -> LifecycleAuditEvent:
         event_ref = lifecycle_audit_event_reference(
             action_ref=record.action_ref,
+            from_state=from_state,
+            operation=record.operation,
+            result_code=record.result_code,
             to_state=record.state,
             version=record.version,
         )

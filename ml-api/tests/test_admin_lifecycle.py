@@ -312,7 +312,8 @@ def test_no_public_lifecycle_route_or_firebase_write_is_added() -> None:
     main_source = Path(__file__).parents[1].joinpath("app", "main.py").read_text(encoding="utf-8")
     assert "/admin/accounts/" not in main_source
     module_source = Path(__file__).parents[1].joinpath("app", "admin_lifecycle.py").read_text(encoding="utf-8")
-    assert "firebase_admin" not in module_source
+    assert "firebase_admin.initialize_app" not in module_source
+    assert "firebase_admin_clients()" in module_source
 
 
 def test_audit_event_reference_is_opaque_and_deterministic() -> None:
