@@ -73,6 +73,15 @@ class AdminLifecycleRecoveryBackend(Protocol):
         self, action_ref: str, *, expected_version: int, now: datetime
     ) -> LifecycleActionRecord: ...
 
+    def recovery_status(
+        self,
+        *,
+        actor_uid: str,
+        target_uid: str,
+        account_ref: str,
+        target_role: str,
+    ) -> tuple[str, LifecycleOperation | None, str | None]: ...
+
 
 class AdminLifecycleRecoveryService:
     def __init__(
@@ -164,4 +173,19 @@ class FirebaseAdminLifecycleRecoveryBackend(FirebaseAdminReactivationBackend):
     ) -> LifecycleActionRecord:
         return self._lifecycle.reassign_department(
             action_ref, expected_version=expected_version, now=now
+        )
+
+    def recovery_status(
+        self,
+        *,
+        actor_uid: str,
+        target_uid: str,
+        account_ref: str,
+        target_role: str,
+    ) -> tuple[str, LifecycleOperation | None, str | None]:
+        return self._lifecycle.recovery_status(
+            actor_uid=actor_uid,
+            target_uid=target_uid,
+            account_ref=account_ref,
+            target_role=target_role,
         )

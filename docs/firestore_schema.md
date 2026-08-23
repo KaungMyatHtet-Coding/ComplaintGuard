@@ -161,6 +161,21 @@ reactivation, or reassignment orchestration. Failed or blocked actions require
 a future operator workflow. No new collection, index, rule, or frontend access
 is introduced.
 
+### R2C8A lifecycle recovery-status projection
+
+The trusted read-only `GET /admin/users/{accountRef}/lifecycle-recovery-status`
+route discovers the current target guard and owner action through direct
+deterministic lookups only. After strict active-Admin authorization, it returns
+exactly `accountRef`, `recoveryState`, `operation`, and `departmentId`. Public
+states are `none`, `recoverable`, `completed`, and `operator_required`; no UID,
+lifecycle reference, fingerprint, timestamp, result code, or internal state is
+exposed. The projection is separate from advisory eligibility and does not
+authorize a mutation. Another Admin receives the safe `none` shape. Existing
+strict action, guard, profile, audit, and reactivation-lineage validation
+remains required; malformed persistence fails closed. The route performs no
+writes or Auth operations and adds no collection, index, rule, or frontend
+access.
+
 ### `departments/{departmentId}`
 
 Canonical operational department metadata. Document IDs must use the six stable IDs.

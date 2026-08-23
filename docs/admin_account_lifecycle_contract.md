@@ -35,6 +35,16 @@ work does not block and no complaint is moved or modified. The current runtime
 has no assignedStaffId writer; any future assignment feature must participate
 in this same lifecycle transaction/guard boundary before it is enabled.
 
+R2C8A adds the trusted backend-only read-only
+`GET /admin/users/{accountRef}/lifecycle-recovery-status` projection. It is
+bound to the original verified Admin actor, uses the existing deterministic
+guard/action/audit validation, and returns only `none`, `recoverable`,
+`completed`, or `operator_required` plus the operation and reassignment
+department when safe. It is separate from advisory lifecycle eligibility and
+is never authorization for a mutation. Alternate-Admin details, internal
+references, operator unlock, frontend controls, and runtime verification
+remain unavailable.
+
 The contract applies to Customer, Staff, Manager, and carefully governed Admin
 profiles. Firebase Console/IAM ownership is separate from the application
 `role: admin` and is never granted by these operations.

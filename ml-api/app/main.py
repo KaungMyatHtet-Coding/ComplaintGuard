@@ -71,6 +71,10 @@ from app.admin_recovery import (
     RecoveryAssignedWork,
     RecoveryLifecycleConflict,
 )
+from app.admin_recovery_status import (
+    AdminLifecycleRecoveryStatusBackend,
+    AdminLifecycleRecoveryStatusService,
+)
 from app.admin_workflow import (
     AdminProvisioningBackend,
     AdminProvisioningService,
@@ -125,6 +129,7 @@ from app.schemas import (
     AdminLifecycleEligibilityResponse,
     AdminLifecycleRecoveryRequest,
     AdminLifecycleRecoveryResponse,
+    AdminLifecycleRecoveryStatusResponse,
     AdminProvisioningRequest,
     AdminProvisioningResponse,
     AdminReactivateRequest,
@@ -229,6 +234,7 @@ def create_app(
     admin_reactivate_backend: AdminReactivateBackend | None = None,
     admin_reassign_backend: AdminReassignBackend | None = None,
     admin_recovery_backend: AdminLifecycleRecoveryBackend | None = None,
+    admin_recovery_status_backend: AdminLifecycleRecoveryStatusBackend | None = None,
     notification_backend: NotificationBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
@@ -701,6 +707,84 @@ def create_app(
                 code="service_unavailable",
                 message="The lifecycle check is temporarily unavailable.",
             ) from None
+
+    @api.get(
+        "/admin/users/{account_ref}/lifecycle-recovery-status",
+        response_model=AdminLifecycleRecoveryStatusResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            404: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def get_admin_lifecycle_recovery_status(
+        account_ref: str,
+        authorization: str | None = Header(default=None),
+    ) -> AdminLifecycleRecoveryStatusResponse:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        if not authorization.split(" ", 1)[1].strip():
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            )
+        try:
+            backend = (
+                admin_recovery_status_backend
+                or admin_recovery_backend
+                or FirebaseAdminLifecycleRecoveryBackend()
+            )
+            actor = require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(
+                status_code=401,
+                code="authentication_required",
+                message="A valid Firebase ID token is required.",
+            ) from None
+        except AdminPermissionError:
+            raise ApiError(
+                status_code=403,
+                code="admin_required",
+                message="Active administrative access is required.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Lifecycle recovery status is temporarily unavailable.",
+            ) from None
+
+        try:
+            return AdminLifecycleRecoveryStatusService(
+                backend  # type: ignore[arg-type]
+            ).status(actor, account_ref=account_ref)
+        except ValueError:
+            raise ApiError(
+                status_code=422,
+                code="validation_error",
+                message="The account reference is invalid.",
+            ) from None
+        except LookupError:
+            raise ApiError(
+                status_code=404,
+                code="account_not_found",
+                message="The account was not found.",
+            ) from None
+        except PersistenceError:
+            raise ApiError(
+                status_code=503,
+                code="service_unavailable",
+                message="Lifecycle recovery status is temporarily unavailable.",
+            ) from None
+
     @api.post(
         "/admin/users/{account_ref}/reactivate",
         response_model=AdminReactivateResponse,

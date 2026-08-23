@@ -235,6 +235,20 @@ class EmulatorRun:
         if self.auth_client is not None:
             self.auth_client = None
         if self.db is not None:
+            for collection, document_ids in (
+                ("tickets", self.ticket_ids),
+                ("adminAccountLifecycleActions", self.action_refs),
+                ("adminAccountLifecycleTargetGuards", self.guard_refs),
+                ("adminAccountLifecycleAuditEvents", self.audit_refs),
+                ("users", self.profile_uids),
+            ):
+                for document_id in document_ids:
+                    try:
+                        if self.db.collection(collection).document(document_id).get().exists:
+                            cleanup_errors.append(f"残ained:{collection}/{document_id}")
+                    except Exception as exc:  # noqa: BLE001 - report tracked verification failure
+                        cleanup_errors.append(type(exc).__name__)
+        if self.db is not None:
             try:
                 self.db.close()
             except Exception as exc:  # noqa: BLE001 - report after owned cleanup
@@ -746,3 +760,207 @@ def test_emulator_recovery_request_contract_and_collection_integrity(lifecycle_a
     assert "actionRef" not in eligibility.text
     assert "guardRef" not in eligibility.text
     assert "auditRef" not in eligibility.text
+
+
+def test_emulator_recovery_status_projection_is_actor_bound_and_read_only(lifecycle_app) -> None:
+    run, client, backend = lifecycle_app
+    admin_uid, admin_token = run.create_identity("status-admin")
+    other_uid, other_token = run.create_identity("status-other-admin")
+    no_guard_uid, _ = run.create_identity("status-no-guard")
+    recover_uid, _ = run.create_identity("status-recoverable")
+    completed_uid, _ = run.create_identity("status-completed")
+    staff_uid, _ = run.create_identity("status-staff")
+    conflict_uid, _ = run.create_identity("status-conflict")
+    failed_uid, _ = run.create_identity("status-failed")
+    malformed_uid, _ = run.create_identity("status-malformed")
+    for uid, role, active, department in (
+        (admin_uid, "admin", True, None),
+        (other_uid, "admin", True, None),
+        (no_guard_uid, "customer", True, None),
+        (recover_uid, "customer", True, None),
+        (completed_uid, "customer", True, None),
+        (staff_uid, "staff", True, "account_support"),
+        (conflict_uid, "staff", True, "account_support"),
+        (failed_uid, "customer", True, None),
+        (malformed_uid, "customer", True, None),
+    ):
+        run.set_profile(uid, role=role, active=active, department=department)
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    def status(uid: str, request_headers: dict[str, str] = headers):
+        return client.get(
+            f"/admin/users/{account_reference(uid)}/lifecycle-recovery-status",
+            headers=request_headers,
+        )
+
+    no_guard = status(no_guard_uid)
+    assert no_guard.status_code == 200
+    assert no_guard.json() == {
+        "accountRef": account_reference(no_guard_uid),
+        "recoveryState": "none",
+        "operation": None,
+        "departmentId": None,
+    }
+
+    recover_key = "status-recoverable-1"
+    LifecycleActionService(backend).reserve(
+        actor_uid=admin_uid,
+        target_uid=recover_uid,
+        target_role="customer",
+        operation="disable",
+        idempotency_key=recover_key,
+        account_ref=account_reference(recover_uid),
+    )
+    run.track_action(
+        actor_uid=admin_uid,
+        target_uid=recover_uid,
+        key=recover_key,
+        operation="disable",
+    )
+    before_recover = _action(run, backend, actor_uid=admin_uid, target_uid=recover_uid, key=recover_key, operation="disable")[0]
+    recover_status = status(recover_uid)
+    assert recover_status.status_code == 200
+    assert recover_status.json() == {
+        "accountRef": account_reference(recover_uid),
+        "recoveryState": "recoverable",
+        "operation": "disable",
+        "departmentId": None,
+    }
+    assert _action(run, backend, actor_uid=admin_uid, target_uid=recover_uid, key=recover_key, operation="disable")[0] == before_recover
+    assert status(recover_uid, other_headers).json() == {
+        "accountRef": account_reference(recover_uid),
+        "recoveryState": "none",
+        "operation": None,
+        "departmentId": None,
+    }
+
+    completed_key = "status-completed-1"
+    completed_ref = account_reference(completed_uid)
+    run.track_action(
+        actor_uid=admin_uid,
+        target_uid=completed_uid,
+        key=completed_key,
+        operation="disable",
+    )
+    assert client.post(
+        f"/admin/users/{completed_ref}/disable",
+        headers=headers,
+        json={"idempotencyKey": completed_key},
+    ).status_code == 200
+    completed_action_ref = lifecycle_action_reference(
+        actor_uid=admin_uid,
+        target_uid=completed_uid,
+        idempotency_key=completed_key,
+        operation="disable",
+    )
+    before_completed = _audit_count(run, completed_action_ref)
+    completed_status = status(completed_uid)
+    assert completed_status.status_code == 200
+    assert completed_status.json() == {
+        "accountRef": completed_ref,
+        "recoveryState": "completed",
+        "operation": "disable",
+        "departmentId": None,
+    }
+    assert _audit_count(run, completed_action_ref) == before_completed
+    assert set(completed_status.json()) == {
+        "accountRef", "recoveryState", "operation", "departmentId"
+    }
+
+    conflict_key = "status-conflict-1"
+    conflict_ref = account_reference(conflict_uid)
+    run.ticket_ids.append(f"r2c7-{uuid4().hex}")
+    run.db.collection("tickets").document(run.ticket_ids[-1]).set(
+        {
+            "customerId": f"status-customer-{uuid4().hex}",
+            "complaintText": "Synthetic status-only ticket",
+            "inputLocale": "en",
+            "departmentId": "account_support",
+            "assignedStaffId": conflict_uid,
+            "status": "submitted",
+            "priority": "normal",
+            "predictedDepartmentId": None,
+            "predictionConfidence": None,
+            "routingSource": "manual_review",
+            "escalated": False,
+            "resolutionSummary": None,
+            "createdAt": NOW,
+            "updatedAt": NOW,
+            "resolvedAt": None,
+        }
+    )
+    run.track_action(
+        actor_uid=admin_uid,
+        target_uid=conflict_uid,
+        key=conflict_key,
+        operation="reassign_department",
+    )
+    assert client.post(
+        f"/admin/users/{conflict_ref}/reassign-department",
+        headers=headers,
+        json={"idempotencyKey": conflict_key, "departmentId": "card_atm"},
+    ).status_code == 409
+    assert status(conflict_uid).json() == {
+        "accountRef": conflict_ref,
+        "recoveryState": "none",
+        "operation": None,
+        "departmentId": None,
+    }
+
+    failed_key = "status-failed-1"
+    failed_action = LifecycleActionService(backend).reserve(
+        actor_uid=admin_uid,
+        target_uid=failed_uid,
+        target_role="customer",
+        operation="disable",
+        idempotency_key=failed_key,
+        account_ref=account_reference(failed_uid),
+    )
+    backend.transition(
+        failed_action.action_ref,
+        expected_version=failed_action.version,
+        to_state="failed",
+        result_code="service_unavailable",
+        now=datetime.now(timezone.utc),
+    )
+    run.track_action(
+        actor_uid=admin_uid,
+        target_uid=failed_uid,
+        key=failed_key,
+        operation="disable",
+    )
+    assert status(failed_uid).json() == {
+        "accountRef": account_reference(failed_uid),
+        "recoveryState": "operator_required",
+        "operation": None,
+        "departmentId": None,
+    }
+
+    malformed_key = "status-malformed-1"
+    malformed_action = LifecycleActionService(backend).reserve(
+        actor_uid=admin_uid,
+        target_uid=malformed_uid,
+        target_role="customer",
+        operation="disable",
+        idempotency_key=malformed_key,
+        account_ref=account_reference(malformed_uid),
+    )
+    run.track_action(
+        actor_uid=admin_uid,
+        target_uid=malformed_uid,
+        key=malformed_key,
+        operation="disable",
+    )
+    guard_ref = lifecycle_target_guard_reference(
+        target_uid=malformed_uid,
+        project_id=PROJECT_ID,
+        environment="local-emulator",
+    )
+    guard_document = run.db.collection("adminAccountLifecycleTargetGuards").document(guard_ref)
+    malformed_guard = guard_document.get().to_dict() or {}
+    malformed_guard["version"] = "not-an-integer"
+    guard_document.set(malformed_guard)
+    malformed_status = status(malformed_uid)
+    assert malformed_status.status_code == 503
+    assert backend.get_action(malformed_action.action_ref).state == "reserved"

@@ -1068,6 +1068,163 @@ class FirebaseLifecycleRepository:
         except Exception as exc:
             raise PersistenceError("lifecycle recovery lookup failed") from exc
 
+    def recovery_status(
+        self,
+        *,
+        actor_uid: str,
+        target_uid: str,
+        account_ref: str,
+        target_role: str,
+    ) -> tuple[str, LifecycleOperation | None, str | None]:
+        """Project one actor-owned action without changing persistence."""
+
+        _require_uid(actor_uid, "actor UID")
+        _require_uid(target_uid, "target UID")
+        if not re.fullmatch(r"^acct_v1_[0-9a-f]{64}$", account_ref):
+            raise LifecycleValidationError("account reference is invalid")
+        if target_role not in {"customer", "staff", "manager"}:
+            raise LifecycleValidationError("target role is invalid")
+        guard_ref = lifecycle_target_guard_reference(
+            target_uid=target_uid,
+            project_id=self._project_id,
+            environment=self._environment,
+        )
+        guard_reference = self._guard_reference(guard_ref)
+        profile_reference = self._db.collection("users").document(target_uid)
+
+        def operation(transaction: Any) -> tuple[LifecycleActionRecord, LifecycleTargetGuard] | None:
+            profile_snapshot = self._snapshot(transaction, profile_reference)
+            if not profile_snapshot.exists:
+                raise PersistenceError("lifecycle recovery profile is missing")
+            profile = _validate_disable_profile(profile_snapshot.to_dict() or {}, target_uid)
+            if profile["role"] != target_role:
+                raise PersistenceError("lifecycle recovery profile role is inconsistent")
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            if not guard_snapshot.exists:
+                return None
+            guard = validate_target_guard_document(guard_snapshot.to_dict() or {})
+            if guard.guard_ref != guard_ref or guard.target_uid != target_uid:
+                raise PersistenceError("lifecycle recovery guard binding is invalid")
+            action_reference = self._action_reference(guard.action_ref)
+            action_snapshot = self._snapshot(transaction, action_reference)
+            if not action_snapshot.exists:
+                raise PersistenceError("lifecycle recovery action is missing")
+            action = validate_action_document(action_snapshot.to_dict() or {})
+            if (
+                action.target_uid != target_uid
+                or action.account_ref != account_ref
+                or action.target_role != target_role
+                or guard.action_ref != action.action_ref
+                or guard.operation != action.operation
+                or guard.state != _guard_state_for_action(action.state)
+                or guard.version < action.version
+            ):
+                raise PersistenceError("lifecycle recovery action and guard are inconsistent")
+            if action.actor_uid != actor_uid:
+                return None
+            if action.state == "failed" and guard.state == "blocked":
+                failed_from_state = {
+                    "disable": {
+                        2: "reserved",
+                        3: "profile_inactivated",
+                        4: "auth_disable_pending",
+                    },
+                    "reactivate": {
+                        2: "reserved",
+                        3: "auth_enable_pending",
+                        4: "profile_activation_pending",
+                    },
+                    "reassign_department": {2: "reserved"},
+                }[action.operation].get(action.version)
+                if failed_from_state is None:
+                    raise PersistenceError("failed lifecycle version is invalid")
+                failure_event_ref = lifecycle_audit_event_reference(
+                    action_ref=action.action_ref,
+                    operation=action.operation,
+                    from_state=failed_from_state,
+                    to_state="failed",
+                    result_code=action.result_code,
+                    version=action.version,
+                )
+                failure_event_snapshot = self._snapshot(
+                    transaction, self._audit_reference(failure_event_ref)
+                )
+                if not failure_event_snapshot.exists:
+                    raise PersistenceError("failed lifecycle audit is missing")
+                failure_event = validate_audit_document(
+                    failure_event_snapshot.to_dict() or {}
+                )
+                if (
+                    failure_event.event_ref != failure_event_ref
+                    or failure_event.action_ref != action.action_ref
+                    or failure_event.operation != action.operation
+                    or failure_event.actor_uid != action.actor_uid
+                    or failure_event.target_uid != action.target_uid
+                    or failure_event.from_state != failed_from_state
+                    or failure_event.to_state != "failed"
+                    or failure_event.result_code != action.result_code
+                    or failure_event.version != action.version
+                ):
+                    raise PersistenceError("failed lifecycle audit is inconsistent")
+                return action, guard
+            if action.state == "failed" or guard.state == "blocked":
+                raise PersistenceError("lifecycle recovery terminal state is inconsistent")
+            if action.operation == "disable":
+                if action.state == "reserved" and profile["active"] is not True:
+                    raise PersistenceError("reserved disable profile is inconsistent")
+                if action.state in {"profile_inactivated", "auth_disable_pending"} and profile["active"] is not False:
+                    raise PersistenceError("in-progress disable profile is inconsistent")
+            elif action.operation == "reactivate" and profile["active"] is not False:
+                if action.state != "completed":
+                    raise PersistenceError("in-progress reactivation profile is inconsistent")
+            elif action.operation == "reassign_department" and (
+                action.target_role != "staff"
+                or profile["active"] is not True
+                or action.requested_department not in DEPARTMENT_IDS
+            ):
+                raise PersistenceError("reassignment recovery profile is inconsistent")
+            return action, guard
+
+        try:
+            discovered = self._run_transaction(self._db, operation)
+        except PersistenceError:
+            raise
+        except Exception as exc:
+            raise PersistenceError("lifecycle recovery status lookup failed") from exc
+        if discovered is None:
+            return "none", None, None
+        action, guard = discovered
+        if action.state == "failed" and guard.state == "blocked":
+            return "operator_required", None, None
+        requested_department = (
+            action.requested_department if action.operation == "reassign_department" else None
+        )
+        # Reuse the established read-only validator for audit and reactivation
+        # lineage proof. This performs direct lookups only and never writes.
+        try:
+            validated, _ = self.recover_existing_action(
+                actor_uid=actor_uid,
+                target_uid=target_uid,
+                account_ref=account_ref,
+                target_role=target_role,
+                operation=action.operation,
+                requested_department=requested_department,
+            )
+        except Exception as exc:
+            raise PersistenceError("lifecycle recovery status persistence is invalid") from exc
+        if validated.state == "conflict":
+            return "none", None, None
+        if validated.state == "completed":
+            return "completed", validated.operation, requested_department
+        supported = {
+            "disable": {"reserved", "profile_inactivated", "auth_disable_pending"},
+            "reactivate": {"reserved", "auth_enable_pending", "profile_activation_pending"},
+            "reassign_department": {"reserved"},
+        }
+        if validated.state not in supported[validated.operation]:
+            raise PersistenceError("lifecycle recovery state is not projectable")
+        return "recoverable", validated.operation, requested_department
+
     def find_completed_disable_action(
         self,
         *,

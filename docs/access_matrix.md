@@ -222,6 +222,14 @@ Completed actions return the existing safe result. Alternate-Admin recovery,
 operator recovery, frontend controls, and runtime verification remain
 unavailable.
 
+R2C8A adds only the trusted read-only
+`GET /admin/users/{accountRef}/lifecycle-recovery-status` projection for the
+original verified Admin actor. It is distinct from advisory lifecycle
+eligibility, exposes no lifecycle references or private state, returns a safe
+allowlisted recovery state, and is never mutation authorization. Alternate
+Admins receive the safe `none` shape; frontend lifecycle controls and runtime
+verification remain unavailable.
+
 No role change, permanent deletion, password/claims operation, Auth-provider
 inspection, direct frontend write, or Firebase IAM operation is permitted.
 Future targeting uses a backend-issued opaque account reference only after

@@ -32,6 +32,8 @@ AdminDirectoryRole = Literal["customer", "staff", "manager", "admin"]
 AdminProvisioningStatus = Literal["pending_setup"]
 AdminDirectorySetupStatus = Literal["pending_setup", "active"]
 LifecycleProfileState = Literal["active", "inactive"]
+LifecycleRecoveryState = Literal["none", "recoverable", "completed", "operator_required"]
+LifecycleRecoveryOperation = Literal["disable", "reactivate", "reassign_department"]
 LifecycleEligibilityReason = Literal[
     "already_active",
     "already_inactive",
@@ -278,6 +280,29 @@ class AdminLifecycleEligibilityResponse(BaseModel):
     account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
     profile_state: LifecycleProfileState = Field(alias="profileState")
     operations: LifecycleEligibilityOperations
+
+
+class AdminLifecycleRecoveryStatusResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    recovery_state: LifecycleRecoveryState = Field(alias="recoveryState")
+    operation: LifecycleRecoveryOperation | None
+    department_id: DepartmentId | None = Field(alias="departmentId")
+
+    @model_validator(mode="after")
+    def validate_projection(self) -> "AdminLifecycleRecoveryStatusResponse":
+        if self.recovery_state in {"none", "operator_required"}:
+            if self.operation is not None or self.department_id is not None:
+                raise ValueError("recovery details are not valid for this state")
+        elif self.operation is None:
+            raise ValueError("recoverable or completed state requires an operation")
+        elif self.operation == "reassign_department":
+            if self.department_id is None:
+                raise ValueError("reassignment state requires a department")
+        elif self.department_id is not None:
+            raise ValueError("department is only valid for reassignment")
+        return self
 
 
 class CustomerProfileRequest(BaseModel):
