@@ -27,10 +27,20 @@ describe("localization foundation", () => {
       "evidenceTitle",
       "evidenceSimilarityLocalOnly",
       "managerDashboardLoading",
+      "adminLifecycleManagementTitle",
+      "adminLifecycleLoading",
+      "adminLifecycleEligibilityTitle",
+      "adminLifecycleOperationDisable",
+      "adminLifecycleOperationReactivate",
+      "adminLifecycleOperationReassign",
+      "adminLifecycleRecoveryTitle",
+      "adminLifecycleOperatorRequired",
     ] as const) {
       expect(translate("en", key)).not.toMatch(/^\[/u);
       expect(translate("my", key)).not.toMatch(/^\[/u);
     }
+    expect(translate("my", "adminLifecycleManagementTitle")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "adminLifecycleOperatorRequired")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "modelAnalyticsTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "evidenceTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("en", "evidencePredictionConfidence")).toBe("Model confidence");

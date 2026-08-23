@@ -61,6 +61,11 @@ describe("AdminAccountDetail", () => {
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
     expect(markup).toContain('aria-labelledby="admin-account-detail-title"');
+    expect(markup).toContain('aria-labelledby="admin-account-detail-management-title"');
+    expect(markup).toContain("adminLifecycleManagementTitle");
+    expect(markup).toContain('role="status"');
+    expect(markup).not.toContain("Continue");
+    expect(markup).not.toContain("lifecycle-recovery");
     expect(markup).not.toContain("card_atm");
     expect(markup).toContain("Staff");
     expect(markup).not.toContain("uid");

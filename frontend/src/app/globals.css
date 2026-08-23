@@ -3543,6 +3543,56 @@ details[open] > .evidence-heading {
   padding: 1rem;
 }
 
+.admin-account-detail-management {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.admin-account-detail-management h3,
+.admin-account-detail-management h4 {
+  margin: 0 0 0.5rem;
+}
+
+.admin-lifecycle-skeleton {
+  min-height: 4rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, var(--skeleton-surface), var(--surface), var(--skeleton-surface));
+  background-size: 200% 100%;
+  animation: admin-lifecycle-skeleton 1.4s ease-in-out infinite;
+}
+
+.admin-lifecycle-operation-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-lifecycle-operation-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-lifecycle-recovery {
+  margin-top: 1rem;
+  border-left: 3px solid var(--focus-ring);
+  padding-left: 0.75rem;
+}
+
+@keyframes admin-lifecycle-skeleton {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-lifecycle-skeleton {
+    animation: none;
+  }
+}
+
 .admin-account-detail-explanation h3 {
   margin: 0;
   font-size: 0.95rem;

@@ -70,7 +70,7 @@ export class AdminDirectoryError extends Error {
 const roles = new Set<AdminDirectoryRole>(["customer", "staff", "manager", "admin"]);
 const setupStatuses = new Set(["pending_setup", "active"]);
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const accountReferencePattern = /^acct_v1_[0-9a-f]{64}$/;
+export const accountReferencePattern = /^acct_v1_[0-9a-f]{64}$/;
 const eligibilityReasons = new Set<LifecycleEligibilityReason>([
   "already_active",
   "already_inactive",
@@ -82,11 +82,28 @@ const eligibilityReasons = new Set<LifecycleEligibilityReason>([
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
+}
+
+export function hasExactKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+  try {
+    const names = Object.getOwnPropertyNames(value);
+    const symbols = Object.getOwnPropertySymbols(value);
+    return symbols.length === 0 && names.length === keys.length && keys.every((key) => names.includes(key));
+  } catch {
+    return false;
+  }
 }
 
 function parseRow(value: unknown): AdminDirectoryRow {
-  if (!isRecord(value) || Object.keys(value).length !== 8) throw new AdminDirectoryError("validation");
+  if (!hasExactKeys(value, ["accountRef", "email", "displayName", "locale", "role", "departmentId", "active", "setupStatus"])) throw new AdminDirectoryError("validation");
   const { accountRef, email, displayName, locale, role, departmentId, active, setupStatus } = value;
   if (
     typeof accountRef !== "string" || !accountReferencePattern.test(accountRef) ||
@@ -105,13 +122,13 @@ function parseRow(value: unknown): AdminDirectoryRow {
 }
 
 function parseEligibilityOperation(value: unknown): LifecycleEligibilityOperation {
-  if (!isRecord(value) || Object.keys(value).length !== 2 || typeof value.eligible !== "boolean") throw new AdminDirectoryError("validation");
+  if (!hasExactKeys(value, ["eligible", "reason"]) || typeof value.eligible !== "boolean") throw new AdminDirectoryError("validation");
   if (value.reason !== null && (typeof value.reason !== "string" || !eligibilityReasons.has(value.reason as LifecycleEligibilityReason))) throw new AdminDirectoryError("validation");
   return { eligible: value.eligible, reason: value.reason as LifecycleEligibilityReason | null };
 }
 
 export function parseAdminLifecycleEligibility(value: unknown): AdminLifecycleEligibility {
-  if (!isRecord(value) || Object.keys(value).length !== 3 || typeof value.accountRef !== "string" || !accountReferencePattern.test(value.accountRef) || (value.profileState !== "active" && value.profileState !== "inactive") || !isRecord(value.operations) || Object.keys(value.operations).length !== 3) throw new AdminDirectoryError("validation");
+  if (!hasExactKeys(value, ["accountRef", "profileState", "operations"]) || typeof value.accountRef !== "string" || !accountReferencePattern.test(value.accountRef) || (value.profileState !== "active" && value.profileState !== "inactive") || !hasExactKeys(value.operations, ["disable", "reactivate", "reassignDepartment"])) throw new AdminDirectoryError("validation");
   const operations = value.operations;
   if (!("disable" in operations) || !("reactivate" in operations) || !("reassignDepartment" in operations)) throw new AdminDirectoryError("validation");
   return {
@@ -126,7 +143,7 @@ export function parseAdminLifecycleEligibility(value: unknown): AdminLifecycleEl
 }
 
 export function parseAdminDirectoryResponse(value: unknown): AdminDirectoryResponse {
-  if (!isRecord(value) || Object.keys(value).length !== 3 || !Array.isArray(value.rows)) throw new AdminDirectoryError("validation");
+  if (!hasExactKeys(value, ["rows", "nextCursor", "hasMore"]) || !Array.isArray(value.rows)) throw new AdminDirectoryError("validation");
   if (typeof value.nextCursor !== "string" && value.nextCursor !== null) throw new AdminDirectoryError("validation");
   if (typeof value.nextCursor === "string" && (!value.nextCursor || value.nextCursor.length > 128)) throw new AdminDirectoryError("validation");
   if (typeof value.hasMore !== "boolean") throw new AdminDirectoryError("validation");
@@ -184,6 +201,7 @@ function mapStatus(status: number): AdminDirectoryErrorCode {
 export async function loadAdminLifecycleEligibility(
   accountRef: string,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<AdminLifecycleEligibility> {
   if (!accountReferencePattern.test(accountRef)) throw new AdminDirectoryError("validation");
   let apiBase: string;
@@ -210,9 +228,12 @@ export async function loadAdminLifecycleEligibility(
     const response = await fetcher(`${apiBase}/admin/users/${encodeURIComponent(accountRef)}/lifecycle-eligibility`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
+      signal,
     });
     if (!response.ok) throw new AdminDirectoryError(mapStatus(response.status));
-    return parseAdminLifecycleEligibility(await response.json());
+    const parsed = parseAdminLifecycleEligibility(await response.json());
+    if (parsed.accountRef !== accountRef) throw new AdminDirectoryError("validation");
+    return parsed;
   } catch (error) {
     if (error instanceof AdminDirectoryError) throw error;
     throw new AdminDirectoryError("unavailable");
