@@ -148,6 +148,19 @@ assignment feature must use this same coordination boundary to prevent races.
 The route has no Auth operation, frontend control, notification, rules/index
 change, or runtime/Emulator verification.
 
+### R2C6 lifecycle recovery continuation
+
+The trusted backend-only route
+`POST /admin/users/{accountRef}/lifecycle-recovery` discovers the current
+action exclusively through the deterministic target guard and continues that
+same action. It never accepts or derives a new idempotency key, reserves a new
+action, transfers ownership to another Admin, or unlocks a blocked guard.
+Only the original verified Admin actor may continue it. Completed actions are
+read-only safe replays; supported incomplete states reuse the existing disable,
+reactivation, or reassignment orchestration. Failed or blocked actions require
+a future operator workflow. No new collection, index, rule, or frontend access
+is introduced.
+
 ### `departments/{departmentId}`
 
 Canonical operational department metadata. Document IDs must use the six stable IDs.

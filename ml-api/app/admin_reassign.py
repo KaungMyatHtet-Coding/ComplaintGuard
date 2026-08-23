@@ -123,8 +123,25 @@ class AdminReassignService:
             account_ref=account_ref,
             requested_department=department_id,
         )
+        return self.continue_existing(
+            account_ref=account_ref,
+            department_id=department_id,
+            current_department_id=target.department_id,
+            action=action,
+        )
+
+    def continue_existing(
+        self,
+        *,
+        account_ref: str,
+        department_id: str,
+        current_department_id: str | None = None,
+        action: LifecycleActionRecord,
+    ) -> AdminReassignDepartmentResponse:
+        """Continue one discovered action without reserving a new action."""
+
         if action.state == "completed":
-            if target.department_id != department_id:
+            if current_department_id is not None and current_department_id != department_id:
                 raise LifecycleStateConflict("completed reassignment is inconsistent")
             return self._response(account_ref, department_id)
         if action.state == "conflict":

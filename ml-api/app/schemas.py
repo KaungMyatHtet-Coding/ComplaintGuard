@@ -122,6 +122,33 @@ class AdminReassignDepartmentResponse(BaseModel):
     department_id: DepartmentId = Field(alias="departmentId")
 
 
+class AdminDisableRecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["disable"]
+
+
+class AdminReactivateRecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["reactivate"]
+
+
+class AdminReassignRecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["reassign_department"]
+    department_id: DepartmentId = Field(alias="departmentId")
+
+
+AdminLifecycleRecoveryRequest = Annotated[
+    AdminDisableRecoveryRequest | AdminReactivateRecoveryRequest | AdminReassignRecoveryRequest,
+    Field(discriminator="operation"),
+]
+
+AdminLifecycleRecoveryResponse = AdminDisableResponse | AdminReactivateResponse | AdminReassignDepartmentResponse
+
+
 class AdminProvisioningRequest(BaseModel):
     """Strict future Admin input; it deliberately has no credential fields."""
 

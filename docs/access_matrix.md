@@ -214,6 +214,14 @@ has no assignedStaffId writer after ticket creation; any future assignment
 feature must participate in the same transaction/guard boundary before it is
 enabled. No runtime or Emulator verification is claimed.
 
+R2C6 adds a pure-tested trusted continuation endpoint for an existing lifecycle
+action. It requires the same verified active Admin actor and discovers the
+action through the backend-only target guard; it cannot create a new action,
+replace an idempotency key, transfer ownership, or unlock blocked work.
+Completed actions return the existing safe result. Alternate-Admin recovery,
+operator recovery, frontend controls, and runtime verification remain
+unavailable.
+
 No role change, permanent deletion, password/claims operation, Auth-provider
 inspection, direct frontend write, or Firebase IAM operation is permitted.
 Future targeting uses a backend-issued opaque account reference only after

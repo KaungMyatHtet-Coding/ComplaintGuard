@@ -31,7 +31,14 @@ from app.admin_disable import (
     DisableSelfTarget,
     FirebaseAdminDisableBackend,
 )
-from app.admin_lifecycle import LifecycleIdempotencyConflict, LifecycleStateConflict
+from app.admin_lifecycle import (
+    LifecycleIdempotencyConflict,
+    LifecycleOperatorRecoveryRequired,
+    LifecycleRecoveryActorMismatch,
+    LifecycleRecoveryNotFound,
+    LifecycleRecoveryOperationMismatch,
+    LifecycleStateConflict,
+)
 from app.admin_reactivate import (
     AdminReactivateBackend,
     AdminReactivateService,
@@ -56,6 +63,13 @@ from app.admin_reassign import (
     ReassignSameDepartment,
     ReassignScanIncomplete,
     ReassignSelfTarget,
+)
+from app.admin_recovery import (
+    AdminLifecycleRecoveryBackend,
+    AdminLifecycleRecoveryService,
+    FirebaseAdminLifecycleRecoveryBackend,
+    RecoveryAssignedWork,
+    RecoveryLifecycleConflict,
 )
 from app.admin_workflow import (
     AdminProvisioningBackend,
@@ -109,6 +123,8 @@ from app.schemas import (
     AdminDisableRequest,
     AdminDisableResponse,
     AdminLifecycleEligibilityResponse,
+    AdminLifecycleRecoveryRequest,
+    AdminLifecycleRecoveryResponse,
     AdminProvisioningRequest,
     AdminProvisioningResponse,
     AdminReactivateRequest,
@@ -212,6 +228,7 @@ def create_app(
     admin_disable_backend: AdminDisableBackend | None = None,
     admin_reactivate_backend: AdminReactivateBackend | None = None,
     admin_reassign_backend: AdminReassignBackend | None = None,
+    admin_recovery_backend: AdminLifecycleRecoveryBackend | None = None,
     notification_backend: NotificationBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
@@ -859,6 +876,68 @@ def create_app(
             raise ApiError(status_code=503, code="service_unavailable", message="Department reassignment is temporarily unavailable.") from None
         except PersistenceError:
             raise ApiError(status_code=503, code="service_unavailable", message="Department reassignment is temporarily unavailable.") from None
+
+    @api.post(
+        "/admin/users/{account_ref}/lifecycle-recovery",
+        response_model=AdminLifecycleRecoveryResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            404: {"model": ErrorResponse},
+            409: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def recover_admin_lifecycle(
+        account_ref: str,
+        payload: AdminLifecycleRecoveryRequest,
+        authorization: str | None = Header(default=None),
+    ) -> AdminLifecycleRecoveryResponse:
+        if not authorization or not authorization.startswith("Bearer ") or not authorization.split(" ", 1)[1].strip():
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.")
+        try:
+            backend = admin_recovery_backend or FirebaseAdminLifecycleRecoveryBackend()
+            actor = require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except AdminPermissionError:
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Lifecycle recovery is temporarily unavailable.") from None
+        department_id = getattr(payload, "department_id", None)
+        try:
+            return AdminLifecycleRecoveryService(backend).recover(
+                actor,
+                account_ref=account_ref,
+                operation=payload.operation,
+                department_id=department_id,
+            )
+        except ValueError:
+            raise ApiError(status_code=422, code="invalid_request", message="The account reference or recovery request is invalid.") from None
+        except LifecycleRecoveryActorMismatch:
+            raise ApiError(status_code=403, code="recovery_actor_mismatch", message="This recovery request is not available.") from None
+        except LifecycleRecoveryNotFound:
+            raise ApiError(status_code=404, code="account_or_recovery_not_found", message="The account recovery was not found.") from None
+        except LifecycleRecoveryOperationMismatch:
+            raise ApiError(status_code=409, code="recovery_operation_mismatch", message="The recovery request does not match the existing operation.") from None
+        except RecoveryAssignedWork:
+            raise ApiError(status_code=409, code="assigned_unresolved_work", message="The existing reassignment is blocked by unresolved assigned work.") from None
+        except RecoveryLifecycleConflict:
+            raise ApiError(status_code=409, code="lifecycle_conflict", message="The existing lifecycle operation is in conflict.") from None
+        except LifecycleOperatorRecoveryRequired:
+            raise ApiError(status_code=409, code="operator_recovery_required", message="Operator recovery is required for this lifecycle operation.") from None
+        except LifecycleStateConflict:
+            raise ApiError(status_code=409, code="lifecycle_conflict", message="The lifecycle operation cannot proceed safely.") from None
+        except (DisableIncomplete, ReactivateIncomplete):
+            raise ApiError(status_code=503, code="lifecycle_incomplete", message="Lifecycle recovery is temporarily incomplete. Try again.") from None
+        except ReassignScanIncomplete:
+            raise ApiError(status_code=503, code="bounded_scan_incomplete", message="Lifecycle recovery is temporarily unavailable.") from None
+        except LookupError:
+            raise ApiError(status_code=404, code="account_or_recovery_not_found", message="The account recovery was not found.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Lifecycle recovery is temporarily unavailable.") from None
     @api.post(
         "/tickets",
         response_model=SubmitComplaintResponse,

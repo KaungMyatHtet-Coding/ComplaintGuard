@@ -115,6 +115,21 @@ class AdminDisableService:
             idempotency_key=idempotency_key,
             account_ref=account_ref,
         )
+        return self.continue_existing(
+            actor,
+            account_ref=account_ref,
+            action=action,
+        )
+
+    def continue_existing(
+        self,
+        actor: AdminPrincipal,
+        *,
+        account_ref: str,
+        action: LifecycleActionRecord,
+    ) -> AdminDisableResponse:
+        """Continue one already-reserved action without reserving anything."""
+
         if action.state in {"reserved", "profile_inactivated", "auth_disable_pending", "completed"}:
             action = self._backend.inactivate_profile(
                 action.action_ref,

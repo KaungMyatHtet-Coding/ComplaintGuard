@@ -135,6 +135,21 @@ class AdminReactivateService:
             previous_action_ref=previous_action_ref,
         )
         action = self._backend.reserve_reactivation(action)
+        return self.continue_existing(
+            actor,
+            account_ref=account_ref,
+            action=action,
+        )
+
+    def continue_existing(
+        self,
+        actor: AdminPrincipal,
+        *,
+        account_ref: str,
+        action: LifecycleActionRecord,
+    ) -> AdminReactivateResponse:
+        """Continue one discovered action without reserving or transferring it."""
+
         if action.state == "completed":
             return self._response(account_ref)
         auth_enabled_in_this_attempt = False

@@ -9,9 +9,9 @@ Auth operations, UI controls, migrations, tests, or runtime behavior.
 
 The current local application exposes the approved safe all-role directory
 projection and the R2B read-only account-detail drawer. R2C3A adds only the
-trusted Customer, Staff, and Manager disable route described below; no browser
-control or Emulator/runtime verification is claimed. Reactivate, reassignment,
-deletion, and Admin-target disablement remain unavailable.
+trusted Customer, Staff, and Manager lifecycle routes described below; no
+browser control or Emulator/runtime verification is claimed. Deletion and
+Admin-target lifecycle mutation remain unavailable.
 
 R2C3A now implements the trusted pure/fake-tested backend
 `POST /admin/users/{accountRef}/disable` workflow for Customer, Staff, and
@@ -352,6 +352,25 @@ found. Same-department requests return `409 department_unchanged` without a
 lifecycle write. Customer, Manager, Admin, pending Staff, and inactive Staff
 targets are not reassigned. No Auth operation, complaint mutation, frontend
 control, notification, operator unlock, or runtime verification is included.
+
+## R2C6 lifecycle recovery continuation status
+
+The trusted backend adds exactly
+`POST /admin/users/{accountRef}/lifecycle-recovery`. Its strict request is a
+discriminated operation object: `disable`, `reactivate`, or
+`reassign_department` with one approved `departmentId`. It accepts no
+idempotency key or lifecycle reference and never creates or reserves an
+action. The target guard discovers only the current action, and continuation
+requires the same verified Admin actor that created it. Completed actions are
+rediscovered with the original safe response; supported incomplete states
+resume through the existing orchestration. Conflict is reported safely, while
+failed or blocked actions require future operator recovery. No action, guard,
+audit reference, original key, or internal state is exposed.
+
+This continuation path is pure/fake-tested only. Alternate-Admin recovery,
+blocked-action unlock, frontend lifecycle controls, notifications, and
+runtime/Emulator verification remain unavailable. No raw idempotency key needs
+frontend storage for this endpoint.
 
 ## Notification boundary
 
