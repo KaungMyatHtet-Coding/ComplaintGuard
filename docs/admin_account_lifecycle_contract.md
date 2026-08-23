@@ -7,11 +7,18 @@ lifecycle operations. R2C0 is documentation and contract approval only. It
 does not implement routes, schemas, Firestore rules or indexes, action records,
 Auth operations, UI controls, migrations, tests, or runtime behavior.
 
-The current local application remains read-only for account governance. `GET
-/admin/users` exposes the approved safe all-role directory projection, and the
-R2B Admin surface provides a read-only account-detail drawer from those parsed
-rows. Neither surface can disable, reactivate, reassign, delete, or otherwise
-mutate an account; browser and Emulator runtime verification remain incomplete.
+The current local application exposes the approved safe all-role directory
+projection and the R2B read-only account-detail drawer. R2C3A adds only the
+trusted Customer, Staff, and Manager disable route described below; no browser
+control or Emulator/runtime verification is claimed. Reactivate, reassignment,
+deletion, and Admin-target disablement remain unavailable.
+
+R2C3A now implements the trusted pure/fake-tested backend
+`POST /admin/users/{accountRef}/disable` workflow for Customer, Staff, and
+Manager targets. It has no frontend control and has not been verified against
+the Emulator or a runtime environment. Admin-target disablement remains
+unavailable and is deferred to R2C3B because it requires the separate global
+last-active-Admin concurrency guard.
 
 The contract applies to Customer, Staff, Manager, and carefully governed Admin
 profiles. Firebase Console/IAM ownership is separate from the application
@@ -127,11 +134,17 @@ malformed, missing, or inconsistent profiles fail closed and are not coerced.
    profile, and validate target role, profile shape, state, actor/target
    separation, last-Admin protection, and work-impact policy.
 3. Reserve the deterministic action using the idempotency key and request
-   fingerprint. A conflicting reuse fails without changing the target.
-4. In one Firestore transaction, confirm the expected profile version/state,
+   fingerprint. This reservation is a separate committed Firestore
+   transaction that creates/retains the action and active target guard. A
+   conflicting reuse fails without changing the target or another action's
+   guard.
+4. In a subsequent Firestore transaction, confirm the expected profile
+   action/guard version and state,
    set the application profile to `active: false`, and record
    `profile_inactivated`. Application authorization therefore fails closed
-   before the external Auth step.
+   before the external Auth step. If this transaction fails, the prior
+   reservation may remain persisted with its active guard; the same validated
+   request retries that action and no Auth call is made.
 5. Disable the Firebase Auth identity and revoke refresh tokens through the
    trusted Firebase Admin adapter. No Auth data is returned to the browser.
 6. Record `completed` only after the Auth operation is confirmed. If the Auth
@@ -279,6 +292,20 @@ Proposed safe mappings are:
 Responses and logs must not expose UID, email, path, raw request values,
 exception details, Firebase errors, or whether another account owns a guessed
 reference.
+
+## R2C3A disable implementation status
+
+The trusted disable route accepts only `{ "idempotencyKey": "..." }` with no
+unknown fields and returns only `accountRef`, `operation`, `status`, and
+`profileState`. Authorization completes before opaque-reference resolution,
+profile access, lifecycle reservation, or Auth operations. Customer, Staff, and
+Manager targets use the recoverable `profile_inactivated` and
+`auth_disable_pending` states; Auth disablement and refresh-token revocation
+remain outside Firestore transactions. Admin targets return the safe
+`admin_disable_not_available` conflict and perform no lifecycle write.
+
+No lifecycle notification is created. No frontend control, Emulator/runtime
+verification, Cloud support, or operator force-unlock behavior is claimed.
 
 ## Notification boundary
 

@@ -23,9 +23,10 @@ classified as follows:
 - **Current versus approved future:** the local read-only Admin directory now
   supports the approved Customer, Staff, Manager, and Admin safe projection,
   and R2B provides a read-only account-detail drawer from parsed directory
-  rows. Lifecycle mutation, Staff reassignment, role changes, and deletion
-  remain approved future contracts only; browser and Emulator verification
-  remain pending.
+  rows. R2C3A adds the trusted, pure/fake-tested Customer, Staff, and Manager
+  disable workflow; no frontend control or Emulator verification is claimed.
+  Admin disablement, Staff reassignment, role changes, and deletion remain
+  unavailable.
 - **Designed/planned:** deletion, password reset/invitation, Customer
   management, Admin creation, broader assignment, priority, escalation,
   reopen/close, and department administration.
@@ -189,6 +190,12 @@ and Manager profiles, and for other Admin profiles only when the actor is not
 the target and at least one other valid active Admin remains after disablement.
 Malformed or unavailable Admin data must fail closed rather than weaken that
 safeguard.
+
+R2C3A implements only Customer, Staff, and Manager disablement through the
+trusted backend route. Admin disablement remains deferred to R2C3B because it
+requires the separate global last-active-Admin concurrency guard. Reactivate,
+reassignment, role changes, deletion, and lifecycle notifications remain
+unimplemented.
 
 Staff department reassignment is future Staff-only governance. It accepts only
 the six authoritative department IDs, never changes role, never assigns a

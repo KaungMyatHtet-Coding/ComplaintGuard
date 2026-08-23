@@ -193,13 +193,14 @@ def test_inactive_profile_has_no_disable_eligibility_and_reactivation_is_advisor
     assert body["operations"]["reactivate"] == {"eligible": False, "reason": "pending_setup_activation_forbidden"}
 
 
-def test_no_lifecycle_mutation_route_exists() -> None:
+def test_disable_route_exists_but_requires_strict_request_body() -> None:
     backend = FakeLifecycleBackend()
     response = client(backend).post(
         f"/admin/users/{account_reference('customer-1')}/disable",
         headers={"Authorization": "Bearer admin-token"},
     )
-    assert response.status_code == 404
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "request_validation_error"
 
 
 def test_ticket_scan_over_bound_fails_closed() -> None:

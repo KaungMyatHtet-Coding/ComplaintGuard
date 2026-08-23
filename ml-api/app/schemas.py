@@ -43,6 +43,32 @@ LifecycleEligibilityReason = Literal[
 ]
 
 
+class AdminDisableRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    idempotency_key: Annotated[
+        StrictStr,
+        Field(alias="idempotencyKey", min_length=8, max_length=64),
+    ]
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def normalize_disable_idempotency_key(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized or not re.fullmatch(r"[A-Za-z0-9_-]+", normalized):
+            raise ValueError("idempotency key must be safe")
+        return normalized
+
+
+class AdminDisableResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    operation: Literal["disable"]
+    status: Literal["completed"]
+    profile_state: Literal["inactive"] = Field(alias="profileState")
+
+
 class AdminProvisioningRequest(BaseModel):
     """Strict future Admin input; it deliberately has no credential fields."""
 

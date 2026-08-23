@@ -267,9 +267,15 @@ No other transitions are allowed. Customers cannot directly change status. Admin
 - **Implemented through a limited trusted route:** staff workflow resumption
   after a customer reply, which is performed by the staff transition endpoint.
   The customer reply itself only creates the participant message.
+- **Implemented through pure/fake tests:** trusted `POST
+  /admin/users/{accountRef}/disable` orchestration for Customer, Staff, and
+  Manager targets, including recoverable profile/Auth phases. Admin-target
+  disablement remains deferred to R2C3B; no frontend control or Emulator/runtime
+  verification is claimed.
 - **Designed but not implemented:** manager reopen, manager close, broad
   priority management, broad assignment management, full escalation
-  administration, and Admin-controlled lifecycle operations.
+  administration, Admin-target lifecycle operations, reactivate, reassignment,
+  and deletion.
 - **Planned for Cloud staging:** trusted provisioning, Cloud rules/indexes,
   deployment configuration, and corresponding security evidence.
 

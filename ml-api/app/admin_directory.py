@@ -326,3 +326,30 @@ class AdminDirectoryService:
             profileState="active" if row.active else "inactive",
             operations=operations,
         )
+
+    def resolve_account_reference(
+        self, account_ref: str
+    ) -> tuple[str, AdminDirectoryRow]:
+        """Resolve an opaque account reference after trusted authorization."""
+
+        validate_account_reference(account_ref)
+        try:
+            profiles = self._backend.list_user_profiles(limit=MAX_DIRECTORY_SCAN + 1)
+        except PersistenceError:
+            raise
+        except Exception as exc:
+            raise PersistenceError("directory lookup failed") from exc
+        if len(profiles) > MAX_DIRECTORY_SCAN:
+            raise PersistenceError("lifecycle profile scan is incomplete")
+        found: tuple[str, AdminDirectoryRow] | None = None
+        seen_references: set[str] = set()
+        for uid, value in profiles:
+            row = _parse_profile(uid, value)
+            if row.account_ref in seen_references:
+                raise DirectoryDataIntegrityError("directory account reference is inconsistent")
+            seen_references.add(row.account_ref)
+            if row.account_ref == account_ref:
+                found = (uid, row)
+        if found is None:
+            raise LookupError("account reference not found")
+        return found

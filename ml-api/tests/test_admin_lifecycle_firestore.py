@@ -2,7 +2,7 @@
 
 from copy import deepcopy
 from dataclasses import replace
-from datetime import datetime, timezone
+from datetime import datetime, timezone, tzinfo
 from typing import Any
 
 import pytest
@@ -70,7 +70,9 @@ class FakeTransaction:
         self.db.operations.append(("write", reference.key))
         if reference.key not in self.values:
             raise RuntimeError("missing")
-        self.values[reference.key] = deepcopy(value)
+        updated = deepcopy(self.values[reference.key])
+        updated.update(deepcopy(value))
+        self.values[reference.key] = updated
 
 
 class FakeDb:
@@ -224,6 +226,81 @@ def test_transition_audit_once_same_state_and_atomic_completion_release() -> Non
         result_code="completed",
         now=NOW,
     ) == completed
+
+
+def test_atomic_profile_inactivation_preserves_profile_fields_and_keeps_guard_active() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    record = repo.reserve(make_record())
+    db.values[("users", "target-1")] = {
+        "email": "target-1@example.test",
+        "displayName": "Synthetic target-1",
+        "locale": "en",
+        "role": "customer",
+        "departmentId": None,
+        "active": True,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    result = repo.inactivate_profile(record.action_ref, now=NOW)
+    assert result.state == "profile_inactivated"
+    assert db.values[("users", "target-1")] == {
+        "email": "target-1@example.test",
+        "displayName": "Synthetic target-1",
+        "locale": "en",
+        "role": "customer",
+        "departmentId": None,
+        "active": False,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    guard = next(value for (collection, _), value in db.values.items() if collection == LIFECYCLE_TARGET_GUARDS_COLLECTION)
+    assert guard["state"] == "active"
+    assert len([key for key in db.values if key[0] == LIFECYCLE_AUDIT_EVENTS_COLLECTION]) == 1
+
+
+def test_atomic_profile_inactivation_rejects_malformed_profile_without_writes() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    record = repo.reserve(make_record())
+    db.values[("users", "target-1")] = {"active": True, "role": "customer"}
+    before = deepcopy(db.values)
+    with pytest.raises(LifecycleValidationError):
+        repo.inactivate_profile(record.action_ref, now=NOW)
+    assert db.values == before
+
+
+def test_profile_inactivation_rejects_unresolved_timezone_without_writes() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    record = repo.reserve(make_record())
+    db.values[("users", "target-1")] = {
+        "email": "target-1@example.test",
+        "displayName": "Synthetic target-1",
+        "locale": "en",
+        "role": "customer",
+        "departmentId": None,
+        "active": True,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    # A real datetime with a tzinfo whose offset cannot be resolved is rejected
+    # by the strict persisted-timestamp parser before any write is attempted.
+    class BrokenTz(tzinfo):
+        def utcoffset(self, _value):
+            return None
+
+        def dst(self, _value):
+            return None
+
+        def tzname(self, _value):
+            return "broken"
+
+    db.values[("users", "target-1")]["createdAt"] = NOW.replace(tzinfo=BrokenTz())
+    before = deepcopy(db.values)
+    with pytest.raises(LifecycleValidationError):
+        repo.inactivate_profile(record.action_ref, now=NOW)
+    assert db.values == before
 
 
 def test_stale_invalid_and_malformed_documents_fail_closed() -> None:
