@@ -209,6 +209,41 @@ class AdminReactivateService:
 class FirebaseAdminReactivationBackend(FirebaseAdminDisableBackend):
     """Explicit local Firebase adapter for reactivation orchestration."""
 
+    def find_completed_disable_action(
+        self,
+        *,
+        target_uid: str,
+        account_ref: str,
+        target_role: str,
+    ) -> LifecycleActionRecord:
+        """Read the strict, immediately preceding disable proof."""
+
+        return self._lifecycle.find_completed_disable_action(
+            target_uid=target_uid,
+            account_ref=account_ref,
+            target_role=target_role,
+        )
+
+    def reserve_reactivation(self, record: LifecycleActionRecord) -> LifecycleActionRecord:
+        """Transfer the proven inactive guard in the lifecycle transaction."""
+
+        return self._lifecycle.reserve_reactivation(record)
+
+    def activate_profile(
+        self,
+        action_ref: str,
+        *,
+        expected_version: int,
+        now: datetime,
+    ) -> LifecycleActionRecord:
+        """Atomically activate the profile and finalize the existing action."""
+
+        return self._lifecycle.activate_profile(
+            action_ref,
+            expected_version=expected_version,
+            now=now,
+        )
+
     def enable_auth_identity(self, target_uid: str) -> None:
         try:
             identity = self._auth.get_user(target_uid)

@@ -23,6 +23,7 @@ from app.admin_lifecycle import (
 )
 from app.admin_reactivate import (
     AdminReactivateService,
+    FirebaseAdminReactivationBackend,
     ReactivateAdminTarget,
     ReactivateAlreadyActive,
     ReactivateAuthIdentityMissing,
@@ -225,6 +226,36 @@ def actor() -> AdminPrincipal:
         display_name="Synthetic admin-uid",
         locale="en",
     )
+
+
+def test_concrete_firebase_reactivation_backend_exposes_lifecycle_capabilities() -> None:
+    class LifecycleSpy:
+        def find_completed_disable_action(self, **kwargs: Any) -> str:
+            assert kwargs["target_uid"] == "target-uid"
+            return "completed-disable"
+
+        def reserve_reactivation(self, record: object) -> object:
+            return record
+
+        def activate_profile(self, action_ref: str, *, expected_version: int, now: datetime) -> str:
+            assert action_ref == "reactivate-action"
+            assert expected_version == 3
+            assert now == NOW
+            return "completed"
+
+    backend = object.__new__(FirebaseAdminReactivationBackend)
+    backend._lifecycle = LifecycleSpy()
+    record = object()
+
+    assert backend.find_completed_disable_action(
+        target_uid="target-uid",
+        account_ref=account_reference("target-uid"),
+        target_role="customer",
+    ) == "completed-disable"
+    assert backend.reserve_reactivation(record) is record
+    assert backend.activate_profile(
+        "reactivate-action", expected_version=3, now=NOW
+    ) == "completed"
 
 
 def reactivate(backend: FakeReactivateBackend, key: str = "reactivate_001"):
