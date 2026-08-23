@@ -24,9 +24,11 @@ classified as follows:
   supports the approved Customer, Staff, Manager, and Admin safe projection,
   and R2B provides a read-only account-detail drawer from parsed directory
   rows. R2C3A adds the trusted, pure/fake-tested Customer, Staff, and Manager
-  disable workflow; no frontend control or Emulator verification is claimed.
-  Admin disablement, Staff reassignment, role changes, and deletion remain
-  unavailable.
+  disable workflow, and R2C4A adds the trusted, pure/fake-tested Customer,
+  Staff, and Manager reactivation workflow only for accounts proven disabled by
+  that lifecycle workflow. No frontend control or Emulator verification is
+  claimed. Admin lifecycle mutation, pending owner activation, Staff
+  reassignment, role changes, and deletion remain unavailable.
 - **Designed/planned:** deletion, password reset/invitation, Customer
   management, Admin creation, broader assignment, priority, escalation,
   reopen/close, and department administration.

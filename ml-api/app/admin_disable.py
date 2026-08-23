@@ -176,6 +176,13 @@ class FirebaseAdminDisableBackend(FirebaseAdminAuthBackend):
         except Exception as exc:
             raise PersistenceError("directory lookup failed") from exc
 
+    def list_tickets(self, *, limit: int) -> list[dict[str, Any]]:
+        try:
+            snapshots = self._db.collection("tickets").limit(limit).stream()
+            return [snapshot.to_dict() or {} for snapshot in snapshots]
+        except Exception as exc:
+            raise PersistenceError("ticket eligibility lookup failed") from exc
+
     def resolve_target(self, account_ref: str) -> tuple[str, AdminDirectoryRow]:
         return AdminDirectoryService(self).resolve_account_reference(account_ref)
 

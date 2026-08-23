@@ -281,8 +281,15 @@ class AdminDirectoryService:
                 reason="already_inactive",
             )
             reactivate_reason = "self_target_forbidden" if same_actor else "pending_setup_activation_forbidden"
+            proof_checker = getattr(self._backend, "reactivation_eligibility_reason", None)
+            if not same_actor and row.role in {"customer", "staff", "manager"} and callable(proof_checker):
+                reactivate_reason = proof_checker(
+                    target_uid=target_uid,
+                    account_ref=account_ref,
+                    target_role=row.role,
+                )
             reactivate = LifecycleEligibilityOperation(
-                eligible=False,
+                eligible=reactivate_reason is None,
                 reason=reactivate_reason,
             )
 

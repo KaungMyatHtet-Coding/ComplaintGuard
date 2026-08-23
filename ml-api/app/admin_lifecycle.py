@@ -84,6 +84,7 @@ _ACTION_FIELDS = {
     "createdAt",
     "updatedAt",
     "completedAt",
+    "previousActionRef",
 }
 _AUDIT_FIELDS = {
     "eventRef",
@@ -248,6 +249,10 @@ class LifecycleIdempotencyConflict(LifecycleConflictError):
 
 class LifecycleStateConflict(LifecycleConflictError):
     """A state or optimistic-version transition is no longer valid."""
+
+
+class LifecycleReactivationNotEligible(LifecycleStateConflict):
+    """No trusted completed disable lineage authorizes reactivation."""
 
 
 def _require_uid(value: str, field: str) -> str:
@@ -433,6 +438,7 @@ class LifecycleActionRecord:
     account_ref: str | None = None
     requested_department: str | None = None
     completed_at: datetime | None = None
+    previous_action_ref: str | None = None
 
     def __post_init__(self) -> None:
         _require_uid(self.actor_uid, "actor UID")
@@ -465,6 +471,12 @@ class LifecycleActionRecord:
             or not re.fullmatch(r"^acct_v1_[0-9a-f]{64}$", self.account_ref)
         ):
             raise LifecycleValidationError("account reference is invalid")
+        if self.previous_action_ref is not None:
+            _require_hex(self.previous_action_ref, "previous action reference")
+            if self.previous_action_ref == self.action_ref:
+                raise LifecycleValidationError("previous action cannot self-reference")
+            if self.operation != "reactivate":
+                raise LifecycleValidationError("previous action is invalid")
         created_at = _aware(self.created_at, "createdAt")
         updated_at = _aware(self.updated_at, "updatedAt")
         if updated_at < created_at:
@@ -499,6 +511,8 @@ class LifecycleActionRecord:
             document["requestedDepartment"] = self.requested_department
         if self.completed_at is not None:
             document["completedAt"] = _aware(self.completed_at, "completedAt")
+        if self.previous_action_ref is not None:
+            document["previousActionRef"] = self.previous_action_ref
         return document
 
 
@@ -604,9 +618,18 @@ def validate_action_document(document: Mapping[str, object]) -> LifecycleActionR
 
     if not isinstance(document, Mapping):
         raise LifecycleValidationError("lifecycle action document is invalid")
-    required = _ACTION_FIELDS - {"accountRef", "requestedDepartment", "completedAt"}
+    required = _ACTION_FIELDS - {
+        "accountRef",
+        "requestedDepartment",
+        "completedAt",
+        "previousActionRef",
+    }
     if set(document) - _ACTION_FIELDS or not required <= set(document):
         raise LifecycleValidationError("lifecycle action fields are invalid")
+    if document.get("operation") == "reactivate" and not isinstance(document.get("previousActionRef"), str):
+        raise LifecycleValidationError("reactivation lineage is invalid")
+    if document.get("operation") != "reactivate" and "previousActionRef" in document:
+        raise LifecycleValidationError("unexpected reactivation lineage")
     return LifecycleActionRecord(
         operation=document["operation"],  # type: ignore[arg-type]
         actor_uid=document["actorUid"],  # type: ignore[arg-type]
@@ -623,6 +646,7 @@ def validate_action_document(document: Mapping[str, object]) -> LifecycleActionR
         account_ref=document.get("accountRef"),  # type: ignore[arg-type]
         requested_department=document.get("requestedDepartment"),  # type: ignore[arg-type]
         completed_at=document.get("completedAt"),  # type: ignore[arg-type]
+        previous_action_ref=document.get("previousActionRef"),  # type: ignore[arg-type]
     )
 
 
@@ -660,6 +684,33 @@ def validate_target_guard_document(document: Mapping[str, object]) -> LifecycleT
         created_at=document["createdAt"],  # type: ignore[arg-type]
         updated_at=document["updatedAt"],  # type: ignore[arg-type]
     )
+
+
+def _validate_completed_disable_lineage(
+    previous: LifecycleActionRecord,
+    event: LifecycleAuditEvent,
+    *,
+    target_uid: str,
+    account_ref: str,
+    target_role: str,
+) -> None:
+    if (
+        previous.operation != "disable"
+        or previous.state != "completed"
+        or previous.result_code != "completed"
+        or previous.target_uid != target_uid
+        or previous.account_ref != account_ref
+        or previous.target_role != target_role
+        or event.action_ref != previous.action_ref
+        or event.actor_uid != previous.actor_uid
+        or event.operation != "disable"
+        or event.target_uid != target_uid
+        or event.from_state != "auth_disable_pending"
+        or event.to_state != "completed"
+        or event.result_code != "completed"
+        or event.version != previous.version
+    ):
+        raise LifecycleReactivationNotEligible("completed disable proof is invalid")
 
 
 class FirebaseLifecycleRepository:
@@ -810,6 +861,338 @@ class FirebaseLifecycleRepository:
             raise
         except Exception as exc:
             raise PersistenceError("lifecycle action lookup failed") from exc
+
+    def find_completed_disable_action(
+        self,
+        *,
+        target_uid: str,
+        account_ref: str,
+        target_role: str,
+    ) -> LifecycleActionRecord:
+        """Read the durable proof required before acquiring a guard for reactivation."""
+
+        _require_uid(target_uid, "target UID")
+        if not re.fullmatch(r"^acct_v1_[0-9a-f]{64}$", account_ref):
+            raise LifecycleValidationError("account reference is invalid")
+        guard_ref = lifecycle_target_guard_reference(
+            target_uid=target_uid,
+            project_id=self._project_id,
+            environment=self._environment,
+        )
+        guard_reference = self._guard_reference(guard_ref)
+        profile_reference = self._db.collection("users").document(target_uid)
+
+        def operation(transaction: Any) -> LifecycleActionRecord:
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            profile_snapshot = self._snapshot(transaction, profile_reference)
+            if not guard_snapshot.exists or not profile_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable proof is missing")
+            guard = validate_target_guard_document(guard_snapshot.to_dict() or {})
+            profile = _validate_disable_profile(profile_snapshot.to_dict() or {}, target_uid)
+            if guard.guard_ref != guard_ref or guard.target_uid != target_uid or guard.state != "inactive":
+                raise LifecycleReactivationNotEligible("target guard is not reusable")
+            if profile["active"] is not False or profile["role"] != target_role:
+                raise LifecycleReactivationNotEligible("target profile is not reactivatable")
+            owner_reference = self._action_reference(guard.action_ref)
+            owner_snapshot = self._snapshot(transaction, owner_reference)
+            if not owner_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable action is missing")
+            previous = validate_action_document(owner_snapshot.to_dict() or {})
+            event_ref = lifecycle_audit_event_reference(
+                action_ref=previous.action_ref,
+                operation="disable",
+                from_state="auth_disable_pending",
+                to_state="completed",
+                result_code="completed",
+                version=previous.version,
+            )
+            event_snapshot = self._snapshot(transaction, self._audit_reference(event_ref))
+            if not event_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable audit is missing")
+            event = validate_audit_document(event_snapshot.to_dict() or {})
+            _validate_completed_disable_lineage(
+                previous,
+                event,
+                target_uid=target_uid,
+                account_ref=account_ref,
+                target_role=target_role,
+            )
+            if guard.action_ref != previous.action_ref or guard.operation != "disable":
+                raise LifecycleReactivationNotEligible("target guard lineage is invalid")
+            return previous
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleReactivationNotEligible, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("reactivation proof lookup failed") from exc
+
+    def reactivation_eligibility_reason(
+        self,
+        *,
+        target_uid: str,
+        account_ref: str,
+        target_role: str,
+    ) -> str | None:
+        try:
+            self.find_completed_disable_action(
+                target_uid=target_uid,
+                account_ref=account_ref,
+                target_role=target_role,
+            )
+        except LifecycleReactivationNotEligible:
+            return "pending_setup_activation_forbidden"
+        except LifecycleStateConflict:
+            return "lifecycle_conflict"
+        return None
+
+    def reserve_reactivation(self, record: LifecycleActionRecord) -> LifecycleActionRecord:
+        if record.operation != "reactivate" or record.previous_action_ref is None:
+            raise LifecycleValidationError("reactivation lineage is required")
+        guard_ref = lifecycle_target_guard_reference(
+            target_uid=record.target_uid,
+            project_id=self._project_id,
+            environment=self._environment,
+        )
+        action_reference = self._action_reference(record.action_ref)
+        guard_reference = self._guard_reference(guard_ref)
+        profile_reference = self._db.collection("users").document(record.target_uid)
+        previous_reference = self._action_reference(record.previous_action_ref)
+
+        def operation(transaction: Any) -> LifecycleActionRecord:
+            action_snapshot = self._snapshot(transaction, action_reference)
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            profile_snapshot = self._snapshot(transaction, profile_reference)
+            previous_snapshot = self._snapshot(transaction, previous_reference)
+            existing = (
+                validate_action_document(action_snapshot.to_dict() or {})
+                if action_snapshot.exists
+                else None
+            )
+            guard = (
+                validate_target_guard_document(guard_snapshot.to_dict() or {})
+                if guard_snapshot.exists
+                else None
+            )
+            if not profile_snapshot.exists or not previous_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable proof is missing")
+            profile = _validate_disable_profile(profile_snapshot.to_dict() or {}, record.target_uid)
+            previous = validate_action_document(previous_snapshot.to_dict() or {})
+            previous_event_ref = lifecycle_audit_event_reference(
+                action_ref=previous.action_ref,
+                operation="disable",
+                from_state="auth_disable_pending",
+                to_state="completed",
+                result_code="completed",
+                version=previous.version,
+            )
+            previous_event_snapshot = self._snapshot(transaction, self._audit_reference(previous_event_ref))
+            if not previous_event_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable proof is missing")
+            previous_event = validate_audit_document(previous_event_snapshot.to_dict() or {})
+            _validate_completed_disable_lineage(
+                previous,
+                previous_event,
+                target_uid=record.target_uid,
+                account_ref=record.account_ref or "",
+                target_role=record.target_role,
+            )
+            if profile["role"] != record.target_role:
+                raise LifecycleReactivationNotEligible("target profile is not reactivatable")
+            if existing is not None:
+                if not _same_request(existing, record):
+                    raise LifecycleIdempotencyConflict("idempotency request conflict")
+                if guard is None or guard.action_ref != existing.action_ref or guard.operation != existing.operation:
+                    raise PersistenceError("reactivation guard ownership mismatch")
+                expected_guard_state = _guard_state_for_action(existing.state)
+                if guard.state != expected_guard_state:
+                    raise PersistenceError("reactivation guard state mismatch")
+                if existing.previous_action_ref != previous.action_ref:
+                    raise LifecycleReactivationNotEligible("reactivation lineage mismatch")
+                if existing.state == "completed":
+                    final_event_ref = lifecycle_audit_event_reference(
+                        action_ref=existing.action_ref,
+                        operation="reactivate",
+                        from_state="profile_activation_pending",
+                        to_state="completed",
+                        result_code="completed",
+                        version=existing.version,
+                    )
+                    final_event_snapshot = self._snapshot(transaction, self._audit_reference(final_event_ref))
+                    if not final_event_snapshot.exists:
+                        raise PersistenceError("completed reactivation audit is missing")
+                    final_event = validate_audit_document(final_event_snapshot.to_dict() or {})
+                    expected_event = LifecycleAuditEvent(
+                        event_ref=final_event_ref,
+                        action_ref=existing.action_ref,
+                        operation="reactivate",
+                        actor_uid=existing.actor_uid,
+                        target_uid=existing.target_uid,
+                        from_state="profile_activation_pending",
+                        to_state="completed",
+                        result_code="completed",
+                        version=existing.version,
+                        created_at=final_event.created_at,
+                    )
+                    if final_event.to_document() != expected_event.to_document():
+                        raise LifecycleConflictError("immutable audit event conflict")
+                    if profile["active"] is not True or guard.state != "inactive":
+                        raise LifecycleStateConflict("completed reactivation is inconsistent")
+                elif profile["active"] is not False or guard.state != "active":
+                    raise LifecycleStateConflict("reactivation recovery is inconsistent")
+                return existing
+            if profile["active"] is not False:
+                raise LifecycleReactivationNotEligible("target profile is not reactivatable")
+            if guard is None or guard.state != "inactive":
+                raise LifecycleReactivationNotEligible("target guard is not reusable")
+            if guard.action_ref != previous.action_ref or guard.operation != "disable":
+                raise LifecycleReactivationNotEligible("target guard lineage is invalid")
+            if guard.version >= MAX_ACTION_VERSION:
+                raise LifecycleStateConflict("target guard version exhausted")
+            replacement = replace(
+                guard,
+                action_ref=record.action_ref,
+                operation="reactivate",
+                state="active",
+                version=guard.version + 1,
+                updated_at=record.updated_at,
+            )
+            transaction.create(action_reference, record.to_document())
+            transaction.update(guard_reference, replacement.to_document())
+            return record
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleConflictError, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("reactivation reservation failed") from exc
+
+    def activate_profile(
+        self,
+        action_ref: str,
+        *,
+        expected_version: int,
+        now: datetime,
+    ) -> LifecycleActionRecord:
+        """Atomically activate the proven target and finalize reactivation."""
+
+        action_reference = self._action_reference(action_ref)
+
+        def operation(transaction: Any) -> LifecycleActionRecord:
+            action_snapshot = self._snapshot(transaction, action_reference)
+            if not action_snapshot.exists:
+                raise LifecycleConflictError("lifecycle action not found")
+            current = validate_action_document(action_snapshot.to_dict() or {})
+            guard_ref = lifecycle_target_guard_reference(
+                target_uid=current.target_uid,
+                project_id=self._project_id,
+                environment=self._environment,
+            )
+            guard_reference = self._guard_reference(guard_ref)
+            profile_reference = self._db.collection("users").document(current.target_uid)
+            guard_snapshot = self._snapshot(transaction, guard_reference)
+            profile_snapshot = self._snapshot(transaction, profile_reference)
+            if not guard_snapshot.exists or not profile_snapshot.exists:
+                raise PersistenceError("reactivation target persistence is incomplete")
+            guard = validate_target_guard_document(guard_snapshot.to_dict() or {})
+            profile = _validate_disable_profile(profile_snapshot.to_dict() or {}, current.target_uid)
+            if current.previous_action_ref is None:
+                raise LifecycleReactivationNotEligible("reactivation lineage is missing")
+            previous_reference = self._action_reference(current.previous_action_ref)
+            previous_snapshot = self._snapshot(transaction, previous_reference)
+            if not previous_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable action is missing")
+            previous = validate_action_document(previous_snapshot.to_dict() or {})
+            previous_event_ref = lifecycle_audit_event_reference(
+                action_ref=previous.action_ref,
+                operation="disable",
+                from_state="auth_disable_pending",
+                to_state="completed",
+                result_code="completed",
+                version=previous.version,
+            )
+            previous_event_snapshot = self._snapshot(transaction, self._audit_reference(previous_event_ref))
+            if not previous_event_snapshot.exists:
+                raise LifecycleReactivationNotEligible("completed disable audit is missing")
+            previous_event = validate_audit_document(previous_event_snapshot.to_dict() or {})
+            _validate_completed_disable_lineage(
+                previous,
+                previous_event,
+                target_uid=current.target_uid,
+                account_ref=current.account_ref or "",
+                target_role=current.target_role,
+            )
+            if (
+                current.action_ref != action_ref
+                or current.operation != "reactivate"
+                or current.state != "profile_activation_pending"
+                or current.version != expected_version
+                or guard.guard_ref != guard_ref
+                or guard.action_ref != current.action_ref
+                or guard.operation != "reactivate"
+                or guard.state != "active"
+                or guard.target_uid != current.target_uid
+                or profile["role"] != current.target_role
+                or profile["active"] is not False
+            ):
+                raise LifecycleStateConflict("reactivation activation precondition failed")
+            timestamp = _aware(now, "updatedAt")
+            if current.version >= MAX_ACTION_VERSION or guard.version >= MAX_ACTION_VERSION:
+                raise LifecycleStateConflict("lifecycle version exhausted")
+            updated = replace(
+                current,
+                state="completed",
+                result_code="completed",
+                updated_at=timestamp,
+                version=current.version + 1,
+                completed_at=timestamp,
+            )
+            event_ref = lifecycle_audit_event_reference(
+                action_ref=current.action_ref,
+                operation="reactivate",
+                from_state="profile_activation_pending",
+                to_state="completed",
+                result_code="completed",
+                version=updated.version,
+            )
+            event_reference = self._audit_reference(event_ref)
+            event_snapshot = self._snapshot(transaction, event_reference)
+            event = LifecycleAuditEvent(
+                event_ref=event_ref,
+                action_ref=current.action_ref,
+                operation="reactivate",
+                actor_uid=current.actor_uid,
+                target_uid=current.target_uid,
+                from_state="profile_activation_pending",
+                to_state="completed",
+                result_code="completed",
+                version=updated.version,
+                created_at=timestamp,
+            )
+            if event_snapshot.exists:
+                if validate_audit_document(event_snapshot.to_dict() or {}).to_document() != event.to_document():
+                    raise LifecycleConflictError("immutable audit event conflict")
+            else:
+                transaction.create(event_reference, event.to_document())
+            updated_guard = replace(
+                guard,
+                state="inactive",
+                version=guard.version + 1,
+                updated_at=timestamp,
+            )
+            transaction.update(profile_reference, {"active": True, "updatedAt": timestamp})
+            transaction.update(action_reference, updated.to_document())
+            transaction.update(guard_reference, updated_guard.to_document())
+            return updated
+
+        try:
+            return self._run_transaction(self._db, operation)
+        except (LifecycleConflictError, LifecycleValidationError, PersistenceError):
+            raise
+        except Exception as exc:
+            raise PersistenceError("reactivation profile transaction failed") from exc
 
     def inactivate_profile(
         self,
@@ -1190,6 +1573,7 @@ def _same_request(left: LifecycleActionRecord, right: LifecycleActionRecord) -> 
         and left.target_role == right.target_role
         and left.requested_department == right.requested_department
         and left.account_ref == right.account_ref
+        and left.previous_action_ref == right.previous_action_ref
     )
 
 
@@ -1215,6 +1599,7 @@ class LifecycleActionService:
         idempotency_key: str,
         requested_department: str | None = None,
         account_ref: str | None = None,
+        previous_action_ref: str | None = None,
     ) -> LifecycleActionRecord:
         op = _require_operation(operation)
         if not isinstance(target_role, str) or target_role not in {"customer", "staff", "manager", "admin"}:
@@ -1255,6 +1640,7 @@ class LifecycleActionService:
             requested_department=requested_department,
             created_at=timestamp,
             updated_at=timestamp,
+            previous_action_ref=previous_action_ref,
         )
         return self._repository.reserve(record)
 

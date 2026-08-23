@@ -20,6 +20,13 @@ the Emulator or a runtime environment. Admin-target disablement remains
 unavailable and is deferred to R2C3B because it requires the separate global
 last-active-Admin concurrency guard.
 
+R2C4A now implements the trusted pure/fake-tested backend
+`POST /admin/users/{accountRef}/reactivate` workflow for Customer, Staff, and
+Manager targets. Reactivation requires durable proof of the same target's
+completed trusted disable action; inactive `pending_setup` profiles and
+unproven inactive profiles cannot be activated. Admin lifecycle mutation,
+frontend controls, and runtime verification remain unavailable.
+
 The contract applies to Customer, Staff, Manager, and carefully governed Admin
 profiles. Firebase Console/IAM ownership is separate from the application
 `role: admin` and is never granted by these operations.
@@ -306,6 +313,24 @@ remain outside Firestore transactions. Admin targets return the safe
 
 No lifecycle notification is created. No frontend control, Emulator/runtime
 verification, Cloud support, or operator force-unlock behavior is claimed.
+
+## R2C4A reactivation implementation status
+
+The trusted reactivation route accepts only `{ "idempotencyKey": "..." }` and
+returns only `accountRef`, `operation`, `status`, and `profileState`. It may
+reactivate only an inactive Customer, Staff, or Manager whose inactive profile,
+inactive target guard, completed disable action, and immutable completed-disable
+audit event form one validated lineage. The reactivation action stores the
+previous disable action reference as trusted persistence metadata before the
+guard is transferred.
+
+Reactivation advances through `auth_enable_pending` and
+`profile_activation_pending`; application authorization remains denied until
+the final transaction activates the profile and releases the guard. Auth
+enablement is performed by trusted UID only and remains outside Firestore
+transactions. Pending owner activation remains separate. No frontend control,
+Emulator/runtime verification, Cloud support, notification, or operator unlock
+behavior is claimed.
 
 ## Notification boundary
 

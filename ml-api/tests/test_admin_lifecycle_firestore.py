@@ -16,6 +16,7 @@ from app.admin_lifecycle import (
     LifecycleActionService,
     LifecycleConflictError,
     LifecycleIdempotencyConflict,
+    LifecycleReactivationNotEligible,
     LifecycleStateConflict,
     LifecycleValidationError,
     lifecycle_audit_event_reference,
@@ -301,6 +302,113 @@ def test_profile_inactivation_rejects_unresolved_timezone_without_writes() -> No
     with pytest.raises(LifecycleValidationError):
         repo.inactivate_profile(record.action_ref, now=NOW)
     assert db.values == before
+
+
+def test_reactivation_reservation_lineage_and_final_activation_are_atomic() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    account_ref = "acct_v1_" + "a" * 64
+    disable = LifecycleActionService(InMemoryLifecycleRepository(), clock=lambda: NOW).reserve(
+        actor_uid="admin-actor",
+        target_uid="target-1",
+        target_role="customer",
+        operation="disable",
+        idempotency_key="disable_001",
+        account_ref=account_ref,
+    )
+    repo.reserve(disable)
+    db.values[("users", "target-1")] = {
+        "email": "target-1@example.test",
+        "displayName": "Synthetic target-1",
+        "locale": "en",
+        "role": "customer",
+        "departmentId": None,
+        "active": False,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    for state, result in (
+        ("profile_inactivated", "profile_inactivated"),
+        ("auth_disable_pending", "auth_disable_pending"),
+        ("completed", "completed"),
+    ):
+        disable = repo.transition(
+            disable.action_ref,
+            expected_version=disable.version,
+            to_state=state,
+            result_code=result,
+            now=NOW,
+        )
+    reactivate = LifecycleActionService(InMemoryLifecycleRepository(), clock=lambda: NOW).reserve(
+        actor_uid="admin-actor",
+        target_uid="target-1",
+        target_role="customer",
+        operation="reactivate",
+        idempotency_key="reactivate_001",
+        account_ref=account_ref,
+        previous_action_ref=disable.action_ref,
+    )
+    db.operations.clear()
+    assert repo.reserve_reactivation(reactivate) == reactivate
+    first_write = next(index for index, operation in enumerate(db.operations) if operation[0] == "write")
+    assert all(operation[0] == "read" for operation in db.operations[:first_write])
+    reactivate = repo.transition(
+        reactivate.action_ref,
+        expected_version=1,
+        to_state="auth_enable_pending",
+        result_code="auth_enable_pending",
+        now=NOW,
+    )
+    reactivate = repo.transition(
+        reactivate.action_ref,
+        expected_version=2,
+        to_state="profile_activation_pending",
+        result_code="profile_activation_pending",
+        now=NOW,
+    )
+    db.operations.clear()
+    final = repo.activate_profile(reactivate.action_ref, expected_version=3, now=NOW)
+    first_write = next(index for index, operation in enumerate(db.operations) if operation[0] == "write")
+    assert all(operation[0] == "read" for operation in db.operations[:first_write])
+    assert final.state == "completed"
+    assert db.values[("users", "target-1")]["active"] is True
+    guard = next(value for (collection, _), value in db.values.items() if collection == LIFECYCLE_TARGET_GUARDS_COLLECTION)
+    assert guard["state"] == "inactive" and guard["operation"] == "reactivate"
+    assert len([key for key in db.values if key[0] == LIFECYCLE_AUDIT_EVENTS_COLLECTION]) == 6
+
+
+def test_reactivation_proof_collision_or_malformed_lineage_fails_without_writes() -> None:
+    db = FakeDb()
+    repo = repository(db)
+    record = make_record()
+    repo.reserve(record)
+    db.values[("users", "target-1")] = {
+        "email": "target-1@example.test",
+        "displayName": "Synthetic target-1",
+        "locale": "en",
+        "role": "customer",
+        "departmentId": None,
+        "active": False,
+        "createdAt": NOW,
+        "updatedAt": NOW,
+    }
+    before = deepcopy(db.values)
+    with pytest.raises(LifecycleReactivationNotEligible):
+        repo.find_completed_disable_action(
+            target_uid="target-1",
+            account_ref="acct_v1_" + "a" * 64,
+            target_role="customer",
+        )
+    assert db.values == before
+
+
+def test_previous_action_reference_is_strict_and_cannot_self_reference() -> None:
+    record = make_record(operation="reactivate", key="reactivate_001")
+    with pytest.raises(LifecycleValidationError):
+        replace(record, previous_action_ref=record.action_ref)
+    disable = make_record(key="disable_001")
+    with pytest.raises(LifecycleValidationError):
+        replace(disable, previous_action_ref="a" * 64)
 
 
 def test_stale_invalid_and_malformed_documents_fail_closed() -> None:

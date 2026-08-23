@@ -89,7 +89,9 @@ not exposed to clients and require no query indexes:
 
 - `adminAccountLifecycleActions/{actionRef}` stores the mutable lifecycle
   coordination action. `actionRef` is the existing lowercase SHA-256 R2C2A
-  reference. Completed records are preserved and never deleted.
+  reference. Completed records are preserved and never deleted. Reactivation
+  records may include the strictly validated `previousActionRef` binding to
+  their completed disable lineage.
 - `adminAccountLifecycleTargetGuards/{targetGuardRef}` stores one durable
   target serialization guard. `targetGuardRef` is a domain-separated,
   versioned lowercase SHA-256 binding the local project/environment boundary
@@ -115,6 +117,20 @@ action only through the same transaction's read/version precondition; its
 `createdAt` remains immutable while ownership fields and `updatedAt` change.
 Force unlock, operator recovery, profile mutation, and Auth mutation remain
 outside this checkpoint.
+
+### R2C4A trusted reactivation
+
+The trusted backend pure-tests Customer, Staff, and Manager reactivation only
+when the inactive target guard, target profile, completed disable action, and
+completed-disable audit event form a consistent lineage. Reservation transfers
+the inactive guard to a new reactivation action atomically. Auth enablement is
+outside Firestore; `auth_enable_pending` and `profile_activation_pending`
+preserve retryable recovery while the profile remains inactive. The final
+transaction reads action, guard, profile, lineage, and final audit destination
+before atomically activating the profile, completing the action, creating the
+immutable audit event, and releasing the guard. Pending owner activation,
+Admin-target mutation, frontend controls, and runtime/Emulator verification
+remain unavailable.
 
 ### `departments/{departmentId}`
 
@@ -272,6 +288,11 @@ No other transitions are allowed. Customers cannot directly change status. Admin
   Manager targets, including recoverable profile/Auth phases. Admin-target
   disablement remains deferred to R2C3B; no frontend control or Emulator/runtime
   verification is claimed.
+- **Implemented through pure/fake tests:** trusted `POST
+  /admin/users/{accountRef}/reactivate` orchestration for Customer, Staff, and
+  Manager targets proven disabled by the lifecycle workflow. Pending owner
+  activation and Admin-target reactivation remain unavailable; no frontend
+  control or Emulator/runtime verification is claimed.
 - **Designed but not implemented:** manager reopen, manager close, broad
   priority management, broad assignment management, full escalation
   administration, Admin-target lifecycle operations, reactivate, reassignment,

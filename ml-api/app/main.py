@@ -32,6 +32,19 @@ from app.admin_disable import (
     FirebaseAdminDisableBackend,
 )
 from app.admin_lifecycle import LifecycleIdempotencyConflict, LifecycleStateConflict
+from app.admin_reactivate import (
+    AdminReactivateBackend,
+    AdminReactivateService,
+    FirebaseAdminReactivationBackend,
+    ReactivateAdminTarget,
+    ReactivateAlreadyActive,
+    ReactivateAuthIdentityConflict,
+    ReactivateAuthIdentityMissing,
+    ReactivateAuthUnavailable,
+    ReactivateIncomplete,
+    ReactivatePendingSetup,
+    ReactivateSelfTarget,
+)
 from app.admin_workflow import (
     AdminProvisioningBackend,
     AdminProvisioningService,
@@ -86,6 +99,8 @@ from app.schemas import (
     AdminLifecycleEligibilityResponse,
     AdminProvisioningRequest,
     AdminProvisioningResponse,
+    AdminReactivateRequest,
+    AdminReactivateResponse,
     CustomerFeedbackRequest,
     CustomerFeedbackResponse,
     CustomerMessageItem,
@@ -181,6 +196,7 @@ def create_app(
     admin_provisioning_backend: AdminProvisioningBackend | None = None,
     admin_directory_backend: AdminDirectoryBackend | None = None,
     admin_disable_backend: AdminDisableBackend | None = None,
+    admin_reactivate_backend: AdminReactivateBackend | None = None,
     notification_backend: NotificationBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
@@ -523,7 +539,8 @@ def create_app(
             backend = (
                 admin_directory_backend
                 or admin_provisioning_backend
-                or FirebaseAdminProvisioningBackend()
+                or admin_reactivate_backend
+                or FirebaseAdminReactivationBackend()
             )
             require_active_admin(authorization, backend)
         except AuthenticationError:
@@ -544,6 +561,7 @@ def create_app(
                 code="service_unavailable",
                 message="The account directory is temporarily unavailable.",
             ) from None
+
         try:
             return AdminDirectoryService(backend).list_users(payload)
         except ValueError:
@@ -597,7 +615,8 @@ def create_app(
             backend = (
                 admin_directory_backend
                 or admin_provisioning_backend
-                or FirebaseAdminProvisioningBackend()
+                or admin_reactivate_backend
+                or FirebaseAdminReactivationBackend()
             )
             actor = require_active_admin(authorization, backend)
         except AuthenticationError:
@@ -648,6 +667,60 @@ def create_app(
                 code="service_unavailable",
                 message="The lifecycle check is temporarily unavailable.",
             ) from None
+    @api.post(
+        "/admin/users/{account_ref}/reactivate",
+        response_model=AdminReactivateResponse,
+        response_model_by_alias=True,
+        responses={
+            401: {"model": ErrorResponse},
+            403: {"model": ErrorResponse},
+            404: {"model": ErrorResponse},
+            409: {"model": ErrorResponse},
+            422: {"model": ErrorResponse},
+            503: {"model": ErrorResponse},
+        },
+    )
+    async def reactivate_admin_account(
+        account_ref: str,
+        payload: AdminReactivateRequest,
+        authorization: str | None = Header(default=None),
+    ) -> AdminReactivateResponse:
+        if not authorization or not authorization.startswith("Bearer ") or not authorization.split(" ", 1)[1].strip():
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.")
+        try:
+            backend = admin_reactivate_backend or FirebaseAdminReactivationBackend()
+            actor = require_active_admin(authorization, backend)
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except AdminPermissionError:
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Account reactivation is temporarily unavailable.") from None
+        try:
+            return AdminReactivateService(backend).reactivate(
+                actor, account_ref=account_ref, idempotency_key=payload.idempotency_key
+            )
+        except ValueError:
+            raise ApiError(status_code=422, code="invalid_request", message="The account reference or request is invalid.") from None
+        except ReactivateAdminTarget:
+            raise ApiError(status_code=409, code="admin_reactivate_not_available", message="This account operation is not available.") from None
+        except ReactivateSelfTarget:
+            raise ApiError(status_code=409, code="lifecycle_conflict", message="This account operation is not available.") from None
+        except ReactivateAlreadyActive:
+            raise ApiError(status_code=409, code="already_active", message="The account is already active.") from None
+        except ReactivatePendingSetup:
+            raise ApiError(status_code=409, code="pending_setup_activation_forbidden", message="This account is not eligible for reactivation.") from None
+        except LookupError:
+            raise ApiError(status_code=404, code="account_not_found", message="The account was not found.") from None
+        except LifecycleIdempotencyConflict:
+            raise ApiError(status_code=409, code="idempotency_conflict", message="This request key was already used for different details.") from None
+        except LifecycleStateConflict:
+            raise ApiError(status_code=409, code="lifecycle_conflict", message="The account operation cannot proceed safely.") from None
+        except (ReactivateAuthIdentityMissing, ReactivateAuthIdentityConflict, ReactivateAuthUnavailable, ReactivateIncomplete):
+            raise ApiError(status_code=503, code="lifecycle_incomplete", message="Account reactivation is temporarily incomplete. Try again.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Account reactivation is temporarily unavailable.") from None
+
     @api.post(
         "/admin/users/{account_ref}/disable",
         response_model=AdminDisableResponse,

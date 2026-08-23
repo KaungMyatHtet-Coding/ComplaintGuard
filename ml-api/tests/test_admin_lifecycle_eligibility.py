@@ -193,6 +193,21 @@ def test_inactive_profile_has_no_disable_eligibility_and_reactivation_is_advisor
     assert body["operations"]["reactivate"] == {"eligible": False, "reason": "pending_setup_activation_forbidden"}
 
 
+def test_trusted_completed_disable_proof_makes_reactivation_advisory_eligible() -> None:
+    backend = FakeLifecycleBackend()
+
+    def proof(**_kwargs: Any) -> str | None:
+        return None
+
+    backend.reactivation_eligibility_reason = proof  # type: ignore[attr-defined]
+    response = client(backend).get(
+        f"/admin/users/{account_reference('staff-inactive')}/lifecycle-eligibility",
+        headers={"Authorization": "Bearer admin-token"},
+    )
+    assert response.status_code == 200
+    assert response.json()["operations"]["reactivate"] == {"eligible": True, "reason": None}
+
+
 def test_disable_route_exists_but_requires_strict_request_body() -> None:
     backend = FakeLifecycleBackend()
     response = client(backend).post(
