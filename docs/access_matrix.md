@@ -121,6 +121,35 @@ enforce claim or assignment ownership. Durable in-app notifications, Customer
 History pagination/unread state, response-target calculation, proactive alerts,
 and all-role Admin listing remain unimplemented.
 
+### R2C10B0 future Customer History read boundary
+
+R2C10B0 is documentation-only approval. The current Customer implementation
+still permits the existing local ownership reads and remains unbounded; direct
+Customer Firestore reads are not yet disabled by this checkpoint.
+
+The future R2C10B-A contract moves Customer ticket history, ticket detail, and
+participant-visible message reads to trusted API projections only. A later
+rules implementation must deny direct client reads of raw `tickets`, ticket
+`messages`, and ticket `events`, while preserving denied direct client writes.
+Customer profile reads, departments, unrelated approved collections, and the
+separately approved notification contract remain unchanged. The trusted
+Firebase Admin backend is not constrained by client rules and must continue to
+perform its own authentication, ownership, projection, and failure checks.
+
+The future R2C10B-A history route is bounded, unfiltered pagination with a
+strict six-field row projection, deterministic `createdAt DESC` plus document
+ID `DESC` ordering, and an unsigned opaque cursor bound to the authenticated
+Customer and exact contract. R2C10B-B adds only reviewed status and department
+filters. Date ranges and exact-reference list lookup remain R2C10B-C deferrals.
+
+R2C10A complaint submission confirmation, same-action unknown-outcome recovery,
+and exact Customer complaint selection remain implemented and verified. This
+documentation checkpoint does not alter that behavior.
+
+No route, parser, frontend state, rules, index, or runtime behavior is claimed
+as implemented by R2C10B0. The future rules change requires Emulator tests
+before adoption.
+
 ### Customer — implemented locally
 
 - Authenticates through the current local setup, submits complaints, views only

@@ -330,6 +330,189 @@ server-side projection that excludes customer IDs, model fields, message or
 sender IDs, raw event/action names and IDs, actor IDs, model rationale, and
 internal reassignment/escalation reasons.
 
+## R2C10B0 approved future Customer History contract
+
+R2C10B0 is documentation and contract approval only. It does not implement the
+Customer History route, pagination, filters, frontend parser, Firestore rules,
+indexes, or runtime behavior. The current local implementation remains an
+unbounded history read with its existing projection until a later approved
+implementation slice.
+
+The current legacy list response remains the envelope `{tickets: [...]}` with
+rows containing `id`, `status`, `priority`, `departmentId`, `summaryText`,
+`createdAt`, `updatedAt`, and `resolvedAt`, subject to the current permissive
+parser/schema behavior. It is not the R2C10B-A projection.
+
+The approved sequence is:
+
+- **R2C10B-A:** API-only Customer ticket/detail/participant-message reads;
+  bounded unfiltered history pagination; a strict minimal list projection;
+  deterministic cursors; strict frontend parsing; abort and stale-response
+  protection; exact-reference deduplication; and Customer-session isolation.
+- **R2C10B-B:** status and department filters, reviewed composite indexes,
+  filter-bound cursors, and frontend filter controls.
+- **R2C10B-C (deferred):** bounded date-range filtering and any exact-reference
+  list lookup, each subject to separate index and cost review.
+
+Full-text search, total counts, charts, analytics, exports, bulk actions,
+message pagination, Staff/Admin history controls, assignment changes, Myanmar
+complaint classification, and Cloud deployment remain out of scope.
+
+### R2C10B-A API contract
+
+The future route is `GET /customer/tickets`. R2C10B-A accepts only:
+
+- `pageSize`: optional integer, default `25`, minimum `1`, maximum `50`;
+- `cursor`: optional opaque cursor of at most `512` ASCII characters.
+
+Status, department, date, search, reference, sort, and other query parameters
+are not accepted in R2C10B-A. The future authorization order is: validate the
+Bearer token; validate a strict active Customer profile and valid `accountState`;
+validate `pageSize` and `cursor`; then execute the ownership-bound ticket
+query. Authorization must finish before any ticket query or cursor-based
+document access. In particular, the implementation must not decode,
+fingerprint-compare, or otherwise inspect the cursor before authentication and
+Customer-profile authorization. An unauthorized caller receives only the
+applicable `401` or `403`, even when the supplied cursor is malformed.
+
+The exact future successful response envelope is:
+
+```json
+{
+  "tickets": [
+    {
+      "complaintId": "ticket_<32 lowercase hexadecimal characters>",
+      "status": "submitted",
+      "departmentId": "transfer_payment",
+      "createdAt": "2026-08-25T10:00:00Z",
+      "updatedAt": "2026-08-25T10:00:00Z",
+      "resolvedAt": null
+    }
+  ],
+  "nextCursor": null,
+  "hasMore": false
+}
+```
+
+Envelope keys are exactly `tickets`, `nextCursor`, and `hasMore`. Row keys are
+exactly `complaintId`, `status`, `departmentId`, `createdAt`, `updatedAt`, and
+`resolvedAt`. `nextCursor` is a non-empty bounded cursor only when `hasMore` is
+`true`; `hasMore: false` requires `nextCursor: null`. Empty results are
+`tickets: []`, `nextCursor: null`, and `hasMore: false`. Total counts are not
+returned.
+
+The existing status values remain `submitted`, `triaged`, `in_progress`,
+`awaiting_customer`, `resolved`, and `closed`. `departmentId` is one of the
+six approved departments or `null` only where the existing ticket lifecycle
+permits an unrouted submitted ticket. `createdAt` and `updatedAt` are
+timezone-aware RFC3339 timestamps. `resolvedAt` is a timezone-aware RFC3339
+timestamp for `resolved` and `closed` tickets and `null` for unresolved
+tickets. Malformed or contradictory persisted rows fail closed with a generic
+safe service error; they are neither exposed nor silently skipped.
+
+The list projection removes `summaryText`, `priority` unless a separately
+reviewed Customer requirement proves it necessary, full complaint text,
+Customer/Staff UIDs, `assignedStaffId`, message/action/event/notification/audit
+identifiers, ML confidence or probabilities, routing/model metadata, internal
+notes, and workflow fields. Full complaint text remains available only through
+the separately authorized owned-detail API.
+
+### R2C10B-A ordering, bounds, and cursor
+
+The future query is ownership-bound by `customerId == authenticated Customer
+UID` and ordered newest-first by `createdAt DESC`, with Firestore document ID
+`DESC` as the deterministic tie-breaker. It reads at most `pageSize + 1`
+documents, returns at most `pageSize` public rows, and uses the extra row only
+to determine `hasMore`. Unbounded streams and frontend filtering over an
+unbounded collection are not approved.
+
+The cursor is unsigned and unencrypted, consistent with existing local cursor
+patterns. It is URL-safe Base64 without padding around strict canonical compact
+UTF-8 JSON with exactly these keys, serialized in this order: `v`,
+`customerBinding`, `contract`, `createdAt`, and `complaintId`. `v` is exactly
+the integer `1`. `customerBinding` and `contract` are exactly 64 lowercase
+SHA-256 hexadecimal characters. `createdAt` is the boundary timestamp and
+`complaintId` is the boundary reference.
+
+Canonical JSON uses UTF-8, no whitespace, JSON strings without alternate
+escaping, finite JSON numbers in their shortest ordinary decimal form, and
+recursively lexicographically sorted object keys for fingerprint inputs. The
+cursor payload itself uses the explicit field order above. The Base64 encoder
+must use the URL-safe alphabet, omit `=` padding, and reject any input with
+padding or another alphabet. Decoding must decode once, validate the exact
+payload types and values, re-encode canonically, and require the re-encoded
+value to equal the supplied cursor byte-for-byte.
+
+The Customer binding input is the canonical compact JSON object
+`{"domain":"complaintguard:customer-history-cursor:v1","project":<trusted
+project/environment boundary>,"uid":<verified authenticated Customer UID>}`.
+The `project` value is supplied only by trusted server configuration; the local
+boundary is `local-emulator:demo-complaintguard`, while any future Cloud value
+requires separate approved deployment configuration. The UID is used only as
+an input to the SHA-256 calculation and is never placed in the cursor.
+
+The contract fingerprint input is the canonical compact JSON object
+`{"domain":"complaintguard:customer-history-query:v1","pageSize":{"default":25,"min":1,"max":50},"projection":["complaintId","status","departmentId","createdAt","updatedAt","resolvedAt"],"query":{"filters":[],"order":[["createdAt","DESC"],["__name__","DESC"]]}}`.
+The empty `filters` array is the explicit R2C10B-A contract boundary; later
+filter slices must use a different contract version/fingerprint.
+
+The cursor contains no raw UID, email, complaint text, token, page contents, or
+private/internal data. It has a strict maximum length of `512`, exact fields
+and types, a timezone-aware RFC3339 boundary timestamp, and a valid
+complaint/document reference. It is bound to the authenticated Customer and
+exact R2C10B-A sort/filter contract, but is never authorization. Malformed,
+non-canonical, tampered, cross-Customer, wrong-version, wrong-filter, or
+otherwise incompatible cursors fail safely before query execution without
+revealing whether another Customer or ticket exists.
+
+Pagination is boundary-based over a moving dataset. New tickets inserted
+between requests may not appear until refresh, but traversal must never cross
+ownership or filter boundaries. The frontend must deduplicate by exact
+complaint reference across pages.
+
+### R2C10B-A errors and read boundary
+
+Future safe mappings are `401` for missing or invalid authentication, `403` for
+an authenticated user who is not a strict active Customer, `422` for malformed
+`pageSize`, malformed/incompatible `cursor`, or unsupported/extra query
+parameters, and `503` for malformed/inconsistent persisted tickets, bounded
+query failure, or backend persistence unavailability. Raw Firestore,
+cursor-decoding, UID, query, and validation details are never returned.
+
+R2C10B-A approves an API-only Customer read boundary. Customer frontend code
+must obtain ticket history, ticket detail, and participant-visible messages
+through trusted API projections. A future Firestore rules change must deny
+direct client reads of raw tickets, ticket messages, and ticket events while
+leaving direct client writes denied. Customer profile access, unrelated
+approved collections, and the separately approved notification contract must
+not change accidentally. Backend Firebase Admin access remains outside client
+rules. No frontend direct-Firestore fallback is permitted.
+
+The future rules change requires local Emulator rules tests before adoption.
+R2C10B0 does not modify the rules.
+
+### R2C10B-A frontend contract
+
+The future frontend client must use a strict plain-object parser that rejects
+arrays, class instances, inherited, accessor, non-enumerable, symbol, extra,
+private, and malformed fields. It validates complaint references, statuses,
+departments, timestamps, cursors, and `hasMore` relationships exactly.
+
+History requests pass an `AbortSignal` and bind request generations to the
+Customer UID/session, cursor, and page contract. Late responses are rejected
+after filter changes, sign-out, Customer changes, selection changes, or
+unmount. Rows are deduplicated by exact complaint reference. Initial load and
+Load More have separate loading states; a Load More failure preserves validated
+rows; a refresh replaces pages only after a valid response; sign-out or
+Customer change aborts and clears history state.
+
+R2C10A confirmed-submission refresh and exact selection remain preserved. If a
+confirmed new complaint is absent from a refreshed page, confirmed success is
+not replayed or converted into failure. R2C10B-A UI includes accessible
+Load More, initial-loading, partial-page-loading, empty, safe-error, and retry
+states in desktop/mobile layouts with English and Myanmar text. Status and
+department controls belong to R2C10B-B, not R2C10B-A.
+
 ## Lifecycle
 
 States are `submitted`, `triaged`, `in_progress`, `awaiting_customer`, `resolved`, and `closed`.

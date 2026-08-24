@@ -67,7 +67,7 @@ workflow evidence.
 
 | Query site | Path and operation | Predicates / ordering | Composite index? | Reason |
 |---|---|---|---|---|
-| Customer ticket history | `tickets`; `where customerId == uid`; `order_by createdAt DESC` | Equality + descending order | Yes | Compound customer history query. |
+| Customer ticket history (current local implementation) | `tickets`; `where customerId == uid`; `order_by createdAt DESC` | Equality + descending order | Yes | Current query is unbounded and has no cursor or deterministic document-ID tie-breaker. |
 | Customer ticket detail | `tickets/{ticketId}` document read | None | No | Direct document lookup. |
 | Customer messages | `tickets/{ticketId}/messages`; `order_by createdAt ASC` | Single-field order | No | Single-field/subcollection ordering. |
 | Staff department queue | `tickets`; `where departmentId == departmentId` | One equality predicate | No | Status, priority, and date filters are applied after the scoped read. |
@@ -84,6 +84,35 @@ The repository has no implemented Firestore `limit`, cursor, listener, or
 additional compound query. Manager and staff reads may need redesign before a
 larger Cloud dataset; adding filters or pagination must trigger a fresh index
 review rather than relying on this matrix.
+
+### R2C10B0 future Customer History index contract
+
+R2C10B0 approves documentation only. It does not add or deploy an index and
+does not change the current unbounded local query. The future R2C10B-A query
+requires this reviewed shape:
+
+```text
+customerId ASC
+createdAt DESC
+__name__ DESC
+```
+
+The query remains ownership-bound and reads `pageSize + 1` documents for a
+maximum public page size of 50. Firestore document ID is the deterministic
+tie-breaker. The local index manifest and any deployed index must not be
+described as adopted until separate implementation, Emulator validation, and
+owner-approved cost/index review are complete.
+
+R2C10B-B status and department filters require an exact reviewed index manifest
+before implementation. Arbitrary combinatorial indexes and date-range indexes
+are not approved by R2C10B0. R2C10B-C date-range filtering and any exact
+reference list lookup remain deferred for separate index and cost review.
+
+The future Customer read boundary is API-only: direct client reads of raw
+tickets, ticket messages, and ticket events must later be denied by Firestore
+rules, while direct writes remain denied. R2C10B0 does not modify rules and no
+Cloud rules/index deployment is authorized. Local Emulator rules tests are
+required before adoption.
 
 ### Local `firestore.indexes.json` preparation
 

@@ -447,6 +447,27 @@ implemented until a corresponding evidence-backed completion entry is added.
 - R2C0 status: Complete as documentation and contract approval only. No
   lifecycle implementation or runtime verification exists.
 
+### Completed - R2C10B0 Customer History contract approval
+
+- [x] Approve the future API-only Customer ticket/detail/participant-message
+  read boundary without claiming that the current direct Firestore reads are
+  disabled.
+- [x] Approve R2C10B-A bounded unfiltered history pagination, exact minimal
+  projection, deterministic `createdAt DESC` plus document-ID `DESC` ordering,
+  page-size bounds, and unsigned Customer/filter-bound cursors.
+- [x] Approve R2C10B-A strict frontend parsing, AbortSignal use, request
+  generations, Customer-session binding, stale-response rejection, exact-row
+  deduplication, Load More, and preservation of R2C10A confirmed selection.
+- [x] Preserve the implemented and verified R2C10A submission confirmation,
+  same-action unknown-outcome recovery, and exact Customer complaint selection.
+- [x] Defer R2C10B-B status/department filters and reviewed composite indexes
+  to a separate implementation slice.
+- [x] Defer R2C10B-C date ranges and exact-reference list lookup to separate
+  index and cost review.
+- R2C10B0 status: Complete as documentation and contract approval only. No
+  route, frontend, backend, rule, index, or runtime behavior is implemented
+  or verified by this checkpoint.
+
 ### Current local-only implementation order
 
 The local Firebase Emulator using `demo-complaintguard` remains the source of
