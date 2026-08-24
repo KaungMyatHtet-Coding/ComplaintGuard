@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import pytest
-from app.customer_workflow import CustomerWorkflowService, InMemoryCustomerBackend
+from app.customer_workflow import (
+    CustomerHistoryCursor,
+    CustomerWorkflowService,
+    InMemoryCustomerBackend,
+    customer_history_binding,
+    customer_history_contract_fingerprint,
+    decode_customer_history_cursor,
+    encode_customer_history_cursor,
+)
 from app.main import create_app
 from fastapi.testclient import TestClient
 
@@ -83,8 +92,18 @@ def _sample_tickets() -> list[dict[str, Any]]:
     ]
 
 
+def _valid_history_tickets() -> list[dict[str, Any]]:
+    tickets = _sample_tickets()
+    tickets[0]["id"] = "ticket_" + "1" * 32
+    tickets[1]["id"] = "ticket_" + "2" * 32
+    tickets[2]["id"] = "ticket_" + "3" * 32
+    tickets[0]["departmentId"] = "transfer_payment"
+    tickets[1]["departmentId"] = "card_atm"
+    return tickets
+
+
 def test_customer_list_tickets():
-    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend = InMemoryCustomerBackend(_valid_history_tickets())
     app = create_app(
         ticket_backend=FakeTicketBackend(),
         customer_backend=backend,
@@ -92,14 +111,17 @@ def test_customer_list_tickets():
     client = TestClient(app)
 
     res = client.get(
-        "/customer/tickets",
+        "/customer/tickets?pageSize=1",
         headers={"Authorization": "Bearer valid_customer_token"},
     )
     assert res.status_code == 200
     data = res.json()
-    assert len(data["tickets"]) == 2
-    ids = {t["id"] for t in data["tickets"]}
-    assert ids == {"t1", "t2"}
+    assert len(data["tickets"]) == 1
+    assert set(data["tickets"][0]) == {
+        "complaintId", "status", "departmentId", "createdAt", "updatedAt", "resolvedAt"
+    }
+    assert data["hasMore"] is True
+    assert data["nextCursor"]
 
 
 def test_customer_ticket_detail_success():
@@ -381,7 +403,7 @@ def test_customer_message_rejects_protected_field_spoofing():
 
 
 def test_customer_list_projection_excludes_internal_fields():
-    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend = InMemoryCustomerBackend(_valid_history_tickets())
     client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend))
 
     response = client.get(
@@ -389,12 +411,9 @@ def test_customer_list_projection_excludes_internal_fields():
     )
 
     assert response.status_code == 200
-    allowed = {
-        "id", "status", "priority", "departmentId", "createdAt", "updatedAt",
-        "resolvedAt", "summaryText",
-    }
+    allowed = {"complaintId", "status", "departmentId", "createdAt", "updatedAt", "resolvedAt"}
     for ticket in response.json()["tickets"]:
-        assert set(ticket) <= allowed
+        assert set(ticket) == allowed
         assert not {"customerId", "assignedStaffId", "predictedDepartmentId",
                     "predictionConfidence", "routingSource"} & set(ticket)
 
@@ -450,3 +469,157 @@ def test_customer_timeline_ignores_unknown_events_and_has_deterministic_ties():
         ("review_started", "2026-08-01T10:00:00Z"),
         ("complaint_resolved", "2026-08-01T10:00:00Z"),
     ]
+
+
+def test_customer_history_pages_with_stable_tie_break_and_cursor():
+    tickets = _valid_history_tickets()
+    tickets[0]["createdAt"] = "2026-08-01T10:00:00Z"
+    tickets[1]["createdAt"] = "2026-08-01T10:00:00Z"
+    tickets[1]["updatedAt"] = "2026-08-01T10:30:00Z"
+    tickets[1]["resolvedAt"] = "2026-08-01T10:20:00Z"
+    backend = InMemoryCustomerBackend(tickets)
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend))
+    headers = {"Authorization": "Bearer valid_customer_token"}
+
+    first = client.get("/customer/tickets?pageSize=1", headers=headers)
+    assert first.status_code == 200
+    first_page = first.json()
+    assert first_page["tickets"][0]["complaintId"] == "ticket_" + "2" * 32
+    assert first_page["hasMore"] is True
+
+    second = client.get(
+        f"/customer/tickets?pageSize=1&cursor={first_page['nextCursor']}",
+        headers=headers,
+    )
+    assert second.status_code == 200
+    second_page = second.json()
+    assert second_page["tickets"][0]["complaintId"] == "ticket_" + "1" * 32
+    assert second_page["hasMore"] is False
+    assert second_page["nextCursor"] is None
+
+
+def test_customer_history_empty_exact_boundary_and_read_bound():
+    class RecordingBackend(InMemoryCustomerBackend):
+        def __init__(self, initial_tickets: list[dict[str, Any]] | None = None) -> None:
+            super().__init__(initial_tickets)
+            self.requests: list[tuple[int, CustomerHistoryCursor | None]] = []
+
+        def list_customer_tickets(
+            self,
+            customer_id: str,
+            page_size: int,
+            cursor: CustomerHistoryCursor | None,
+        ) -> list[dict[str, Any]]:
+            self.requests.append((page_size, cursor))
+            return super().list_customer_tickets(customer_id, page_size, cursor)
+
+    empty_backend = RecordingBackend()
+    empty_client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=empty_backend)
+    )
+    empty = empty_client.get(
+        "/customer/tickets?pageSize=1",
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+    assert empty.status_code == 200
+    assert empty.json() == {"tickets": [], "nextCursor": None, "hasMore": False}
+    assert empty_backend.requests == [(1, None)]
+
+    exact_backend = RecordingBackend(_valid_history_tickets()[:2])
+    exact_client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=exact_backend)
+    )
+    exact = exact_client.get(
+        "/customer/tickets?pageSize=2",
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+    assert exact.status_code == 200
+    assert len(exact.json()["tickets"]) == 2
+    assert exact.json()["hasMore"] is False
+    assert exact.json()["nextCursor"] is None
+    assert exact_backend.requests == [(2, None)]
+
+
+def test_customer_history_insertion_before_next_page_does_not_duplicate_or_skip():
+    tickets = _valid_history_tickets()
+    backend = InMemoryCustomerBackend(tickets)
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend))
+    headers = {"Authorization": "Bearer valid_customer_token"}
+
+    first = client.get("/customer/tickets?pageSize=1", headers=headers).json()
+    backend.tickets["ticket_" + "9" * 32] = {
+        **tickets[0],
+        "id": "ticket_" + "9" * 32,
+        "createdAt": "2026-08-03T00:00:00Z",
+        "updatedAt": "2026-08-03T00:00:00Z",
+    }
+    second = client.get(
+        f"/customer/tickets?pageSize=1&cursor={first['nextCursor']}",
+        headers=headers,
+    ).json()
+    assert second["tickets"][0]["complaintId"] == "ticket_" + "2" * 32
+    assert second["tickets"][0]["complaintId"] != first["tickets"][0]["complaintId"]
+
+
+@pytest.mark.parametrize("query", [
+    "status=submitted",
+    "departmentId=card_atm",
+    "createdFrom=2026-01-01T00:00:00Z",
+    "createdTo=2026-01-01T00:00:00Z",
+    "search=anything",
+    "reference=ticket_" + "a" * 32,
+    "sort=createdAt",
+    "pageSize=1&pageSize=2",
+])
+def test_customer_history_rejects_unsupported_or_duplicate_query(query: str):
+    backend = InMemoryCustomerBackend(_valid_history_tickets())
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend))
+    response = client.get(
+        f"/customer/tickets?{query}",
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+    assert response.status_code == 422
+
+
+def test_customer_history_rejects_cursor_before_query_without_leaking_details():
+    backend = InMemoryCustomerBackend(_valid_history_tickets())
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend))
+    response = client.get(
+        "/customer/tickets?cursor=not-a-cursor",
+        headers={"Authorization": "Bearer invalid"},
+    )
+    assert response.status_code == 401
+    assert "cursor" not in response.text.lower()
+
+
+def test_customer_history_malformed_owned_ticket_fails_closed():
+    tickets = _valid_history_tickets()
+    tickets[0]["updatedAt"] = "not-a-timestamp"
+    client = TestClient(
+        create_app(
+            ticket_backend=FakeTicketBackend(),
+            customer_backend=InMemoryCustomerBackend(tickets),
+        )
+    )
+    response = client.get(
+        "/customer/tickets",
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+    assert response.status_code == 503
+    assert "not-a-timestamp" not in response.text
+
+
+def test_customer_history_cursor_has_stable_vectors_and_rejects_alternates():
+    cursor = CustomerHistoryCursor(
+        datetime.fromisoformat("2026-08-01T00:00:00+00:00"),
+        "ticket_" + "a" * 32,
+    )
+    assert customer_history_binding("cust_123") == "fdf71536d14b5ecf4fe0d2557eba7923e51c564743fcedd36d9350fe1ff92d19"
+    assert customer_history_contract_fingerprint() == "4ac5ad4a38cccd46411ad7c740dc66057e3bddae2e5cc3f86b6969f90ae0eeae"
+    encoded = encode_customer_history_cursor(cursor, "cust_123")
+    assert encoded == "eyJ2IjoxLCJjdXN0b21lckJpbmRpbmciOiJmZGY3MTUzNmQxNGI1ZWNmNGZlMGQyNTU3ZWJhNzkyM2U1MWM1NjQ3NDNmY2VkZDM2ZDkzNTBmZTFmZjkyZDE5IiwiY29udHJhY3QiOiI0YWM1YWQ0YTM4Y2NjZDQ2NDExYWQ3Yzc0MGRjNjYwNTdlM2JkZGFlMmU1Y2MzZjg2YjY5NjlmOTBhZTBlZWFlIiwiY3JlYXRlZEF0IjoiMjAyNi0wOC0wMVQwMDowMDowMFoiLCJjb21wbGFpbnRJZCI6InRpY2tldF9hYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSJ9"
+    assert decode_customer_history_cursor(encoded, "cust_123").complaint_id == cursor.complaint_id
+    assert decode_customer_history_cursor(encoded, "cust_123").created_at == cursor.created_at
+    for alternate in (encoded + "=", encoded.replace("A", " ", 1)):
+        with pytest.raises(ValueError):
+            decode_customer_history_cursor(alternate, "cust_123")

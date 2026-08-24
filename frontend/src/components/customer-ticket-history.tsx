@@ -13,6 +13,10 @@ type CustomerTicketHistoryProps = {
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  loadingMore: boolean;
+  loadMoreError: string | null;
+  hasMore: boolean;
+  onLoadMore: () => void;
 };
 
 function statusClass(status: string) {
@@ -54,6 +58,10 @@ export function CustomerTicketHistory({
   loading,
   error,
   onRefresh,
+  loadingMore,
+  loadMoreError,
+  hasMore,
+  onLoadMore,
 }: CustomerTicketHistoryProps) {
   return (
     <div className="cust-card">
@@ -73,6 +81,9 @@ export function CustomerTicketHistory({
         {error && (
           <div className="cust-error" role="alert" style={{ marginBottom: '1rem' }}>
             {error}
+            <button type="button" className="cust-refresh-btn" onClick={onRefresh}>
+              {translate(locale, "customerRetryHistory")}
+            </button>
           </div>
         )}
 
@@ -87,26 +98,23 @@ export function CustomerTicketHistory({
       ) : (
         <div className="cust-ticket-list">
           {tickets.map((t) => {
-            const isSelected = t.id === selectedTicketId;
+            const isSelected = t.complaintId === selectedTicketId;
             return (
               <button
-                key={t.id}
+                key={t.complaintId}
                 type="button"
-                onClick={() => onSelectTicket(t.id)}
+                onClick={() => onSelectTicket(t.complaintId)}
                 className="cust-ticket-btn"
                 aria-pressed={isSelected}
               >
                 <div className="cust-ticket-top">
                   <span className="cust-ticket-id">
-                    {translate(locale, "customerTicketId")}: {t.id}
+                    {translate(locale, "customerTicketId")}: {t.complaintId}
                   </span>
                   <span className={`cust-status-pill ${statusClass(t.status)}`}>
                     {formatStatus(t.status, locale)}
                   </span>
                 </div>
-                <p className="cust-ticket-summary">
-                  {t.summaryText || translate(locale, "customerNoSummary")}
-                </p>
                 <div className="cust-ticket-date">
                   {new Date(t.createdAt).toLocaleDateString(
                     locale === "my" ? "my-MM" : "en-US",
@@ -117,6 +125,25 @@ export function CustomerTicketHistory({
             );
           })}
         </div>
+      )}
+      {loadMoreError && (
+        <div className="cust-error" role="alert">
+          {loadMoreError}
+          <button type="button" className="cust-refresh-btn" onClick={onLoadMore}>
+            {translate(locale, "customerRetryHistory")}
+          </button>
+        </div>
+      )}
+      {hasMore && !loadMoreError && (
+        <button
+          type="button"
+          className="cust-refresh-btn"
+          onClick={onLoadMore}
+          disabled={loadingMore}
+          aria-busy={loadingMore}
+        >
+          {loadingMore ? translate(locale, "loading") : translate(locale, "customerLoadMore")}
+        </button>
       )}
       </div>
     </div>

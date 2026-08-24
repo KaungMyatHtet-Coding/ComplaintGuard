@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import json
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
@@ -12,12 +16,13 @@ from app.schemas import (
     CustomerFeedbackResponse,
     CustomerMessageItem,
     CustomerMessageRequest,
-    CustomerTimelineItem,
     CustomerTicketDetail,
+    CustomerTicketListResponse,
     CustomerTicketSummary,
+    CustomerTimelineItem,
 )
+from app.ticketing import PersistenceError
 from app.ticketing import redact_sensitive_data as redact_pii
-
 
 _PUBLIC_DEPARTMENTS = frozenset(
     {
@@ -41,6 +46,162 @@ _TIMELINE_STATUS_RANKS = {
     "resolved": 32,
     "closed": 33,
 }
+_TICKET_ID_PATTERN = re.compile(r"^ticket_[a-f0-9]{32}$")
+CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE = 25
+CUSTOMER_HISTORY_MIN_PAGE_SIZE = 1
+CUSTOMER_HISTORY_MAX_PAGE_SIZE = 50
+CUSTOMER_HISTORY_CURSOR_MAX_LENGTH = 512
+CUSTOMER_HISTORY_CURSOR_VERSION = 1
+CUSTOMER_HISTORY_PROJECT = "local-emulator:demo-complaintguard"
+_CUSTOMER_HISTORY_CURSOR_DOMAIN = "complaintguard:customer-history-cursor:v1"
+_CUSTOMER_HISTORY_QUERY_DOMAIN = "complaintguard:customer-history-query:v1"
+_CUSTOMER_HISTORY_PROJECTION = (
+    "complaintId",
+    "status",
+    "departmentId",
+    "createdAt",
+    "updatedAt",
+    "resolvedAt",
+)
+_RFC3339_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?"
+    r"(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$"
+)
+
+
+class CustomerHistoryCursorError(ValueError):
+    """Raised when a Customer History cursor is not canonical and compatible."""
+
+
+class CustomerHistoryDataError(PersistenceError):
+    """Raised when an owned ticket cannot be safely projected."""
+
+
+class CustomerHistoryCursor:
+    def __init__(self, created_at: datetime, complaint_id: str) -> None:
+        self.created_at = created_at
+        self.complaint_id = complaint_id
+
+
+def _canonical_json(value: object) -> str:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+
+
+def _sha256_hex(value: object) -> str:
+    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def customer_history_binding(customer_id: str) -> str:
+    return _sha256_hex(
+        {
+            "domain": _CUSTOMER_HISTORY_CURSOR_DOMAIN,
+            "project": CUSTOMER_HISTORY_PROJECT,
+            "uid": customer_id,
+        }
+    )
+
+
+def customer_history_contract_fingerprint() -> str:
+    return _sha256_hex(
+        {
+            "domain": _CUSTOMER_HISTORY_QUERY_DOMAIN,
+            "pageSize": {
+                "default": CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE,
+                "min": CUSTOMER_HISTORY_MIN_PAGE_SIZE,
+                "max": CUSTOMER_HISTORY_MAX_PAGE_SIZE,
+            },
+            "projection": list(_CUSTOMER_HISTORY_PROJECTION),
+            "query": {
+                "filters": [],
+                "order": [["createdAt", "DESC"], ["__name__", "DESC"]],
+            },
+        }
+    )
+
+
+def _timestamp_from_value(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str) and _RFC3339_PATTERN.fullmatch(value):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise CustomerHistoryDataError("ticket timestamp is invalid") from exc
+    else:
+        raise CustomerHistoryDataError("ticket timestamp is invalid")
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise CustomerHistoryDataError("ticket timestamp has no UTC offset")
+    return parsed
+
+
+def _rfc3339(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _cursor_payload(cursor: CustomerHistoryCursor, customer_id: str) -> dict[str, object]:
+    return {
+        "v": CUSTOMER_HISTORY_CURSOR_VERSION,
+        "customerBinding": customer_history_binding(customer_id),
+        "contract": customer_history_contract_fingerprint(),
+        "createdAt": _rfc3339(cursor.created_at),
+        "complaintId": cursor.complaint_id,
+    }
+
+
+def encode_customer_history_cursor(cursor: CustomerHistoryCursor, customer_id: str) -> str:
+    payload = _cursor_payload(cursor, customer_id)
+    raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    encoded = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
+    if len(encoded) > CUSTOMER_HISTORY_CURSOR_MAX_LENGTH:
+        raise CustomerHistoryCursorError("cursor is too long")
+    return encoded
+
+
+def decode_customer_history_cursor(value: str, customer_id: str) -> CustomerHistoryCursor:
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > CUSTOMER_HISTORY_CURSOR_MAX_LENGTH
+        or not value.isascii()
+        or "=" in value
+        or not re.fullmatch(r"[A-Za-z0-9_-]+", value)
+        or len(value) % 4 == 1
+    ):
+        raise CustomerHistoryCursorError("cursor is invalid")
+    try:
+        padding = "=" * (-len(value) % 4)
+        raw = base64.b64decode(value + padding, altchars=b"-_", validate=True)
+        payload = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CustomerHistoryCursorError("cursor is invalid") from exc
+    if (
+        not isinstance(payload, dict)
+        or list(payload) != ["v", "customerBinding", "contract", "createdAt", "complaintId"]
+        or payload.get("v") != CUSTOMER_HISTORY_CURSOR_VERSION
+        or not isinstance(payload.get("customerBinding"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", payload["customerBinding"])
+        or payload["customerBinding"] != customer_history_binding(customer_id)
+        or not isinstance(payload.get("contract"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", payload["contract"])
+        or payload["contract"] != customer_history_contract_fingerprint()
+        or not isinstance(payload.get("createdAt"), str)
+        or not isinstance(payload.get("complaintId"), str)
+        or not _TICKET_ID_PATTERN.fullmatch(payload["complaintId"])
+    ):
+        raise CustomerHistoryCursorError("cursor is incompatible")
+    try:
+        created_at = _timestamp_from_value(payload["createdAt"])
+    except CustomerHistoryDataError as exc:
+        raise CustomerHistoryCursorError("cursor timestamp is invalid") from exc
+    cursor = CustomerHistoryCursor(created_at, payload["complaintId"])
+    if encode_customer_history_cursor(cursor, customer_id) != value:
+        raise CustomerHistoryCursorError("cursor is not canonical")
+    return cursor
 
 
 def _timestamp_text(value: Any) -> str | None:
@@ -138,8 +299,13 @@ class CustomerBackend(ABC):
     """Abstract interface for Customer Firestore operations."""
 
     @abstractmethod
-    def list_customer_tickets(self, customer_id: str) -> list[dict[str, Any]]:
-        """List all tickets owned by customer_id."""
+    def list_customer_tickets(
+        self,
+        customer_id: str,
+        page_size: int,
+        cursor: CustomerHistoryCursor | None,
+    ) -> list[dict[str, Any]]:
+        """List at most page_size + 1 owned tickets after the cursor."""
 
     @abstractmethod
     def get_customer_ticket(
@@ -194,10 +360,29 @@ class InMemoryCustomerBackend(CustomerBackend):
         self.feedbacks: dict[str, dict[str, Any]] = {}
         self.actions: dict[tuple[str, str], dict[str, Any]] = {}
 
-    def list_customer_tickets(self, customer_id: str) -> list[dict[str, Any]]:
-        res = [t for t in self.tickets.values() if t.get("customerId") == customer_id]
-        res.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
-        return res
+    def list_customer_tickets(
+        self,
+        customer_id: str,
+        page_size: int,
+        cursor: CustomerHistoryCursor | None,
+    ) -> list[dict[str, Any]]:
+        records: list[tuple[datetime, str, dict[str, Any]]] = []
+        for ticket in self.tickets.values():
+            if ticket.get("customerId") != customer_id:
+                continue
+            created_at = _timestamp_from_value(ticket.get("createdAt"))
+            ticket_id = ticket.get("id")
+            if not isinstance(ticket_id, str) or not _TICKET_ID_PATTERN.fullmatch(ticket_id):
+                raise CustomerHistoryDataError("ticket reference is invalid")
+            records.append((created_at, ticket_id, ticket))
+        records.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        if cursor is not None:
+            records = [
+                item
+                for item in records
+                if (item[0], item[1]) < (cursor.created_at, cursor.complaint_id)
+            ]
+        return [item[2] for item in records[: page_size + 1]]
 
     def get_customer_ticket(
         self, customer_id: str, ticket_id: str
@@ -304,15 +489,28 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
 
                 raise PersistenceError("Firebase Admin is not configured") from exc
 
-    def list_customer_tickets(self, customer_id: str) -> list[dict[str, Any]]:
+    def list_customer_tickets(
+        self,
+        customer_id: str,
+        page_size: int,
+        cursor: CustomerHistoryCursor | None,
+    ) -> list[dict[str, Any]]:
         from google.cloud.firestore_v1.base_query import FieldFilter
 
         query = (
             self.db.collection("tickets")
             .where(filter=FieldFilter("customerId", "==", customer_id))
             .order_by("createdAt", direction="DESCENDING")
+            .order_by("__name__", direction="DESCENDING")
         )
-        docs = query.stream()
+        if cursor is not None:
+            query = query.start_after(
+                {
+                    "createdAt": cursor.created_at,
+                    "__name__": self.db.collection("tickets").document(cursor.complaint_id),
+                }
+            )
+        docs = query.limit(page_size + 1).stream()
         results = []
         for d in docs:
             data = d.to_dict()
@@ -467,26 +665,87 @@ class CustomerWorkflowService:
     def __init__(self, backend: CustomerBackend) -> None:
         self.backend = backend
 
-    def list_tickets(self, customer_id: str) -> list[CustomerTicketSummary]:
-        raw_tickets = self.backend.list_customer_tickets(customer_id)
-        summaries = []
-        for t in raw_tickets:
-            summary_text = t.get("complaintText", t.get("originalText", ""))[:120]
-            summaries.append(
-                CustomerTicketSummary(
-                    id=t["id"],
-                    status=t.get("status", "submitted"),
-                    priority=t.get("priority", "normal"),
-                    departmentId=t.get("departmentId"),
-                    createdAt=str(t.get("createdAt", "")),
-                    updatedAt=str(t.get("updatedAt", t.get("createdAt", ""))),
-                    resolvedAt=str(t["resolvedAt"])
-                    if t.get("resolvedAt")
-                    else None,
-                    summaryText=summary_text,
-                )
+    def list_ticket_page(
+        self,
+        customer_id: str,
+        page_size: int,
+        cursor: CustomerHistoryCursor | None,
+    ) -> CustomerTicketListResponse:
+        try:
+            raw_tickets = self.backend.list_customer_tickets(
+                customer_id, page_size, cursor
             )
-        return summaries
+            if len(raw_tickets) > page_size + 1:
+                raise CustomerHistoryDataError("history page exceeded bound")
+            for ticket in raw_tickets:
+                if ticket.get("customerId") != customer_id:
+                    raise CustomerHistoryDataError("ticket ownership is invalid")
+                ticket_id = ticket.get("id")
+                if not isinstance(ticket_id, str) or not _TICKET_ID_PATTERN.fullmatch(ticket_id):
+                    raise CustomerHistoryDataError("ticket reference is invalid")
+                _timestamp_from_value(ticket.get("createdAt"))
+            summaries: list[CustomerTicketSummary] = []
+            for ticket in raw_tickets[:page_size]:
+                created_at = _timestamp_from_value(ticket.get("createdAt"))
+                updated_at = _timestamp_from_value(
+                    ticket.get("updatedAt", ticket.get("createdAt"))
+                )
+                resolved_raw = ticket.get("resolvedAt")
+                resolved_at = (
+                    _timestamp_from_value(resolved_raw)
+                    if resolved_raw is not None
+                    else None
+                )
+                summary = CustomerTicketSummary(
+                    complaintId=ticket.get("id"),
+                    status=ticket.get("status"),
+                    departmentId=ticket.get("departmentId"),
+                    createdAt=_rfc3339(created_at),
+                    updatedAt=_rfc3339(updated_at),
+                    resolvedAt=_rfc3339(resolved_at) if resolved_at else None,
+                )
+                summaries.append(summary)
+            ids = [summary.complaint_id for summary in summaries]
+            if len(ids) != len(set(ids)):
+                raise CustomerHistoryDataError("history page contains duplicate tickets")
+            has_more = len(raw_tickets) > page_size
+            next_cursor = (
+                encode_customer_history_cursor(
+                    CustomerHistoryCursor(
+                        _timestamp_from_value(raw_tickets[page_size - 1]["createdAt"]),
+                        raw_tickets[page_size - 1]["id"],
+                    ),
+                    customer_id,
+                )
+                if has_more
+                else None
+            )
+            return CustomerTicketListResponse(
+                tickets=summaries,
+                nextCursor=next_cursor,
+                hasMore=has_more,
+            )
+        except CustomerHistoryDataError:
+            raise
+        except PersistenceError:
+            raise
+        except Exception as exc:
+            raise CustomerHistoryDataError("customer history projection failed") from exc
+
+    def list_tickets(
+        self,
+        customer_id: str,
+        page_size: int | None = None,
+        cursor: CustomerHistoryCursor | None = None,
+    ) -> CustomerTicketListResponse | list[CustomerTicketSummary]:
+        page = self.list_ticket_page(
+            customer_id,
+            page_size or CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE,
+            cursor,
+        )
+        if page_size is None and cursor is None:
+            return page.tickets
+        return page
 
     @staticmethod
     def _project_message(raw_message: dict[str, Any]) -> CustomerMessageItem:
@@ -505,7 +764,7 @@ class CustomerWorkflowService:
             raise ValueError("message is not participant-visible")
         body = canonical.get("body")
         if not isinstance(body, str):
-            raise ValueError("message has an invalid body")
+            raise TypeError("message has an invalid body")
         return CustomerMessageItem(
             senderRole=public_role,
             body=body,

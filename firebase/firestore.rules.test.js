@@ -71,30 +71,34 @@ afterAll(async () => {
 });
 
 describe("ComplaintGuard Firestore rules", () => {
-  it("limits customers to their own tickets", async () => {
+  it("denies raw ticket reads to customers and cross-customer access", async () => {
     const db = testEnvironment.authenticatedContext("customer-a").firestore();
-    await assertSucceeds(getDoc(doc(db, "tickets/card-ticket")));
+    await assertFails(getDoc(doc(db, "tickets/card-ticket")));
     await assertFails(getDoc(doc(db, "tickets/pending-ticket")));
   });
 
-  it("requires exact staff department and denies null-department tickets", async () => {
+  it("denies raw ticket reads to staff regardless of department", async () => {
     for (const [index, staff] of staffDepartments.entries()) {
       const db = testEnvironment.authenticatedContext(staff.uid).firestore();
       const otherDepartment = staffDepartments[(index + 1) % staffDepartments.length];
-      await assertSucceeds(
-        getDoc(doc(db, `tickets/${staff.departmentId}-ticket`)),
-      );
       await assertFails(
         getDoc(doc(db, `tickets/${otherDepartment.departmentId}-ticket`)),
       );
+      await assertFails(getDoc(doc(db, `tickets/${staff.departmentId}-ticket`)));
       await assertFails(getDoc(doc(db, "tickets/pending-ticket")));
     }
   });
 
-  it("allows active managers to read tickets", async () => {
+  it("denies raw ticket reads to managers", async () => {
     const db = testEnvironment.authenticatedContext("manager-a").firestore();
-    await assertSucceeds(getDoc(doc(db, "tickets/card-ticket")));
-    await assertSucceeds(getDoc(doc(db, "tickets/pending-ticket")));
+    await assertFails(getDoc(doc(db, "tickets/card-ticket")));
+    await assertFails(getDoc(doc(db, "tickets/pending-ticket")));
+  });
+
+  it("denies raw ticket, message, and event reads to customers", async () => {
+    const db = testEnvironment.authenticatedContext("customer-a").firestore();
+    await assertFails(getDoc(doc(db, "tickets/card-ticket/messages/message-a")));
+    await assertFails(getDoc(doc(db, "tickets/card-ticket/events/event-a")));
   });
 
   it("denies direct client ticket, message, and event writes", async () => {

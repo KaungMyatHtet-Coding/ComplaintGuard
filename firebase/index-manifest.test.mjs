@@ -19,6 +19,7 @@ const expectedIndexes = {
       fields: [
         { fieldPath: "customerId", order: "ASCENDING" },
         { fieldPath: "createdAt", order: "DESCENDING" },
+        { fieldPath: "__name__", order: "DESCENDING" },
       ],
     },
     {

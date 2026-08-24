@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchCustomerTickets,
   fetchCustomerTicketDetail,
+  parseCustomerTicketHistoryPage,
   sendCustomerMessage,
   submitCustomerFeedback,
   CustomerWorkflowError,
@@ -26,20 +27,26 @@ describe("Customer Workflow Client Library", () => {
       json: async () => ({
         tickets: [
           {
-            id: "t1",
+            complaintId: "ticket_" + "a".repeat(32),
             status: "submitted",
-            priority: "normal",
-            createdAt: "2026-08-01",
-            updatedAt: "2026-08-01",
-            summaryText: "Transfer issue",
+            departmentId: null,
+            createdAt: "2026-08-01T00:00:00Z",
+            updatedAt: "2026-08-01T00:00:00Z",
+            resolvedAt: null,
           },
         ],
+        nextCursor: null,
+        hasMore: false,
       }),
     });
 
-    const tickets = await fetchCustomerTickets("test_token", mockFetcher as unknown as typeof fetch);
-    expect(tickets).toHaveLength(1);
-    expect(tickets[0].id).toBe("t1");
+    const page = await fetchCustomerTickets("test_token", { fetcher: mockFetcher as unknown as typeof fetch });
+    expect(page.tickets).toHaveLength(1);
+    expect(page.tickets[0].complaintId).toBe("ticket_" + "a".repeat(32));
+    expect(mockFetcher).toHaveBeenCalledWith(
+      "http://localhost:8000/customer/tickets?pageSize=25",
+      expect.objectContaining({ signal: undefined }),
+    );
   });
 
   it("handles auth error when fetching tickets", async () => {
@@ -50,7 +57,7 @@ describe("Customer Workflow Client Library", () => {
     });
 
     await expect(
-      fetchCustomerTickets("invalid_token", mockFetcher as unknown as typeof fetch)
+      fetchCustomerTickets("invalid_token", { fetcher: mockFetcher as unknown as typeof fetch })
     ).rejects.toThrow(CustomerWorkflowError);
   });
 
@@ -58,11 +65,46 @@ describe("Customer Workflow Client Library", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_ENV", "cloud-staging");
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "https://api.example.test");
     const fetcher = vi.fn();
-    await expect(fetchCustomerTickets("token", fetcher as unknown as typeof fetch)).rejects.toMatchObject({ code: "backend" });
+    await expect(fetchCustomerTickets("token", { fetcher: fetcher as unknown as typeof fetch })).rejects.toMatchObject({ code: "backend" });
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("fetches ticket detail and timeline", async () => {
+  it("parses hostile history rows strictly", () => {
+    const valid = {
+      complaintId: "ticket_" + "a".repeat(32),
+      status: "submitted",
+      departmentId: null,
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+      resolvedAt: null,
+    };
+    expect(() => parseCustomerTicketHistoryPage({ tickets: [valid], nextCursor: null, hasMore: false, privateField: "x" })).toThrow();
+    const inherited = Object.create({ tickets: [valid] }) as Record<string, unknown>;
+    inherited.nextCursor = null;
+    inherited.hasMore = false;
+    expect(() => parseCustomerTicketHistoryPage(inherited)).toThrow();
+    const accessor = { tickets: [valid], nextCursor: null, hasMore: false };
+    Object.defineProperty(accessor, "tickets", { enumerable: true, get: () => [valid] });
+    expect(() => parseCustomerTicketHistoryPage(accessor)).toThrow();
+  });
+
+  it("rejects a cursor timestamp that the backend would not re-encode canonically", () => {
+    const payload = JSON.stringify({
+      v: 1,
+      customerBinding: "a".repeat(64),
+      contract: "b".repeat(64),
+      createdAt: "2026-08-01T00:00:00+00:00",
+      complaintId: "ticket_" + "a".repeat(32),
+    });
+    const cursor = btoa(payload).replace(/\+/gu, "-").replace(/\//gu, "_").replace(/=+$/u, "");
+    expect(() => parseCustomerTicketHistoryPage({
+      tickets: [],
+      nextCursor: cursor,
+      hasMore: true,
+    })).toThrow();
+  });
+
+  it("propagates AbortSignal and encodes detail references", async () => {
     const mockFetcher = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -79,9 +121,14 @@ describe("Customer Workflow Client Library", () => {
       }),
     });
 
-    const detail = await fetchCustomerTicketDetail("t1", "test_token", mockFetcher as unknown as typeof fetch);
+    const controller = new AbortController();
+    const detail = await fetchCustomerTicketDetail("t1/x", "test_token", mockFetcher as unknown as typeof fetch, controller.signal);
     expect(detail.id).toBe("t1");
     expect(detail.status).toBe("in_progress");
+    expect(mockFetcher).toHaveBeenCalledWith(
+      "http://localhost:8000/customer/tickets/t1%2Fx",
+      expect.objectContaining({ signal: controller.signal }),
+    );
   });
 
   it("sends customer message successfully", async () => {

@@ -532,20 +532,59 @@ class StaffMutationResponse(BaseModel):
 class CustomerTicketSummary(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str
+    complaint_id: str = Field(alias="complaintId", pattern=r"^ticket_[a-f0-9]{32}$")
     status: TicketStatus
-    priority: str = "normal"
-    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
-    summary_text: str = Field(default="", alias="summaryText")
-    created_at: str = Field(alias="createdAt")
-    updated_at: str = Field(alias="updatedAt")
-    resolved_at: str | None = Field(default=None, alias="resolvedAt")
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+    resolved_at: datetime | None = Field(default=None, alias="resolvedAt")
+
+    @property
+    def id(self) -> str:
+        """Compatibility accessor for trusted internal callers only."""
+        return self.complaint_id
+
+    @field_validator("created_at", "updated_at", "resolved_at")
+    @classmethod
+    def require_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None or (
+            value is not None and value.utcoffset() is None
+        ):
+            raise ValueError("customer ticket timestamps must include a UTC offset")
+        return value
+
+    @model_validator(mode="after")
+    def validate_ordering_and_state(self) -> "CustomerTicketSummary":
+        if self.updated_at < self.created_at:
+            raise ValueError("updatedAt must not precede createdAt")
+        if self.status in {"resolved", "closed"}:
+            if self.resolved_at is None:
+                raise ValueError("resolved tickets require resolvedAt")
+        elif self.resolved_at is not None:
+            raise ValueError("unresolved tickets must not expose resolvedAt")
+        if self.resolved_at is not None and (
+            self.resolved_at < self.created_at or self.resolved_at > self.updated_at
+        ):
+            raise ValueError("resolvedAt must be between createdAt and updatedAt")
+        if self.status != "submitted" and self.department_id is None:
+            raise ValueError("routed tickets require departmentId")
+        return self
 
 
 class CustomerTicketListResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     tickets: list[CustomerTicketSummary]
+    next_cursor: StrictStr | None = Field(alias="nextCursor")
+    has_more: StrictBool = Field(alias="hasMore")
+
+    @model_validator(mode="after")
+    def validate_page_contract(self) -> "CustomerTicketListResponse":
+        if self.has_more and not self.next_cursor:
+            raise ValueError("hasMore pages require nextCursor")
+        if not self.has_more and self.next_cursor is not None:
+            raise ValueError("final pages must not expose nextCursor")
+        return self
 
 
 class CustomerMessageItem(BaseModel):
