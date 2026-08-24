@@ -4,16 +4,19 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useApp } from "@/components/app-provider";
-import { getDepartmentLabel } from "@/lib/department-labels";
+import { departmentIds, getDepartmentLabel, isDepartmentId, type DepartmentId } from "@/lib/department-labels";
 import {
   continueAdminDisable,
   continueAdminReactivate,
+  continueAdminDepartmentReassignment,
   disableAdminAccount,
   generateAdminLifecycleIdempotencyKey,
   loadAdminLifecycleRecoveryStatus,
   reactivateAdminAccount,
+  reassignAdminDepartment,
   type AdminDisableResult,
   type AdminReactivateResult,
+  type AdminReassignDepartmentResult,
   type AdminLifecycleRequestError,
   type AdminLifecycleRecoveryOperation,
   type AdminLifecycleRecoveryStatus,
@@ -41,7 +44,7 @@ type AdminAccountDetailProps = {
   fallbackRef: React.RefObject<HTMLElement | null>;
   canRestoreFocus: () => boolean;
   onClose: () => void;
-  onLifecycleSuccess?: (accountRef: string, operation?: "disable" | "reactivate") => void;
+  onLifecycleSuccess?: (accountRef: string, operation?: "disable" | "reactivate" | "reassign_department", departmentId?: DepartmentId) => void;
 };
 
 function focusableElements(container: HTMLElement): HTMLElement[] {
@@ -76,6 +79,7 @@ const eligibilityReasonMessages: Record<NonNullable<AdminLifecycleEligibility["o
 
 type DisableMutationState = "idle" | "confirming" | "submitting" | "unknown" | "retryable" | "recoverable" | "success" | "operator_required" | "error";
 type ReactivateMutationState = DisableMutationState;
+type ReassignMutationState = DisableMutationState;
 
 export function isFreshDisableTarget(row: AdminDirectoryRow): boolean {
   return row.active && row.accountState === "active" && (row.role === "customer" || row.role === "staff" || row.role === "manager");
@@ -100,6 +104,21 @@ export function isFreshReactivateRecoveryCompatible(recovery: AdminLifecycleReco
   );
 }
 
+export function isFreshReassignTarget(row: AdminDirectoryRow): boolean {
+  return row.role === "staff" && row.active && row.accountState === "active" && isDepartmentId(row.departmentId);
+}
+
+export function isFreshReassignEligible(
+  row: AdminDirectoryRow,
+  eligibility: AdminLifecycleEligibility,
+): boolean {
+  return isFreshReassignTarget(row) && eligibility.accountRef === row.accountRef && eligibility.profileState === "active" && eligibility.operations.reassignDepartment.eligible;
+}
+
+export function isFreshReassignRecoveryCompatible(recovery: AdminLifecycleRecoveryStatus): boolean {
+  return recovery.recoveryState === "none";
+}
+
 function operationLabel(t: (key: MessageKey) => string, operation: AdminLifecycleRecoveryOperation): string {
   if (operation === "disable") return t("adminLifecycleOperationDisable");
   if (operation === "reactivate") return t("adminLifecycleOperationReactivate");
@@ -112,6 +131,7 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const disableButtonRef = useRef<HTMLButtonElement>(null);
   const reactivateButtonRef = useRef<HTMLButtonElement>(null);
+  const reassignButtonRef = useRef<HTMLButtonElement>(null);
   const confirmationDialogRef = useRef<HTMLDivElement>(null);
   const confirmationCancelRef = useRef<HTMLButtonElement>(null);
   const confirmationContinueRef = useRef(false);
@@ -121,13 +141,19 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   const reactivateKeyRef = useRef<string | null>(null);
   const reactivateAttemptControllerRef = useRef<AbortController | null>(null);
   const reactivateRequestIdRef = useRef(0);
+  const reassignKeyRef = useRef<string | null>(null);
+  const reassignDestinationRef = useRef<DepartmentId | null>(null);
+  const reassignAttemptControllerRef = useRef<AbortController | null>(null);
+  const reassignRequestIdRef = useRef(0);
   const unknownOutcomeRef = useRef(false);
   const resolvedUnknownRef = useRef(false);
   const reactivateUnknownOutcomeRef = useRef(false);
   const reactivateResolvedUnknownRef = useRef(false);
+  const reassignUnknownOutcomeRef = useRef(false);
+  const reassignResolvedUnknownRef = useRef(false);
   const recoveryStatusInFlightRef = useRef(false);
   const confirmationOpenRef = useRef(false);
-  const confirmationOperationRef = useRef<"disable" | "reactivate">("disable");
+  const confirmationOperationRef = useRef<"disable" | "reactivate" | "reassign">("disable");
   const [lifecycleState, setLifecycleState] = useState<LifecycleDetailState>({ status: "loading" });
   const [lifecycleRetryNonce, setLifecycleRetryNonce] = useState(0);
   const [disableMutationState, setDisableMutationState] = useState<DisableMutationState>("idle");
@@ -135,7 +161,10 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   const [disableMessage, setDisableMessage] = useState<"success" | "unknown" | "error" | null>(null);
   const [reactivateMutationState, setReactivateMutationState] = useState<ReactivateMutationState>("idle");
   const [reactivateMessage, setReactivateMessage] = useState<"success" | "unknown" | "error" | null>(null);
-  const [confirmationOperation, setConfirmationOperation] = useState<"disable" | "reactivate">("disable");
+  const [reassignMutationState, setReassignMutationState] = useState<ReassignMutationState>("idle");
+  const [reassignMessage, setReassignMessage] = useState<"success" | "unknown" | "conflict" | "same_department" | "error" | null>(null);
+  const [reassignDestination, setReassignDestination] = useState<DepartmentId | "">("");
+  const [confirmationOperation, setConfirmationOperation] = useState<"disable" | "reactivate" | "reassign">("disable");
   const lifecycleRequestIdRef = useRef(0);
   useEffect(() => {
     confirmationOpenRef.current = disableConfirmationOpen;
@@ -203,6 +232,41 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     setReactivateMessage("success");
     setDisableConfirmationOpen(false);
     onLifecycleSuccess?.(row.accountRef, "reactivate");
+    setLifecycleRetryNonce((value) => value + 1);
+  }, [onLifecycleSuccess, row.accountRef]);
+
+  const clearReassignAttempt = () => {
+    reassignKeyRef.current = null;
+    reassignDestinationRef.current = null;
+    reassignUnknownOutcomeRef.current = false;
+    reassignResolvedUnknownRef.current = false;
+  };
+
+  const resetReassignState = () => {
+    reassignRequestIdRef.current += 1;
+    reassignAttemptControllerRef.current?.abort();
+    reassignAttemptControllerRef.current = null;
+    clearReassignAttempt();
+    setReassignDestination("");
+    setReassignMutationState("idle");
+    setReassignMessage(null);
+  };
+
+  const finishReassign = useCallback((result: AdminReassignDepartmentResult) => {
+    if (result.accountRef !== row.accountRef || !isDepartmentId(result.departmentId)) {
+      setReassignMutationState("error");
+      setReassignMessage("error");
+      clearReassignAttempt();
+      return;
+    }
+    reassignAttemptControllerRef.current = null;
+    const destination = result.departmentId;
+    clearReassignAttempt();
+    setReassignDestination("");
+    setReassignMutationState("success");
+    setReassignMessage("success");
+    setDisableConfirmationOpen(false);
+    onLifecycleSuccess?.(row.accountRef, "reassign_department", destination);
     setLifecycleRetryNonce((value) => value + 1);
   }, [onLifecycleSuccess, row.accountRef]);
 
@@ -310,6 +374,69 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
       .finally(() => clearTimeout(timeoutId));
   };
 
+  const handleReassignFailure = (error: unknown) => {
+    reassignAttemptControllerRef.current = null;
+    const requestError = error as Partial<AdminLifecycleRequestError>;
+    if (requestError.httpStatus === 409 && requestError.safeErrorCode === "department_unchanged") {
+      setReassignMutationState("error");
+      setReassignMessage("same_department");
+      clearReassignAttempt();
+      return;
+    }
+    if (requestError.httpStatus === 409 && requestError.safeErrorCode === "assigned_unresolved_work") {
+      setReassignMutationState("error");
+      setReassignMessage("conflict");
+      clearReassignAttempt();
+      return;
+    }
+    if (requestError.outcome === "unknown" || requestError.httpStatus === 503) {
+      reassignUnknownOutcomeRef.current = true;
+      setReassignMutationState("unknown");
+      setReassignMessage(requestError.outcome === "unknown" ? "unknown" : "error");
+      setLifecycleRetryNonce((value) => value + 1);
+      return;
+    }
+    clearReassignAttempt();
+    setReassignMutationState("error");
+    setReassignMessage("error");
+  };
+
+  const submitReassign = (continueExisting: boolean) => {
+    if (reassignMutationState === "submitting" || reassignAttemptControllerRef.current) return;
+    const destination = reassignDestinationRef.current ?? (reassignDestination || null);
+    if (!destination || !isDepartmentId(destination) || destination === row.departmentId) return;
+    let key = reassignKeyRef.current;
+    if (!continueExisting && !key) {
+      try {
+        key = generateAdminLifecycleIdempotencyKey();
+        reassignKeyRef.current = key;
+        reassignDestinationRef.current = destination;
+      } catch {
+        setReassignMutationState("error");
+        setReassignMessage("error");
+        return;
+      }
+    }
+    if (!continueExisting && !key) return;
+    const controller = new AbortController();
+    const requestId = ++reassignRequestIdRef.current;
+    reassignAttemptControllerRef.current = controller;
+    setReassignMutationState("submitting");
+    setReassignMessage(null);
+    const request = continueExisting
+      ? continueAdminDepartmentReassignment(row.accountRef, destination, fetch, controller.signal)
+      : reassignAdminDepartment(row.accountRef, key as string, destination, row.departmentId, fetch, controller.signal);
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    void request
+      .then((result) => {
+        if (requestId === reassignRequestIdRef.current) finishReassign(result);
+      })
+      .catch((error: unknown) => {
+        if (requestId === reassignRequestIdRef.current) handleReassignFailure(error);
+      })
+      .finally(() => clearTimeout(timeoutId));
+  };
+
   const reconcileUnknownOutcome = useCallback((recovery: AdminLifecycleRecoveryStatus) => {
     if (!unknownOutcomeRef.current || resolvedUnknownRef.current) return;
     resolvedUnknownRef.current = true;
@@ -356,6 +483,30 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     }
   }, [finishReactivate, row.accountRef]);
 
+  const reconcileReassignUnknownOutcome = useCallback((recovery: AdminLifecycleRecoveryStatus) => {
+    if (!reassignUnknownOutcomeRef.current || reassignResolvedUnknownRef.current) return;
+    reassignResolvedUnknownRef.current = true;
+    reassignUnknownOutcomeRef.current = false;
+    const destination = reassignDestinationRef.current;
+    if (recovery.recoveryState === "recoverable" && recovery.operation === "reassign_department" && recovery.departmentId === destination) {
+      setReassignMutationState("recoverable");
+      setReassignMessage(null);
+    } else if (recovery.recoveryState === "completed" && recovery.operation === "reassign_department" && recovery.departmentId === destination) {
+      finishReassign({ accountRef: row.accountRef, operation: "reassign_department", status: "completed", departmentId: destination as DepartmentId });
+    } else if (recovery.recoveryState === "none") {
+      setReassignMutationState("retryable");
+      setReassignMessage("unknown");
+    } else if (recovery.recoveryState === "operator_required") {
+      setReassignMutationState("operator_required");
+      setReassignMessage(null);
+      clearReassignAttempt();
+    } else {
+      setReassignMutationState("error");
+      setReassignMessage("error");
+      clearReassignAttempt();
+    }
+  }, [finishReassign, row.accountRef]);
+
   useEffect(() => {
     const requestId = ++lifecycleRequestIdRef.current;
     const controller = new AbortController();
@@ -376,9 +527,15 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
           loadAdminLifecycleRecoveryStatus(row.accountRef, fetch, controller.signal),
         ]);
         if (!controller.signal.aborted && requestId === lifecycleRequestIdRef.current) {
+          if (recovery.recoveryState === "recoverable" && recovery.operation === "reassign_department" && recovery.departmentId !== null) {
+            setReassignDestination(recovery.departmentId);
+            reassignDestinationRef.current = recovery.departmentId;
+            setReassignMutationState("recoverable");
+          }
           setLifecycleState({ status: "ready", accountRef: row.accountRef, profileUid: profile.uid, eligibility, recovery });
           reconcileUnknownOutcome(recovery);
           reconcileReactivateUnknownOutcome(recovery);
+          reconcileReassignUnknownOutcome(recovery);
         }
       } catch (error: unknown) {
         if (controller.signal.aborted || requestId !== lifecycleRequestIdRef.current) return;
@@ -392,7 +549,7 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
       }
     })();
     return () => controller.abort();
-  }, [lifecycleRetryNonce, profile, reconcileReactivateUnknownOutcome, reconcileUnknownOutcome, row.accountRef, row.active, row.accountState, row.departmentId, row.role]);
+  }, [lifecycleRetryNonce, profile, reconcileReassignUnknownOutcome, reconcileReactivateUnknownOutcome, reconcileUnknownOutcome, row.accountRef, row.active, row.accountState, row.departmentId, row.role]);
 
   useEffect(() => () => {
     disableRequestIdRef.current += 1;
@@ -403,6 +560,10 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     reactivateAttemptControllerRef.current?.abort();
     reactivateAttemptControllerRef.current = null;
     clearReactivateAttempt();
+    reassignRequestIdRef.current += 1;
+    reassignAttemptControllerRef.current?.abort();
+    reassignAttemptControllerRef.current = null;
+    clearReassignAttempt();
   }, [profile?.uid, row.accountRef]);
 
   const lifecycleStateForRow = lifecycleState.status === "loading" || (
@@ -420,8 +581,15 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   const showContinueDisable = lifecycleReady && supportedRole && lifecycleStateForRow.recovery.recoveryState === "recoverable" && lifecycleStateForRow.recovery.operation === "disable" && disableMutationState !== "submitting";
   const showFreshReactivate = lifecycleReady && isFreshReactivateEligible(row, lifecycleStateForRow.eligibility) && supportedRole && reactivateEligible && isFreshReactivateRecoveryCompatible(lifecycleStateForRow.recovery) && reactivateMutationState !== "submitting" && reactivateMutationState !== "unknown" && reactivateMutationState !== "success";
   const showContinueReactivate = lifecycleReady && isFreshReactivateTarget(row) && supportedRole && lifecycleStateForRow.recovery.recoveryState === "recoverable" && lifecycleStateForRow.recovery.operation === "reactivate" && reactivateMutationState !== "submitting";
+  const freshReassignTarget = isFreshReassignTarget(row);
+  const reassignEligible = lifecycleReady && isFreshReassignEligible(row, lifecycleStateForRow.eligibility);
+  const recoveryMatchesRow = lifecycleReady && lifecycleStateForRow.recovery.accountRef === row.accountRef;
+  const eligibilityMatchesRow = lifecycleReady && lifecycleStateForRow.eligibility.accountRef === row.accountRef;
+  const showFreshReassign = lifecycleReady && eligibilityMatchesRow && recoveryMatchesRow && freshReassignTarget && reassignEligible && isFreshReassignRecoveryCompatible(lifecycleStateForRow.recovery) && disableMutationState !== "submitting" && reactivateMutationState !== "submitting" && reassignMutationState !== "submitting" && reassignMutationState !== "unknown" && reassignMutationState !== "success" && reassignMutationState !== "recoverable" && reassignMutationState !== "operator_required";
+  const showContinueReassign = lifecycleReady && eligibilityMatchesRow && recoveryMatchesRow && freshReassignTarget && lifecycleStateForRow.eligibility.profileState === "active" && lifecycleStateForRow.recovery.recoveryState === "recoverable" && lifecycleStateForRow.recovery.operation === "reassign_department" && lifecycleStateForRow.recovery.departmentId === reassignDestination && reassignMutationState !== "submitting";
   const openDisableConfirmation = () => {
     if (!showFreshDisable) return;
+    resetReassignState();
     confirmationContinueRef.current = false;
     confirmationOperationRef.current = "disable";
     setConfirmationOperation("disable");
@@ -430,6 +598,7 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   };
   const openContinueConfirmation = () => {
     if (!showContinueDisable) return;
+    resetReassignState();
     confirmationContinueRef.current = true;
     confirmationOperationRef.current = "disable";
     setConfirmationOperation("disable");
@@ -438,6 +607,7 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   };
   const openReactivateConfirmation = () => {
     if (!showFreshReactivate) return;
+    resetReassignState();
     confirmationContinueRef.current = false;
     confirmationOperationRef.current = "reactivate";
     setConfirmationOperation("reactivate");
@@ -446,23 +616,75 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   };
   const openContinueReactivateConfirmation = () => {
     if (!showContinueReactivate) return;
+    resetReassignState();
     confirmationContinueRef.current = true;
     confirmationOperationRef.current = "reactivate";
     setConfirmationOperation("reactivate");
     setDisableConfirmationOpen(true);
     setReactivateMutationState("recoverable");
   };
-  const checkRecoveryStatus = (operation: "disable" | "reactivate" = "disable") => {
+  const openReassignConfirmation = () => {
+    if (!showFreshReassign || !isDepartmentId(reassignDestination) || reassignDestination === row.departmentId) return;
+    reassignDestinationRef.current = reassignDestination;
+    confirmationContinueRef.current = false;
+    confirmationOperationRef.current = "reassign";
+    setConfirmationOperation("reassign");
+    setDisableConfirmationOpen(true);
+    setReassignMutationState(reassignMutationState === "retryable" ? "retryable" : "confirming");
+  };
+  const openContinueReassignConfirmation = () => {
+    if (!showContinueReassign || !isDepartmentId(reassignDestination)) return;
+    reassignDestinationRef.current = reassignDestination;
+    confirmationContinueRef.current = true;
+    confirmationOperationRef.current = "reassign";
+    setConfirmationOperation("reassign");
+    setDisableConfirmationOpen(true);
+    setReassignMutationState("recoverable");
+  };
+  const handleReassignDestinationChange = (value: string) => {
+    if (value !== "" && !isDepartmentId(value)) return;
+    const next = value as DepartmentId | "";
+    if (next !== reassignDestination && (reassignMutationState === "unknown" || reassignKeyRef.current)) {
+      reassignRequestIdRef.current += 1;
+      reassignAttemptControllerRef.current?.abort();
+      reassignAttemptControllerRef.current = null;
+      clearReassignAttempt();
+      setReassignMutationState("idle");
+      setReassignMessage(null);
+    }
+    setReassignDestination(next);
+    reassignDestinationRef.current = next || null;
+  };
+  const checkRecoveryStatus = (operation: "disable" | "reactivate" | "reassign" = "disable") => {
     if (recoveryStatusInFlightRef.current) return;
     recoveryStatusInFlightRef.current = true;
     if (operation === "disable") {
       unknownOutcomeRef.current = true;
       resolvedUnknownRef.current = false;
-    } else {
+    } else if (operation === "reactivate") {
       reactivateUnknownOutcomeRef.current = true;
       reactivateResolvedUnknownRef.current = false;
+    } else {
+      reassignUnknownOutcomeRef.current = true;
+      reassignResolvedUnknownRef.current = false;
     }
     setLifecycleRetryNonce((value) => value + 1);
+  };
+
+  const cancelConfirmation = () => {
+    const operation = confirmationOperationRef.current;
+    confirmationContinueRef.current = false;
+    if (operation === "reassign") {
+      setReassignDestination("");
+      clearReassignAttempt();
+      setReassignMutationState("idle");
+      setReassignMessage(null);
+    }
+    setDisableConfirmationOpen(false);
+    setConfirmationOperation("disable");
+    if (operation === "reactivate") reactivateButtonRef.current?.focus();
+    else if (operation === "reassign") reassignButtonRef.current?.focus();
+    else disableButtonRef.current?.focus();
   };
 
   useEffect(() => {
@@ -504,10 +726,21 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
       if (event.key === "Escape") {
         event.preventDefault();
         if (confirmationOpenRef.current) {
+          const operation = confirmationOperationRef.current;
           confirmationContinueRef.current = false;
+          if (operation === "reassign") {
+            setReassignDestination("");
+            clearReassignAttempt();
+            setReassignMutationState("idle");
+            setReassignMessage(null);
+          }
           setDisableConfirmationOpen(false);
           setConfirmationOperation("disable");
-          queueMicrotask(() => (confirmationOperationRef.current === "reactivate" ? reactivateButtonRef : disableButtonRef).current?.focus());
+          queueMicrotask(() => {
+            if (operation === "reactivate") reactivateButtonRef.current?.focus();
+            else if (operation === "reassign") reassignButtonRef.current?.focus();
+            else disableButtonRef.current?.focus();
+          });
         } else {
           onClose();
         }
@@ -565,6 +798,12 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   }, [disableConfirmationOpen]);
 
   const confirmationIsReactivate = confirmationOperation === "reactivate";
+  const confirmationIsReassign = confirmationOperation === "reassign";
+  const confirmationLabel = confirmationIsReactivate
+    ? "adminReactivate"
+    : confirmationIsReassign
+      ? "adminReassign"
+      : "adminDisable";
 
   const content = (
     <div className="admin-account-detail-overlay">
@@ -624,6 +863,8 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
               {showContinueDisable ? <button ref={disableButtonRef} className="admin-secondary-button" type="button" onClick={openContinueConfirmation}>{t("adminContinueDisable")}</button> : null}
               {showFreshReactivate ? <button ref={reactivateButtonRef} className="admin-secondary-button" type="button" onClick={openReactivateConfirmation}>{reactivateMutationState === "retryable" ? t("adminReactivateRetry") : t("adminReactivateAccount")}</button> : null}
               {showContinueReactivate ? <button ref={reactivateButtonRef} className="admin-secondary-button" type="button" onClick={openContinueReactivateConfirmation}>{t("adminContinueReactivate")}</button> : null}
+              {showFreshReassign ? <fieldset className="admin-lifecycle-reassign-fieldset"><legend>{t("adminReassignDepartment")}</legend><label htmlFor="admin-reassign-department">{t("adminReassignNewDepartment")}</label><select id="admin-reassign-department" className="admin-field-input" aria-describedby="admin-reassign-help" value={reassignDestination} onChange={(event) => handleReassignDestinationChange(event.target.value)}><option value="">{t("adminReassignSelectDepartment")}</option>{departmentIds.map((id) => <option key={id} value={id} disabled={id === row.departmentId}>{getDepartmentLabel(id, locale)}{id === row.departmentId ? ` (${t("adminReassignCurrentDepartment")})` : ""}</option>)}</select><p id="admin-reassign-help">{t("adminReassignNoComplaintMove")}</p><button ref={reassignButtonRef} className="admin-secondary-button" type="button" disabled={!isDepartmentId(reassignDestination) || reassignDestination === row.departmentId} onClick={openReassignConfirmation}>{reassignMutationState === "retryable" ? t("adminReassignRetry") : t("adminReassignReview")}</button></fieldset> : null}
+              {showContinueReassign ? <button ref={reassignButtonRef} className="admin-secondary-button" type="button" onClick={openContinueReassignConfirmation}>{t("adminContinueReassign")}</button> : null}
               {lifecycleStateForRow.recovery.recoveryState === "recoverable" ? <section className="admin-lifecycle-recovery" aria-labelledby="admin-lifecycle-recovery-title"><h4 id="admin-lifecycle-recovery-title">{t("adminLifecycleRecoveryTitle")}</h4><p>{t("adminLifecycleRecoverableMessage")}</p><p>{operationLabel(t, lifecycleStateForRow.recovery.operation as AdminLifecycleRecoveryOperation)}{lifecycleStateForRow.recovery.operation === "reassign_department" && lifecycleStateForRow.recovery.departmentId ? `: ${getDepartmentLabel(lifecycleStateForRow.recovery.departmentId, locale)}` : ""}</p></section> : null}
               {lifecycleStateForRow.recovery.recoveryState === "completed" ? <section className="admin-lifecycle-recovery" aria-labelledby="admin-lifecycle-recovery-title"><h4 id="admin-lifecycle-recovery-title">{t("adminLifecycleRecoveryTitle")}</h4><p>{t("adminLifecycleCompletedMessage")}</p><p>{operationLabel(t, lifecycleStateForRow.recovery.operation as AdminLifecycleRecoveryOperation)}{lifecycleStateForRow.recovery.operation === "reassign_department" && lifecycleStateForRow.recovery.departmentId ? `: ${getDepartmentLabel(lifecycleStateForRow.recovery.departmentId, locale)}` : ""}</p></section> : null}
               {lifecycleStateForRow.recovery.recoveryState === "operator_required" ? <section className="admin-lifecycle-recovery" aria-labelledby="admin-lifecycle-recovery-title"><h4 id="admin-lifecycle-recovery-title">{t("adminLifecycleRecoveryTitle")}</h4><p>{t("adminLifecycleOperatorRequired")}</p></section> : null}
@@ -636,16 +877,23 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
             {reactivateMutationState === "submitting" ? <p className="admin-lifecycle-status" role="status" aria-live="polite">{t("adminReactivateSubmitting")}</p> : null}
             {reactivateMessage === "unknown" ? <div className="admin-lifecycle-status" role="alert"><p>{t("adminReactivateUnknownOutcome")}</p><button className="admin-secondary-button" type="button" onClick={() => checkRecoveryStatus("reactivate")}>{t("adminReactivateCheckStatus")}</button></div> : null}
             {reactivateMessage === "error" ? <p className="admin-lifecycle-status" role="alert">{t("adminReactivateSafeError")}</p> : null}
+            {reassignMessage === "success" ? <p className="admin-lifecycle-status admin-lifecycle-success" role="status">{t("adminReassignSuccess")}</p> : null}
+            {reassignMutationState === "submitting" ? <p className="admin-lifecycle-status" role="status" aria-live="polite">{t("adminReassignSubmitting")}</p> : null}
+            {reassignMessage === "unknown" ? <div className="admin-lifecycle-status" role="alert"><p>{t("adminReassignUnknownOutcome")}</p><button className="admin-secondary-button" type="button" onClick={() => checkRecoveryStatus("reassign")}>{t("adminReassignCheckStatus")}</button></div> : null}
+            {reassignMessage === "conflict" ? <p className="admin-lifecycle-status" role="alert">{t("adminReassignAssignedWorkBlocked")}</p> : null}
+            {reassignMessage === "same_department" ? <p className="admin-lifecycle-status" role="alert">{t("adminReassignSameDepartment")}</p> : null}
+            {reassignMutationState === "operator_required" ? <p className="admin-lifecycle-status" role="alert">{t("adminReassignOperatorRequired")}</p> : null}
+            {reassignMessage === "error" ? <p className="admin-lifecycle-status" role="alert">{t("adminReassignSafeError")}</p> : null}
           </section>
         </div>
         {disableConfirmationOpen ? <div className="admin-disable-confirmation-layer">
-          <button className="admin-disable-confirmation-backdrop" type="button" aria-label={t(confirmationIsReactivate ? "adminReactivateCancel" : "adminDisableCancel")} onClick={() => { const operation = confirmationOperationRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); (operation === "reactivate" ? reactivateButtonRef : disableButtonRef).current?.focus(); }} />
+          <button className="admin-disable-confirmation-backdrop" type="button" aria-label={t(confirmationIsReactivate ? "adminReactivateCancel" : confirmationIsReassign ? "adminReassignCancel" : "adminDisableCancel")} onClick={cancelConfirmation} />
           <div ref={confirmationDialogRef} className="admin-disable-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="admin-disable-confirmation-title" aria-describedby="admin-disable-confirmation-body" tabIndex={-1}>
-            <h3 id="admin-disable-confirmation-title">{t(confirmationIsReactivate ? "adminReactivateConfirmationTitle" : "adminDisableConfirmationTitle")}</h3>
-            <p id="admin-disable-confirmation-body">{t(confirmationIsReactivate ? "adminReactivateConfirmationBody" : "adminDisableConfirmationBody")}</p>
+            <h3 id="admin-disable-confirmation-title">{t(`${confirmationLabel}ConfirmationTitle` as MessageKey)}</h3>
+            <p id="admin-disable-confirmation-body">{confirmationIsReassign ? <>{t("adminReassignConfirmationBody")} {getDepartmentLabel(row.departmentId, locale)} -&gt; {getDepartmentLabel(reassignDestination, locale)}</> : t(`${confirmationLabel}ConfirmationBody` as MessageKey)}</p>
             <div className="admin-dialog-actions">
-              <button ref={confirmationCancelRef} className="admin-secondary-button" type="button" onClick={() => { const operation = confirmationOperationRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); (operation === "reactivate" ? reactivateButtonRef : disableButtonRef).current?.focus(); }}>{t(confirmationIsReactivate ? "adminReactivateCancel" : "adminDisableCancel")}</button>
-              <button className={confirmationIsReactivate ? "admin-secondary-button" : "admin-danger-button"} type="button" onClick={() => { const operation = confirmationOperationRef.current; const continueExisting = confirmationContinueRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); if (operation === "reactivate") submitReactivate(continueExisting); else submitDisable(continueExisting); }}>{t(confirmationIsReactivate ? "adminReactivateConfirm" : "adminDisableConfirm")}</button>
+              <button ref={confirmationCancelRef} className="admin-secondary-button" type="button" onClick={cancelConfirmation}>{t(confirmationIsReactivate ? "adminReactivateCancel" : confirmationIsReassign ? "adminReassignCancel" : "adminDisableCancel")}</button>
+              <button className={confirmationIsReactivate || confirmationIsReassign ? "admin-secondary-button" : "admin-danger-button"} type="button" onClick={() => { const operation = confirmationOperationRef.current; const continueExisting = confirmationContinueRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); if (operation === "reactivate") submitReactivate(continueExisting); else if (operation === "reassign") submitReassign(continueExisting); else submitDisable(continueExisting); }}>{t(confirmationIsReactivate ? "adminReactivateConfirm" : confirmationIsReassign ? "adminReassignConfirm" : "adminDisableConfirm")}</button>
             </div>
           </div>
         </div> : null}

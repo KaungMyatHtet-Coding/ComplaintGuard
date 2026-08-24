@@ -22,7 +22,7 @@ vi.mock("@/lib/admin-directory", () => ({
   loadAdminDirectory: vi.fn(() => new Promise(() => undefined)),
 }));
 
-import { AdminUserDirectory, shouldShowOwnerActivationNotice } from "./admin-user-directory";
+import { AdminUserDirectory, reconcileConfirmedDepartment, shouldShowOwnerActivationNotice } from "./admin-user-directory";
 
 describe("AdminUserDirectory", () => {
   it("renders read-only accessible filters and no mutation controls", () => {
@@ -51,5 +51,11 @@ describe("AdminUserDirectory", () => {
     expect(shouldShowOwnerActivationNotice({ ...base, email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: false, accountState: "pending_setup" })).toBe(true);
     expect(shouldShowOwnerActivationNotice({ ...base, email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, accountState: "disabled" })).toBe(false);
     expect(shouldShowOwnerActivationNotice({ ...base, email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: false, accountState: "inactive_unverified" })).toBe(false);
+  });
+
+  it("reconciles only the exact Staff account department and preserves other safe fields", () => {
+    const row = { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "staff@example.test", displayName: "Staff", locale: "en" as const, role: "staff" as const, departmentId: "card_atm" as const, active: true, accountState: "active" as const };
+    expect(reconcileConfirmedDepartment(row, row.accountRef, "fraud_security")).toEqual({ ...row, departmentId: "fraud_security" });
+    expect(reconcileConfirmedDepartment(row, "acct_v1_1111111111111111111111111111111111111111111111111111111111111111", "fraud_security")).toBe(row);
   });
 });

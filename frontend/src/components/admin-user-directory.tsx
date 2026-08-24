@@ -42,6 +42,14 @@ export function reconciliationMarkerKey(adminUid: string | undefined, accountRef
   return adminUid ? `${adminUid}:${accountRef}` : null;
 }
 
+export function reconcileConfirmedDepartment(
+  row: AdminDirectoryResponse["rows"][number],
+  accountRef: string,
+  departmentId: DepartmentId,
+): AdminDirectoryResponse["rows"][number] {
+  return row.accountRef === accountRef && row.role === "staff" ? { ...row, departmentId } : row;
+}
+
 export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refreshKey?: number; onSummaryChange?: (snapshot: AdminOverviewSnapshot) => void }) {
   const { locale, profile, t } = useApp();
   const [role, setRole] = useState<"" | AdminDirectoryRole>("");
@@ -64,6 +72,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
   const preserveDetailOnRefreshFailureRef = useRef(false);
   const confirmedDisabledAccountRefsRef = useRef(new Set<string>());
   const confirmedActiveAccountRefsRef = useRef(new Set<string>());
+  const confirmedDepartmentRefsRef = useRef(new Map<string, DepartmentId>());
   const [selectedOwnerUid, setSelectedOwnerUid] = useState<string | undefined>(profile?.uid);
   const [selectedRow, setSelectedRow] = useState<AdminDirectoryResponse["rows"][number] | null>(null);
 
@@ -81,6 +90,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       previousAdminUidRef.current = profile?.uid;
       confirmedDisabledAccountRefsRef.current.clear();
       confirmedActiveAccountRefsRef.current.clear();
+      confirmedDepartmentRefsRef.current.clear();
       queueMicrotask(() => {
         setSelectedOwnerUid(undefined);
         setSelectedRow(null);
@@ -93,6 +103,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     if (!isAdmin) {
       confirmedDisabledAccountRefsRef.current.clear();
       confirmedActiveAccountRefsRef.current.clear();
+      confirmedDepartmentRefsRef.current.clear();
       focusRestoreAllowedRef.current = false;
       onSummaryChange?.({ state: "empty", rows: [] });
       return;
@@ -127,6 +138,14 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
         if (shouldApplyDirectoryResponse(requestId, requestIdRef.current)) {
           const reconciledRows = nextResult.rows.map((row) => {
             const markerKey = reconciliationMarkerKey(profile?.uid, row.accountRef);
+            const confirmedDepartment = markerKey ? confirmedDepartmentRefsRef.current.get(markerKey) : undefined;
+            if (confirmedDepartment) {
+              if (row.role === "staff" && row.departmentId === confirmedDepartment) {
+                confirmedDepartmentRefsRef.current.delete(markerKey as string);
+                return row;
+              }
+              if (row.role === "staff") return { ...row, departmentId: confirmedDepartment };
+            }
             if (markerKey && confirmedActiveAccountRefsRef.current.has(markerKey)) {
               if (row.active && row.accountState === "active") {
                 confirmedActiveAccountRefsRef.current.delete(markerKey);
@@ -212,9 +231,19 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     preserveDetailOnRefreshFailureRef.current = true;
     setRetryNonce((value) => value + 1);
   }, []);
-  const handleLifecycleSuccess = useCallback((accountRef: string, operation: "disable" | "reactivate" = "disable") => {
+  const handleLifecycleSuccess = useCallback((accountRef: string, operation: "disable" | "reactivate" | "reassign_department" = "disable", departmentId?: DepartmentId) => {
     const markerKey = reconciliationMarkerKey(profile?.uid, accountRef);
     if (!markerKey) return;
+    if (operation === "reassign_department") {
+      if (!departmentId) return;
+      confirmedDepartmentRefsRef.current.set(markerKey, departmentId);
+      const reconcileDepartment = (row: AdminDirectoryResponse["rows"][number]) => reconcileConfirmedDepartment(row, accountRef, departmentId);
+      setResult((current) => current ? { ...current, rows: current.rows.map(reconcileDepartment) } : current);
+      summaryRowsRef.current = summaryRowsRef.current.map(reconcileDepartment);
+      setSelectedRow((current) => current?.accountRef === accountRef ? reconcileDepartment(current) : current);
+      refreshDirectory();
+      return;
+    }
     const reactivate = operation === "reactivate";
     if (reactivate) {
       confirmedActiveAccountRefsRef.current.add(markerKey);

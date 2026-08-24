@@ -40,15 +40,57 @@ export type AdminReactivateResult = {
   profileState: "active";
 };
 
+export type AdminReassignDepartmentResult = {
+  accountRef: string;
+  operation: "reassign_department";
+  status: "completed";
+  departmentId: DepartmentId;
+};
+
 export type AdminLifecycleRequestOutcome = "definitive" | "unknown";
+
+export type AdminLifecycleSafeErrorCode =
+  | "assigned_unresolved_work"
+  | "department_unchanged"
+  | "idempotency_conflict"
+  | "lifecycle_conflict"
+  | "operator_recovery_required"
+  | "recovery_operation_mismatch"
+  | "role_not_reassignable"
+  | "admin_reassign_not_available";
 
 export class AdminLifecycleRequestError extends AdminDirectoryError {
   constructor(
     code: AdminDirectoryErrorCode,
     public readonly outcome: AdminLifecycleRequestOutcome,
     public readonly httpStatus?: number,
+    public readonly safeErrorCode?: AdminLifecycleSafeErrorCode,
   ) {
     super(code);
+  }
+}
+
+const safeErrorCodes = new Set<AdminLifecycleSafeErrorCode>([
+  "assigned_unresolved_work",
+  "department_unchanged",
+  "idempotency_conflict",
+  "lifecycle_conflict",
+  "operator_recovery_required",
+  "recovery_operation_mismatch",
+  "role_not_reassignable",
+  "admin_reassign_not_available",
+]);
+
+async function parseSafeErrorCode(response: Response): Promise<AdminLifecycleSafeErrorCode | undefined> {
+  try {
+    const value: unknown = await response.json();
+    if (!hasExactKeys(value, ["error"]) || !hasExactKeys(value.error, ["code", "message", "details"])) return undefined;
+    if (typeof value.error.code !== "string" || typeof value.error.message !== "string" || !Array.isArray(value.error.details)) return undefined;
+    return safeErrorCodes.has(value.error.code as AdminLifecycleSafeErrorCode)
+      ? value.error.code as AdminLifecycleSafeErrorCode
+      : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -152,6 +194,29 @@ export function parseAdminReactivateResult(value: unknown): AdminReactivateResul
   };
 }
 
+export function parseAdminReassignDepartmentResult(value: unknown, requestedDepartmentId: DepartmentId): AdminReassignDepartmentResult {
+  if (!hasExactKeys(value, ["accountRef", "operation", "status", "departmentId"])) {
+    throw new AdminDirectoryError("validation");
+  }
+  if (
+    typeof value.accountRef !== "string" ||
+    !accountReferencePattern.test(value.accountRef) ||
+    value.operation !== "reassign_department" ||
+    value.status !== "completed" ||
+    typeof value.departmentId !== "string" ||
+    !isDepartmentId(value.departmentId) ||
+    value.departmentId !== requestedDepartmentId
+  ) {
+    throw new AdminDirectoryError("validation");
+  }
+  return {
+    accountRef: value.accountRef,
+    operation: "reassign_department",
+    status: "completed",
+    departmentId: requestedDepartmentId,
+  };
+}
+
 export function generateAdminLifecycleIdempotencyKey(): string {
   const cryptoApi = globalThis.crypto;
   if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function") {
@@ -180,11 +245,12 @@ function mapStatus(status: number): AdminDirectoryErrorCode {
 async function postAdminLifecycle(
   accountRef: string,
   body: Record<string, string>,
-  endpoint: "disable" | "reactivate" | "lifecycle-recovery",
-  operation: "disable" | "reactivate",
+  endpoint: "disable" | "reactivate" | "reassign-department" | "lifecycle-recovery",
+  operation: "disable" | "reactivate" | "reassign_department",
+  requestedDepartmentId: DepartmentId | undefined,
   fetcher: typeof fetch,
   signal: AbortSignal | undefined,
-): Promise<AdminDisableResult | AdminReactivateResult> {
+): Promise<AdminDisableResult | AdminReactivateResult | AdminReassignDepartmentResult> {
   if (!accountReferencePattern.test(accountRef)) throw new AdminDirectoryError("validation");
   let apiBase: string;
   try {
@@ -225,12 +291,15 @@ async function postAdminLifecycle(
     throw new AdminLifecycleRequestError("unavailable", "unknown");
   }
   if (!response.ok) {
-    throw new AdminLifecycleRequestError(mapStatus(response.status), "definitive", response.status);
+    const safeErrorCode = await parseSafeErrorCode(response);
+    throw new AdminLifecycleRequestError(mapStatus(response.status), "definitive", response.status, safeErrorCode);
   }
   try {
     const parsed = operation === "disable"
       ? parseAdminDisableResult(await response.json())
-      : parseAdminReactivateResult(await response.json());
+      : operation === "reactivate"
+        ? parseAdminReactivateResult(await response.json())
+        : parseAdminReassignDepartmentResult(await response.json(), requestedDepartmentId as DepartmentId);
     if (parsed.accountRef !== accountRef) throw new AdminDirectoryError("validation");
     return parsed;
   } catch (error) {
@@ -248,7 +317,7 @@ export async function disableAdminAccount(
   signal?: AbortSignal,
 ): Promise<AdminDisableResult> {
   validateIdempotencyKey(idempotencyKey);
-  return postAdminLifecycle(accountRef, { idempotencyKey }, "disable", "disable", fetcher, signal) as Promise<AdminDisableResult>;
+  return postAdminLifecycle(accountRef, { idempotencyKey }, "disable", "disable", undefined, fetcher, signal) as Promise<AdminDisableResult>;
 }
 
 export async function continueAdminDisable(
@@ -261,6 +330,7 @@ export async function continueAdminDisable(
     { operation: "disable" },
     "lifecycle-recovery",
     "disable",
+    undefined,
     fetcher,
     signal,
   ) as Promise<AdminDisableResult>;
@@ -273,7 +343,7 @@ export async function reactivateAdminAccount(
   signal?: AbortSignal,
 ): Promise<AdminReactivateResult> {
   validateIdempotencyKey(idempotencyKey);
-  return postAdminLifecycle(accountRef, { idempotencyKey }, "reactivate", "reactivate", fetcher, signal) as Promise<AdminReactivateResult>;
+  return postAdminLifecycle(accountRef, { idempotencyKey }, "reactivate", "reactivate", undefined, fetcher, signal) as Promise<AdminReactivateResult>;
 }
 
 export async function continueAdminReactivate(
@@ -286,9 +356,51 @@ export async function continueAdminReactivate(
     { operation: "reactivate" },
     "lifecycle-recovery",
     "reactivate",
+    undefined,
     fetcher,
     signal,
   ) as Promise<AdminReactivateResult>;
+}
+
+export async function reassignAdminDepartment(
+  accountRef: string,
+  idempotencyKey: string,
+  departmentId: DepartmentId,
+  currentDepartmentId: DepartmentId | null,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<AdminReassignDepartmentResult> {
+  validateIdempotencyKey(idempotencyKey);
+  if (!isDepartmentId(departmentId) || (currentDepartmentId !== null && !isDepartmentId(currentDepartmentId)) || departmentId === currentDepartmentId) {
+    throw new AdminDirectoryError("validation");
+  }
+  return postAdminLifecycle(
+    accountRef,
+    { idempotencyKey, departmentId },
+    "reassign-department",
+    "reassign_department",
+    departmentId,
+    fetcher,
+    signal,
+  ) as Promise<AdminReassignDepartmentResult>;
+}
+
+export async function continueAdminDepartmentReassignment(
+  accountRef: string,
+  departmentId: DepartmentId,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<AdminReassignDepartmentResult> {
+  if (!isDepartmentId(departmentId)) throw new AdminDirectoryError("validation");
+  return postAdminLifecycle(
+    accountRef,
+    { operation: "reassign_department", departmentId },
+    "lifecycle-recovery",
+    "reassign_department",
+    departmentId,
+    fetcher,
+    signal,
+  ) as Promise<AdminReassignDepartmentResult>;
 }
 
 export async function loadAdminLifecycleRecoveryStatus(

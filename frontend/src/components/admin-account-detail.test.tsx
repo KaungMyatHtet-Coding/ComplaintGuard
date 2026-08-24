@@ -42,7 +42,7 @@ vi.mock("@/components/app-provider", () => ({
   }),
 }));
 
-import { AdminAccountDetail, isFreshDisableTarget, isFreshReactivateEligible, isFreshReactivateRecoveryCompatible, isFreshReactivateTarget } from "./admin-account-detail";
+import { AdminAccountDetail, isFreshDisableTarget, isFreshReactivateEligible, isFreshReactivateRecoveryCompatible, isFreshReactivateTarget, isFreshReassignEligible, isFreshReassignRecoveryCompatible, isFreshReassignTarget } from "./admin-account-detail";
 
 type AccountState = "active" | "pending_setup" | "disabled" | "inactive_unverified";
 
@@ -152,5 +152,31 @@ describe("AdminAccountDetail", () => {
     expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "completed", operation: "reassign_department", departmentId: "card_atm" })).toBe(false);
     expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "recoverable", operation: "disable", departmentId: null })).toBe(false);
     expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "operator_required", operation: null, departmentId: null })).toBe(false);
+  });
+
+  it("gates fresh reassignment to active Staff with a different approved department", () => {
+    const staff = row("staff");
+    const eligibility = {
+      accountRef: staff.accountRef,
+      profileState: "active" as const,
+      operations: {
+        disable: { eligible: true, reason: null },
+        reactivate: { eligible: false, reason: "already_active" as const },
+        reassignDepartment: { eligible: true, reason: null },
+      },
+    };
+    expect(isFreshReassignTarget(staff)).toBe(true);
+    expect(isFreshReassignEligible(staff, eligibility)).toBe(true);
+    expect(isFreshReassignEligible(staff, { ...eligibility, accountRef: `${staff.accountRef.slice(0, -1)}1` })).toBe(false);
+    expect(isFreshReassignRecoveryCompatible({ accountRef: staff.accountRef, recoveryState: "none", operation: null, departmentId: null })).toBe(true);
+    expect(isFreshReassignTarget(row("customer"))).toBe(false);
+    expect(isFreshReassignTarget(row("manager"))).toBe(false);
+    expect(isFreshReassignTarget(row("admin"))).toBe(false);
+    expect(isFreshReassignTarget(row("staff", false, "disabled"))).toBe(false);
+    expect(isFreshReassignTarget(row("staff", false, "pending_setup"))).toBe(false);
+    expect(isFreshReassignTarget(row("staff", false, "inactive_unverified"))).toBe(false);
+    expect(isFreshReassignRecoveryCompatible({ accountRef: staff.accountRef, recoveryState: "recoverable", operation: "disable", departmentId: null })).toBe(false);
+    expect(isFreshReassignRecoveryCompatible({ accountRef: staff.accountRef, recoveryState: "recoverable", operation: "reactivate", departmentId: null })).toBe(false);
+    expect(isFreshReassignRecoveryCompatible({ accountRef: staff.accountRef, recoveryState: "operator_required", operation: null, departmentId: null })).toBe(false);
   });
 });

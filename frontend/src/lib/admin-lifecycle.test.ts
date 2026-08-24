@@ -14,6 +14,9 @@ import {
   parseAdminReactivateResult,
   reactivateAdminAccount,
   parseAdminLifecycleRecoveryStatus,
+  parseAdminReassignDepartmentResult,
+  reassignAdminDepartment,
+  continueAdminDepartmentReassignment,
 } from "./admin-lifecycle";
 
 const accountRef = "acct_v1_0000000000000000000000000000000000000000000000000000000000000000";
@@ -275,5 +278,92 @@ describe("Admin Reactivate mutation clients", () => {
     expect(url).toBe(`http://127.0.0.1:8000/admin/users/${accountRef}/lifecycle-recovery`);
     expect(init.body).toBe(JSON.stringify({ operation: "reactivate" }));
     expect(init.body).not.toContain("idempotencyKey");
+  });
+});
+
+describe("Admin Staff department reassignment clients", () => {
+  const valid = { accountRef, operation: "reassign_department", status: "completed", departmentId: "fraud_security" } as const;
+
+  it("strictly parses the exact reassignment response and rejects hostile shapes", () => {
+    expect(parseAdminReassignDepartmentResult(valid, "fraud_security")).toEqual(valid);
+    for (const hostile of [
+      { ...valid, privateRef: "hidden" },
+      { ...valid, departmentId: "card_atm" },
+      { ...valid, operation: "reactivate" },
+      { ...valid, departmentId: " fraud_security" },
+      null,
+      undefined,
+      [],
+    ]) expect(() => parseAdminReassignDepartmentResult(hostile, "fraud_security")).toThrowError(AdminDirectoryError);
+    const inherited = Object.create({ privateRef: "hidden" });
+    Object.assign(inherited, valid);
+    expect(() => parseAdminReassignDepartmentResult(inherited, "fraud_security")).toThrowError(AdminDirectoryError);
+    const accessor = { ...valid } as Record<string, unknown>;
+    Object.defineProperty(accessor, "privateRef", { get: () => "hidden", enumerable: true });
+    expect(() => parseAdminReassignDepartmentResult(accessor, "fraud_security")).toThrowError(AdminDirectoryError);
+    const nonEnumerable = { ...valid } as Record<string, unknown>;
+    Object.defineProperty(nonEnumerable, "privateRef", { value: "hidden", enumerable: false });
+    expect(() => parseAdminReassignDepartmentResult(nonEnumerable, "fraud_security")).toThrowError(AdminDirectoryError);
+    const symbolField = { ...valid } as Record<string | symbol, unknown>;
+    symbolField[Symbol("private")] = "hidden";
+    expect(() => parseAdminReassignDepartmentResult(symbolField, "fraud_security")).toThrowError(AdminDirectoryError);
+  });
+
+  it("uses a fresh token, encoded endpoint, exact fresh body, and AbortSignal", async () => {
+    const getIdToken = vi.fn().mockResolvedValue("fresh-token");
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(valid), { status: 200 }));
+    const controller = new AbortController();
+    await reassignAdminDepartment(accountRef, "A_secure-key_123", "fraud_security", "card_atm", fetcher, controller.signal);
+    expect(getIdToken).toHaveBeenCalledWith(true);
+    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`http://127.0.0.1:8000/admin/users/${encodeURIComponent(accountRef)}/reassign-department`);
+    expect(init.method).toBe("POST");
+    expect(init.signal).toBe(controller.signal);
+    expect(init.body).toBe(JSON.stringify({ idempotencyKey: "A_secure-key_123", departmentId: "fraud_security" }));
+  });
+
+  it("rejects invalid destination before token/network and binds response destination", async () => {
+    const getIdToken = vi.fn();
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn();
+    await expect(reassignAdminDepartment(accountRef, "A_secure-key_123", "private" as never, "card_atm", fetcher)).rejects.toMatchObject({ code: "validation" });
+    expect(getIdToken).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken: vi.fn().mockResolvedValue("token") } } });
+    const wrongDestination = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...valid, departmentId: "card_atm" }), { status: 200 }));
+    await expect(reassignAdminDepartment(accountRef, "A_secure-key_123", "fraud_security", "card_atm", wrongDestination)).rejects.toMatchObject({ code: "validation", outcome: "unknown" });
+  });
+
+  it("continues with exactly the original operation and destination, without an idempotency key", async () => {
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken: vi.fn().mockResolvedValue("fresh-token") } } });
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(valid), { status: 200 }));
+    await continueAdminDepartmentReassignment(accountRef, "fraud_security", fetcher);
+    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`http://127.0.0.1:8000/admin/users/${accountRef}/lifecycle-recovery`);
+    expect(init.body).toBe(JSON.stringify({ operation: "reassign_department", departmentId: "fraud_security" }));
+    expect(init.body).not.toContain("idempotencyKey");
+  });
+
+  it("preserves safe unknown/conflict mappings", async () => {
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken: vi.fn().mockResolvedValue("token") } } });
+    await expect(reassignAdminDepartment(accountRef, "A_secure-key_123", "fraud_security", "card_atm", vi.fn().mockRejectedValue(Object.assign(new Error("aborted"), { name: "AbortError" })))).rejects.toMatchObject({ code: "unavailable", outcome: "unknown" });
+    await expect(reassignAdminDepartment(accountRef, "A_secure-key_123", "fraud_security", "card_atm", vi.fn().mockResolvedValue(new Response("private", { status: 409 })))).rejects.toMatchObject({ code: "unexpected", outcome: "definitive", httpStatus: 409 });
+  });
+
+  it("projects only an approved backend conflict code without exposing its message", async () => {
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken: vi.fn().mockResolvedValue("token") } } });
+    const response = new Response(JSON.stringify({ error: { code: "department_unchanged", message: "private detail", details: [] } }), { status: 409 });
+    await expect(reassignAdminDepartment(accountRef, "A_secure-key_123", "fraud_security", "card_atm", vi.fn().mockResolvedValue(response)))
+      .rejects.toMatchObject({ httpStatus: 409, safeErrorCode: "department_unchanged", outcome: "definitive" });
+  });
+
+  it("rejects same-department submissions before token or network access", async () => {
+    const getIdToken = vi.fn();
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn();
+    await expect(reassignAdminDepartment(accountRef, "A_secure-key_123", "card_atm", "card_atm", fetcher)).rejects.toMatchObject({ code: "validation" });
+    expect(getIdToken).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });
