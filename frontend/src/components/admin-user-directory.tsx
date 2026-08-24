@@ -19,8 +19,15 @@ export function shouldApplyDirectoryResponse(requestId: number, latestRequestId:
 }
 
 export function shouldShowOwnerActivationNotice(row: AdminDirectoryResponse["rows"][number]): boolean {
-  return !row.active && (row.role === "staff" || row.role === "manager");
+  return row.accountState === "pending_setup" && (row.role === "staff" || row.role === "manager");
 }
+
+const accountStateLabelKeys = {
+  active: "adminDirectoryState_active",
+  pending_setup: "adminDirectoryState_pending_setup",
+  disabled: "adminDirectoryState_disabled",
+  inactive_unverified: "adminDirectoryState_inactive_unverified",
+} as const;
 
 const errorMessages: Record<AdminDirectoryErrorCode, "adminDirectoryAuthentication" | "adminDirectoryPermission" | "adminDirectoryValidation" | "adminDirectoryUnavailable" | "adminDirectoryUnexpected"> = {
   authentication: "adminDirectoryAuthentication",
@@ -50,6 +57,8 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
   const detailOpenerRef = useRef<HTMLButtonElement | null>(null);
   const directoryHeadingRef = useRef<HTMLElement | null>(null);
   const focusRestoreAllowedRef = useRef(false);
+  const preserveDetailOnRefreshFailureRef = useRef(false);
+  const confirmedDisabledAccountRefsRef = useRef(new Set<string>());
   const [selectedOwnerUid, setSelectedOwnerUid] = useState<string | undefined>(profile?.uid);
   const [selectedRow, setSelectedRow] = useState<AdminDirectoryResponse["rows"][number] | null>(null);
 
@@ -65,6 +74,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
   useEffect(() => {
     if (previousAdminUidRef.current !== profile?.uid || !isAdmin) {
       previousAdminUidRef.current = profile?.uid;
+      confirmedDisabledAccountRefsRef.current.clear();
       queueMicrotask(() => {
         setSelectedOwnerUid(undefined);
         setSelectedRow(null);
@@ -73,7 +83,9 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
   }, [isAdmin, profile?.uid]);
 
   useEffect(() => {
+    const requestId = ++requestIdRef.current;
     if (!isAdmin) {
+      confirmedDisabledAccountRefsRef.current.clear();
       focusRestoreAllowedRef.current = false;
       onSummaryChange?.({ state: "empty", rows: [] });
       return;
@@ -88,7 +100,6 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       summaryRowsRef.current = [];
       return;
     }
-    const requestId = ++requestIdRef.current;
     const filters: AdminDirectoryFilters = {
       ...(role ? { role } : {}),
       ...(departmentId ? { departmentId } : {}),
@@ -107,22 +118,33 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       try {
         const nextResult = await loadAdminDirectory(filters);
         if (shouldApplyDirectoryResponse(requestId, requestIdRef.current)) {
-          setResult(nextResult);
+          const reconciledRows = nextResult.rows.map((row) => {
+            if (!confirmedDisabledAccountRefsRef.current.has(row.accountRef)) return row;
+            if (row.active && row.accountState === "active") {
+              confirmedDisabledAccountRefsRef.current.delete(row.accountRef);
+              return row;
+            }
+            return { ...row, active: false, accountState: "disabled" as const };
+          });
+          const reconciledResult = { ...nextResult, rows: reconciledRows };
+          setResult(reconciledResult);
+          preserveDetailOnRefreshFailureRef.current = false;
           setSelectedRow((current) => {
             if (!current) return null;
-            const refreshedRow = nextResult.rows.find((row) => row.accountRef === current.accountRef);
+            const refreshedRow = reconciledRows.find((row) => row.accountRef === current.accountRef);
             if (!refreshedRow) focusRestoreAllowedRef.current = true;
             return refreshedRow ?? null;
           });
           const mergedRows = new Map(summaryRowsRef.current.map((row) => [row.accountRef, row]));
-          nextResult.rows.forEach((row) => mergedRows.set(row.accountRef, row));
+          reconciledRows.forEach((row) => mergedRows.set(row.accountRef, row));
           summaryRowsRef.current = Array.from(mergedRows.values());
           onSummaryChange?.({ state: summaryRowsRef.current.length ? "ready" : "empty", rows: summaryRowsRef.current });
         }
       } catch (error: unknown) {
         if (!shouldApplyDirectoryResponse(requestId, requestIdRef.current)) return;
         focusRestoreAllowedRef.current = true;
-        setSelectedRow(null);
+        if (!preserveDetailOnRefreshFailureRef.current) setSelectedRow(null);
+        preserveDetailOnRefreshFailureRef.current = false;
         setErrorCode(error && typeof error === "object" && "code" in error ? (error as { code: AdminDirectoryErrorCode }).code : "unexpected");
         onSummaryChange?.({ state: "error", rows: [] });
       } finally {
@@ -171,6 +193,22 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     setSelectedRow(null);
   }, []);
   const canRestoreDetailFocus = useCallback(() => focusRestoreAllowedRef.current, []);
+  const refreshDirectory = useCallback(() => {
+    preserveDetailOnRefreshFailureRef.current = true;
+    setRetryNonce((value) => value + 1);
+  }, []);
+  const handleLifecycleSuccess = useCallback((accountRef: string) => {
+    confirmedDisabledAccountRefsRef.current.add(accountRef);
+    const markInactive = (row: AdminDirectoryResponse["rows"][number]) => row.accountRef === accountRef
+      ? { ...row, active: false, accountState: "disabled" as const }
+      : row;
+    setResult((current) => current ? { ...current, rows: current.rows.map(markInactive) } : current);
+    summaryRowsRef.current = summaryRowsRef.current.map(markInactive);
+    setSelectedRow((current) => current?.accountRef === accountRef
+      ? markInactive(current)
+      : current);
+    refreshDirectory();
+  }, [refreshDirectory]);
 
   if (!isAdmin) return null;
 
@@ -197,17 +235,17 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
       <div className="admin-filter-toolbar" aria-label={t("adminDirectoryFilterSummary")}>
         <div className="admin-form-field"><label htmlFor="admin-directory-role">{t("adminDirectoryRoleFilter")}</label><select id="admin-directory-role" className="admin-field-input" value={role} onChange={(event) => changeRole(event.target.value as typeof role)}><option value="">{t("adminDirectoryAll")}</option><option value="customer">{t("adminCustomer")}</option><option value="staff">{t("adminStaff")}</option><option value="manager">{t("adminManager")}</option><option value="admin">{t("adminRoleAdmin")}</option></select></div>
         <div className="admin-form-field"><label htmlFor="admin-directory-department">{t("adminDirectoryDepartmentFilter")}</label><select id="admin-directory-department" className="admin-field-input" value={departmentId} disabled={role !== "" && role !== "staff"} onChange={(event) => { setDepartmentId(event.target.value as DepartmentId | ""); resetPaging(); }}><option value="">{t("adminDirectoryAll")}</option>{departmentIds.map((id) => <option key={id} value={id}>{getDepartmentLabel(id, locale)}</option>)}</select></div>
-        <div className="admin-form-field"><label htmlFor="admin-directory-status">{t("adminDirectoryStatusFilter")}</label><select id="admin-directory-status" className="admin-field-input" value={active} onChange={(event) => { setActive(event.target.value as typeof active); resetPaging(); }}><option value="">{t("adminDirectoryAll")}</option><option value="true">{t("adminDirectoryActive")}</option><option value="false">{t("adminDirectoryPending")}</option></select></div>
+        <div className="admin-form-field"><label htmlFor="admin-directory-status">{t("adminDirectoryStatusFilter")}</label><select id="admin-directory-status" className="admin-field-input" value={active} onChange={(event) => { setActive(event.target.value as typeof active); resetPaging(); }}><option value="">{t("adminDirectoryAll")}</option><option value="true">{t("adminDirectoryActive")}</option><option value="false">{t("adminDirectoryInactive")}</option></select></div>
         <div className="admin-form-field admin-search-field"><label htmlFor="admin-directory-search">{t("adminDirectorySearch")}</label><input id="admin-directory-search" className="admin-field-input" type="search" value={search} maxLength={80} onChange={(event) => { setSearch(event.target.value); resetPaging(); }} /></div>
       </div>
       <div className="admin-directory-status" aria-live="polite">{loading ? <p role="status">{t("adminDirectoryLoading")}</p> : null}{displayError ? <div role="alert" className="admin-error-panel"><p>{displayError}</p><button className="admin-secondary-button" type="button" onClick={() => setRetryNonce((value) => value + 1)}>{t("adminDirectoryRetry")}</button></div> : null}</div>
       {!loading && !displayError && result && result.rows.length === 0 ? <p className="admin-empty-state">{t("adminDirectoryEmpty")}</p> : null}
       {result && result.rows.length > 0 ? <>
-        <div className="admin-directory-table-wrap"><table className="admin-directory-table" aria-label={t("adminDirectoryTitle")}><thead><tr><th scope="col">{t("adminDirectoryName")}</th><th scope="col">{t("adminEmail")}</th><th scope="col">{t("adminRole")}</th><th scope="col">{t("adminDepartment")}</th><th scope="col">{t("adminDirectoryLanguage")}</th><th scope="col">{t("adminDirectoryStatus")}</th><th scope="col">{t("adminDirectoryActions")}</th></tr></thead><tbody>{result.rows.map((row) => <tr key={row.accountRef}><td data-label={t("adminDirectoryName")}>{row.displayName}</td><td data-label={t("adminEmail")} className="admin-break-value">{row.email}</td><td data-label={t("adminRole")}>{roleLabel(row.role)}</td><td data-label={t("adminDepartment")}>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</td><td data-label={t("adminDirectoryLanguage")}>{row.locale === "en" ? t("english") : t("myanmar")}</td><td data-label={t("adminDirectoryStatus")}><span className={`admin-status-chip ${row.active ? "is-active" : "is-pending"}`}>{row.active ? t("adminDirectoryActive") : t("adminDirectoryPending")}</span>{shouldShowOwnerActivationNotice(row) ? <span className="admin-status-note">{t("adminDirectoryOwnerNotice")}</span> : null}</td><td data-label={t("adminDirectoryActions")}><button className="admin-secondary-button admin-directory-view-button" type="button" onClick={(event) => openDetails(event, row)}>{t("adminDirectoryViewDetails")}</button></td></tr>)}</tbody></table></div>
-        <div className="admin-directory-card-list">{result.rows.map((row) => <article className="admin-account-card" key={`${row.accountRef}-card`}><h3>{row.displayName}</h3><dl><div><dt>{t("adminEmail")}</dt><dd>{row.email}</dd></div><div><dt>{t("adminRole")}</dt><dd>{roleLabel(row.role)}</dd></div><div><dt>{t("adminDepartment")}</dt><dd>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</dd></div><div><dt>{t("adminDirectoryLanguage")}</dt><dd>{row.locale === "en" ? t("english") : t("myanmar")}</dd></div><div><dt>{t("adminDirectoryStatus")}</dt><dd><span className={`admin-status-chip ${row.active ? "is-active" : "is-pending"}`}>{row.active ? t("adminDirectoryActive") : t("adminDirectoryPending")}</span></dd></div></dl><button className="admin-secondary-button admin-directory-view-button" type="button" onClick={(event) => openDetails(event, row)}>{t("adminDirectoryViewDetails")}</button></article>)}</div>
+        <div className="admin-directory-table-wrap"><table className="admin-directory-table" aria-label={t("adminDirectoryTitle")}><thead><tr><th scope="col">{t("adminDirectoryName")}</th><th scope="col">{t("adminEmail")}</th><th scope="col">{t("adminRole")}</th><th scope="col">{t("adminDepartment")}</th><th scope="col">{t("adminDirectoryLanguage")}</th><th scope="col">{t("adminDirectoryStatus")}</th><th scope="col">{t("adminDirectoryActions")}</th></tr></thead><tbody>{result.rows.map((row) => <tr key={row.accountRef}><td data-label={t("adminDirectoryName")}>{row.displayName}</td><td data-label={t("adminEmail")} className="admin-break-value">{row.email}</td><td data-label={t("adminRole")}>{roleLabel(row.role)}</td><td data-label={t("adminDepartment")}>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</td><td data-label={t("adminDirectoryLanguage")}>{row.locale === "en" ? t("english") : t("myanmar")}</td><td data-label={t("adminDirectoryStatus")}><span className={`admin-status-chip ${row.accountState === "active" ? "is-active" : row.accountState === "disabled" ? "is-disabled" : row.accountState === "inactive_unverified" ? "is-unverified" : "is-pending"}`}>{t(accountStateLabelKeys[row.accountState])}</span>{shouldShowOwnerActivationNotice(row) ? <span className="admin-status-note">{t("adminDirectoryOwnerNotice")}</span> : null}</td><td data-label={t("adminDirectoryActions")}><button className="admin-secondary-button admin-directory-view-button" type="button" onClick={(event) => openDetails(event, row)}>{t("adminDirectoryViewDetails")}</button></td></tr>)}</tbody></table></div>
+        <div className="admin-directory-card-list">{result.rows.map((row) => <article className="admin-account-card" key={`${row.accountRef}-card`}><h3>{row.displayName}</h3><dl><div><dt>{t("adminEmail")}</dt><dd>{row.email}</dd></div><div><dt>{t("adminRole")}</dt><dd>{roleLabel(row.role)}</dd></div><div><dt>{t("adminDepartment")}</dt><dd>{row.departmentId ? getDepartmentLabel(row.departmentId, locale) : t("adminNotApplicable")}</dd></div><div><dt>{t("adminDirectoryLanguage")}</dt><dd>{row.locale === "en" ? t("english") : t("myanmar")}</dd></div><div><dt>{t("adminDirectoryStatus")}</dt><dd><span className={`admin-status-chip ${row.accountState === "active" ? "is-active" : row.accountState === "disabled" ? "is-disabled" : row.accountState === "inactive_unverified" ? "is-unverified" : "is-pending"}`}>{t(accountStateLabelKeys[row.accountState])}</span></dd></div></dl><button className="admin-secondary-button admin-directory-view-button" type="button" onClick={(event) => openDetails(event, row)}>{t("adminDirectoryViewDetails")}</button></article>)}</div>
       </> : null}
       <div className="admin-pagination"><button className="admin-secondary-button" type="button" onClick={previousPage} disabled={history.length === 0}>{t("adminDirectoryPrevious")}</button><button className="admin-secondary-button" type="button" onClick={nextPage} disabled={!result?.hasMore}>{t("adminDirectoryNext")}</button></div>
-       {activeSelectedRow ? <AdminAccountDetail row={activeSelectedRow} openerRef={detailOpenerRef} fallbackRef={directoryHeadingRef} canRestoreFocus={canRestoreDetailFocus} onClose={closeDetails} /> : null}
+       {activeSelectedRow ? <AdminAccountDetail key={`${activeSelectedRow.accountRef}:${profile?.uid ?? ""}`} row={activeSelectedRow} openerRef={detailOpenerRef} fallbackRef={directoryHeadingRef} canRestoreFocus={canRestoreDetailFocus} onClose={closeDetails} onLifecycleSuccess={handleLifecycleSuccess} /> : null}
     </section>
   );
 

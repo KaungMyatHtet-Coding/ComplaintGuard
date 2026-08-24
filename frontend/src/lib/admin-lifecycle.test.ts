@@ -5,7 +5,11 @@ vi.mock("@/lib/firebase", () => ({ getFirebaseServices }));
 
 import { AdminDirectoryError, parseAdminLifecycleEligibility } from "./admin-directory";
 import {
+  continueAdminDisable,
+  disableAdminAccount,
+  generateAdminLifecycleIdempotencyKey,
   loadAdminLifecycleRecoveryStatus,
+  parseAdminDisableResult,
   parseAdminLifecycleRecoveryStatus,
 } from "./admin-lifecycle";
 
@@ -122,5 +126,92 @@ describe("loadAdminLifecycleRecoveryStatus", () => {
       departmentId: null,
     }), { status: 200 }));
     await expect(loadAdminLifecycleRecoveryStatus(accountRef, fetcher)).rejects.toMatchObject({ code: "validation" });
+  });
+});
+
+describe("Admin disable mutation clients", () => {
+  it("generates a cryptographic allowlisted key without persistence", () => {
+    const getRandomValues = vi.fn((bytes: Uint8Array) => {
+      bytes.fill(0);
+      return bytes;
+    });
+    vi.stubGlobal("crypto", { getRandomValues });
+    const key = generateAdminLifecycleIdempotencyKey();
+    expect(key).toHaveLength(32);
+    expect(key).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(getRandomValues).toHaveBeenCalledOnce();
+  });
+
+  it("posts a fresh disable with the exact safe request and response contract", async () => {
+    const getIdToken = vi.fn().mockResolvedValue("fresh-token");
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      accountRef,
+      operation: "disable",
+      status: "completed",
+      profileState: "inactive",
+    }), { status: 200 }));
+    await disableAdminAccount(accountRef, "A_secure-key_123", fetcher);
+    expect(getIdToken).toHaveBeenCalledWith(true);
+    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`http://127.0.0.1:8000/admin/users/${accountRef}/disable`);
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ Authorization: "Bearer fresh-token", "Content-Type": "application/json" });
+    expect(init.body).toBe(JSON.stringify({ idempotencyKey: "A_secure-key_123" }));
+  });
+
+  it("continues disable without accepting or sending an idempotency key", async () => {
+    const getIdToken = vi.fn().mockResolvedValue("fresh-token");
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      accountRef,
+      operation: "disable",
+      status: "completed",
+      profileState: "inactive",
+    }), { status: 200 }));
+    await continueAdminDisable(accountRef, fetcher);
+    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`http://127.0.0.1:8000/admin/users/${accountRef}/lifecycle-recovery`);
+    expect(init.body).toBe(JSON.stringify({ operation: "disable" }));
+  });
+
+  it("rejects private or malformed disable results", () => {
+    expect(() => parseAdminDisableResult({
+      accountRef,
+      operation: "disable",
+      status: "completed",
+      profileState: "inactive",
+      actionRef: "private",
+    })).toThrowError(AdminDirectoryError);
+    const inherited = Object.create({ uid: "private" });
+    Object.assign(inherited, { accountRef, operation: "disable", status: "completed", profileState: "inactive" });
+    expect(() => parseAdminDisableResult(inherited)).toThrowError(AdminDirectoryError);
+    const hidden = { accountRef, operation: "disable", status: "completed", profileState: "inactive" } as Record<string, unknown>;
+    Object.defineProperty(hidden, "guardRef", { value: "private", enumerable: false });
+    expect(() => parseAdminDisableResult(hidden)).toThrowError(AdminDirectoryError);
+    const symbolField = { accountRef, operation: "disable", status: "completed", profileState: "inactive" } as Record<string | symbol, unknown>;
+    symbolField[Symbol("private")] = "private";
+    expect(() => parseAdminDisableResult(symbolField)).toThrowError(AdminDirectoryError);
+  });
+
+  it("rejects invalid keys before token or network access", async () => {
+    const getIdToken = vi.fn();
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    const fetcher = vi.fn();
+    await expect(disableAdminAccount(accountRef, "bad key", fetcher)).rejects.toMatchObject({ code: "validation" });
+    expect(getIdToken).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes unknown transport outcomes from safe HTTP errors", async () => {
+    const getIdToken = vi.fn().mockResolvedValue("token");
+    getFirebaseServices.mockReturnValue({ auth: { currentUser: { getIdToken } } });
+    await expect(disableAdminAccount(accountRef, "A_secure-key_123", vi.fn().mockRejectedValue(new Error("network"))))
+      .rejects.toMatchObject({ code: "unavailable", outcome: "unknown" });
+    await expect(disableAdminAccount(accountRef, "A_secure-key_123", vi.fn().mockRejectedValue(Object.assign(new Error("aborted"), { name: "AbortError" }))))
+      .rejects.toMatchObject({ code: "unavailable", outcome: "unknown" });
+    const conflict = vi.fn().mockResolvedValue(new Response("private", { status: 409 }));
+    await expect(disableAdminAccount(accountRef, "A_secure-key_123", conflict))
+      .rejects.toMatchObject({ code: "unexpected", outcome: "definitive", httpStatus: 409 });
   });
 });

@@ -29,10 +29,10 @@ describe("validateAdminDirectoryFilters", () => {
   it("strictly parses all safe roles and rejects private or malformed fields", () => {
     const safe = {
       rows: [
-        { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, setupStatus: "active" },
-        { accountRef: "acct_v1_1111111111111111111111111111111111111111111111111111111111111111", email: "staff@example.test", displayName: "Staff", locale: "my", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" },
-        { accountRef: "acct_v1_2222222222222222222222222222222222222222222222222222222222222222", email: "manager@example.test", displayName: "Manager", locale: "en", role: "manager", departmentId: null, active: true, setupStatus: "active" },
-        { accountRef: "acct_v1_3333333333333333333333333333333333333333333333333333333333333333", email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, setupStatus: "active" },
+        { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: true, accountState: "active" },
+        { accountRef: "acct_v1_1111111111111111111111111111111111111111111111111111111111111111", email: "staff@example.test", displayName: "Staff", locale: "my", role: "staff", departmentId: "card_atm", active: false, accountState: "pending_setup" },
+        { accountRef: "acct_v1_2222222222222222222222222222222222222222222222222222222222222222", email: "manager@example.test", displayName: "Manager", locale: "en", role: "manager", departmentId: null, active: true, accountState: "active" },
+        { accountRef: "acct_v1_3333333333333333333333333333333333333333333333333333333333333333", email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: true, accountState: "active" },
       ],
       nextCursor: null,
       hasMore: false,
@@ -41,6 +41,45 @@ describe("validateAdminDirectoryFilters", () => {
     expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], uid: "private" }] })).toThrowError(AdminDirectoryError);
     expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], role: "owner" }] })).toThrowError(AdminDirectoryError);
     expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], accountRef: "private" }] })).toThrowError(AdminDirectoryError);
+    expect(() => parseAdminDirectoryResponse({ ...safe, rows: [{ ...safe.rows[0], setupStatus: "active" }] })).toThrowError(AdminDirectoryError);
+  });
+
+  it("enforces account-state combinations and rejects non-enumerable, inherited, and symbol fields", () => {
+    const row = { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, accountState: "disabled" };
+    const response = { rows: [row], nextCursor: null, hasMore: false };
+    expect(parseAdminDirectoryResponse(response).rows[0].accountState).toBe("disabled");
+    for (const accountState of ["pending_setup", "active", "unknown", " disabled"] as const) {
+      expect(() => parseAdminDirectoryResponse({ ...response, rows: [{ ...row, accountState }] })).toThrowError(AdminDirectoryError);
+    }
+    expect(() => parseAdminDirectoryResponse({ ...response, rows: [{ ...row, active: true, accountState: "disabled" }] })).toThrowError(AdminDirectoryError);
+    expect(() => parseAdminDirectoryResponse({ ...response, rows: [{ ...row, active: false, accountState: "active" }] })).toThrowError(AdminDirectoryError);
+    expect(() => parseAdminDirectoryResponse({ ...response, rows: [{ ...row, role: "customer", accountState: "pending_setup" }] })).toThrowError(AdminDirectoryError);
+    const hidden = { ...row };
+    Object.defineProperty(hidden, "accountState", { value: "disabled", enumerable: false });
+    expect(() => parseAdminDirectoryResponse({ ...response, rows: [hidden] })).toThrowError(AdminDirectoryError);
+    const inherited = Object.create({ accountState: "disabled" });
+    Object.assign(inherited, row);
+    delete inherited.accountState;
+    expect(() => parseAdminDirectoryResponse({ ...response, rows: [inherited] })).toThrowError(AdminDirectoryError);
+    const symbolRow = { ...row, [Symbol("private")]: "secret" };
+    expect(() => parseAdminDirectoryResponse({ ...response, rows: [symbolRow] })).toThrowError(AdminDirectoryError);
+  });
+
+  it("accepts every approved state only with its required access and role semantics", () => {
+    const base = { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000", email: "user@example.test", displayName: "User", locale: "en", departmentId: null };
+    const rows = [
+      { ...base, role: "customer", active: true, accountState: "active" },
+      { ...base, role: "staff", departmentId: "card_atm", active: true, accountState: "active" },
+      { ...base, role: "manager", active: true, accountState: "active" },
+      { ...base, role: "admin", active: true, accountState: "active" },
+      { ...base, role: "staff", departmentId: "card_atm", active: false, accountState: "pending_setup" },
+      { ...base, role: "manager", active: false, accountState: "pending_setup" },
+      { ...base, role: "customer", active: false, accountState: "disabled" },
+      { ...base, role: "staff", departmentId: "card_atm", active: false, accountState: "disabled" },
+      { ...base, role: "manager", active: false, accountState: "inactive_unverified" },
+      { ...base, role: "admin", active: false, accountState: "inactive_unverified" },
+    ];
+    expect(parseAdminDirectoryResponse({ rows, nextCursor: null, hasMore: false }).rows).toHaveLength(rows.length);
   });
 });
 

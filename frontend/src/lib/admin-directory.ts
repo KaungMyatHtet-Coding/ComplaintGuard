@@ -20,7 +20,7 @@ export type AdminDirectoryRow = {
   role: AdminDirectoryRole;
   departmentId: DepartmentId | null;
   active: boolean;
-  setupStatus: "pending_setup" | "active";
+  accountState: "active" | "pending_setup" | "disabled" | "inactive_unverified";
 };
 
 export type LifecycleEligibilityReason =
@@ -68,7 +68,7 @@ export class AdminDirectoryError extends Error {
 }
 
 const roles = new Set<AdminDirectoryRole>(["customer", "staff", "manager", "admin"]);
-const setupStatuses = new Set(["pending_setup", "active"]);
+const accountStates = new Set<AdminDirectoryRow["accountState"]>(["active", "pending_setup", "disabled", "inactive_unverified"]);
 const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 export const accountReferencePattern = /^acct_v1_[0-9a-f]{64}$/;
 const eligibilityReasons = new Set<LifecycleEligibilityReason>([
@@ -96,29 +96,32 @@ export function hasExactKeys(value: unknown, keys: readonly string[]): value is 
   try {
     const names = Object.getOwnPropertyNames(value);
     const symbols = Object.getOwnPropertySymbols(value);
-    return symbols.length === 0 && names.length === keys.length && keys.every((key) => names.includes(key));
+    return symbols.length === 0 && names.length === keys.length && keys.every((key) => names.includes(key)) && names.every((name) => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, name);
+      return descriptor?.enumerable === true && !descriptor.get && !descriptor.set;
+    });
   } catch {
     return false;
   }
 }
 
 function parseRow(value: unknown): AdminDirectoryRow {
-  if (!hasExactKeys(value, ["accountRef", "email", "displayName", "locale", "role", "departmentId", "active", "setupStatus"])) throw new AdminDirectoryError("validation");
-  const { accountRef, email, displayName, locale, role, departmentId, active, setupStatus } = value;
+  if (!hasExactKeys(value, ["accountRef", "email", "displayName", "locale", "role", "departmentId", "active", "accountState"])) throw new AdminDirectoryError("validation");
+  const { accountRef, email, displayName, locale, role, departmentId, active, accountState } = value;
   if (
     typeof accountRef !== "string" || !accountReferencePattern.test(accountRef) ||
     typeof email !== "string" || email !== email.trim().toLowerCase() || !emailPattern.test(email) || email.length > 254 ||
     typeof displayName !== "string" || displayName !== displayName.trim() || !displayName || displayName.length > 100 ||
     (locale !== "en" && locale !== "my") ||
     (typeof role !== "string" || !roles.has(role as AdminDirectoryRole)) ||
-    (departmentId !== null && typeof departmentId !== "string" && departmentId !== undefined) ||
+    (departmentId !== null && typeof departmentId !== "string") ||
     typeof active !== "boolean" ||
-    typeof setupStatus !== "string" || !setupStatuses.has(setupStatus)
+    typeof accountState !== "string" || !accountStates.has(accountState as AdminDirectoryRow["accountState"])
   ) throw new AdminDirectoryError("validation");
   if (role === "staff" && !isDepartmentId(departmentId as string)) throw new AdminDirectoryError("validation");
   if (role !== "staff" && departmentId !== null) throw new AdminDirectoryError("validation");
-  if ((active && setupStatus !== "active") || (!active && setupStatus !== "pending_setup")) throw new AdminDirectoryError("validation");
-  return { accountRef, email, displayName, locale, role: role as AdminDirectoryRole, departmentId: departmentId as DepartmentId | null, active, setupStatus: setupStatus as AdminDirectoryRow["setupStatus"] };
+  if ((active && accountState !== "active") || (!active && accountState === "active") || (accountState === "pending_setup" && role !== "staff" && role !== "manager")) throw new AdminDirectoryError("validation");
+  return { accountRef, email, displayName, locale, role: role as AdminDirectoryRole, departmentId: departmentId as DepartmentId | null, active, accountState: accountState as AdminDirectoryRow["accountState"] };
 }
 
 function parseEligibilityOperation(value: unknown): LifecycleEligibilityOperation {

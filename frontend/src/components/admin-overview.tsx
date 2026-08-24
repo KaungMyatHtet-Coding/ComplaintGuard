@@ -15,7 +15,9 @@ function countRows(rows: AdminDirectoryRow[]) {
     manager: rows.filter((row) => row.role === "manager").length,
     admin: rows.filter((row) => row.role === "admin").length,
     active: rows.filter((row) => row.active).length,
-    pending: rows.filter((row) => !row.active).length,
+    pending: rows.filter((row) => row.accountState === "pending_setup").length,
+    disabled: rows.filter((row) => row.accountState === "disabled").length,
+    inactiveUnavailable: rows.filter((row) => row.accountState === "inactive_unverified").length,
   };
 }
 
@@ -44,6 +46,8 @@ export function AdminOverview({ snapshot }: { snapshot: AdminOverviewSnapshot })
           <div className="admin-metric-card"><span>{t("adminOverviewAdmin")}</span><strong>{counts.admin}</strong></div>
           <div className="admin-metric-card"><span>{t("adminOverviewActive")}</span><strong>{counts.active}</strong></div>
           <div className="admin-metric-card"><span>{t("adminOverviewPending")}</span><strong>{counts.pending}</strong></div>
+          <div className="admin-metric-card"><span>{t("adminOverviewDisabled")}</span><strong>{counts.disabled}</strong></div>
+          <div className="admin-metric-card"><span>{t("adminOverviewInactiveUnavailable")}</span><strong>{counts.inactiveUnavailable}</strong></div>
         </div>
       ) : null}
     </section>

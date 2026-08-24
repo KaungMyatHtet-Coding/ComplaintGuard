@@ -9,7 +9,18 @@ vi.mock("@/components/app-provider", () => ({
     t: (key: string) => key,
   }),
 }));
-vi.mock("@/lib/admin-directory", () => ({ loadAdminDirectory: vi.fn(() => new Promise(() => undefined)) }));
+vi.mock("@/lib/admin-directory", () => ({
+  AdminDirectoryError: class AdminDirectoryError extends Error {
+    code: string;
+    constructor(code: string) {
+      super(code);
+      this.code = code;
+    }
+  },
+  accountReferencePattern: /^acct_v1_[0-9a-f]{64}$/,
+  hasExactKeys: () => true,
+  loadAdminDirectory: vi.fn(() => new Promise(() => undefined)),
+}));
 
 import { AdminUserDirectory, shouldShowOwnerActivationNotice } from "./admin-user-directory";
 
@@ -37,8 +48,8 @@ describe("AdminUserDirectory", () => {
 
   it("limits owner-activation wording to pending Staff and Manager profiles", () => {
     const base = { accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000" };
-    expect(shouldShowOwnerActivationNotice({ ...base, email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: false, setupStatus: "pending_setup" })).toBe(true);
-    expect(shouldShowOwnerActivationNotice({ ...base, email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
-    expect(shouldShowOwnerActivationNotice({ ...base, email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: false, setupStatus: "pending_setup" })).toBe(false);
+    expect(shouldShowOwnerActivationNotice({ ...base, email: "staff@example.test", displayName: "Staff", locale: "en", role: "staff", departmentId: "card_atm", active: false, accountState: "pending_setup" })).toBe(true);
+    expect(shouldShowOwnerActivationNotice({ ...base, email: "customer@example.test", displayName: "Customer", locale: "en", role: "customer", departmentId: null, active: false, accountState: "disabled" })).toBe(false);
+    expect(shouldShowOwnerActivationNotice({ ...base, email: "admin@example.test", displayName: "Admin", locale: "en", role: "admin", departmentId: null, active: false, accountState: "inactive_unverified" })).toBe(false);
   });
 });

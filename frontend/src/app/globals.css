@@ -3396,6 +3396,16 @@ details[open] > .evidence-heading {
   color: var(--text);
 }
 
+.admin-status-chip.is-disabled {
+  background: color-mix(in srgb, #b42318 18%, var(--surface));
+  color: var(--text);
+}
+
+.admin-status-chip.is-unverified {
+  background: color-mix(in srgb, #667085 18%, var(--surface));
+  color: var(--text);
+}
+
 .admin-status-note {
   display: block;
   margin-top: 0.3rem;
@@ -3582,6 +3592,79 @@ details[open] > .evidence-heading {
   padding-left: 0.75rem;
 }
 
+.admin-lifecycle-status {
+  margin-top: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-lifecycle-success {
+  color: var(--success-text, var(--text));
+}
+
+.admin-danger-button {
+  min-height: 2.5rem;
+  margin-top: 0.85rem;
+  border: 1px solid var(--danger, #a32929);
+  border-radius: 0.6rem;
+  background: var(--danger, #a32929);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.55rem 0.85rem;
+}
+
+.admin-danger-button:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.admin-danger-button:focus-visible,
+.admin-secondary-button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.admin-disable-confirmation-layer {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.admin-disable-confirmation-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(3 20 14 / 54%);
+}
+
+.admin-disable-confirmation {
+  position: relative;
+  display: grid;
+  gap: 0.85rem;
+  width: min(28rem, 100%);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface);
+  box-shadow: 0 1rem 3rem rgb(3 20 14 / 25%);
+  padding: 1.25rem;
+}
+
+.admin-disable-confirmation h3,
+.admin-disable-confirmation p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
 @keyframes admin-lifecycle-skeleton {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
@@ -3681,6 +3764,16 @@ details[open] > .evidence-heading {
   .admin-account-detail-dialog {
     width: 100%;
     border-left: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-header > div:last-child > span[aria-label] {
+    display: none;
+  }
+
+  .app-header .theme-control {
+    display: none;
   }
 }
 

@@ -26,6 +26,14 @@ vi.mock("@/components/app-provider", () => ({
       adminDirectoryStatus: "Profile status",
       adminDirectoryActive: "Active",
       adminDirectoryPending: "Pending profile",
+      adminDirectoryState_active: "Active",
+      adminDirectoryState_pending_setup: "Pending setup",
+      adminDirectoryState_disabled: "Disabled",
+      adminDirectoryState_inactive_unverified: "Inactive status unavailable",
+      adminDetailStateActive: "Active account.",
+      adminDetailStatePending: "Staff or Manager profile awaiting trusted owner activation.",
+      adminDetailStateDisabled: "Account intentionally disabled; reactivation is a separate lifecycle operation.",
+      adminDetailStateUnavailable: "Inactive account state is unavailable; no lifecycle meaning is inferred.",
       adminNotApplicable: "Not applicable",
       adminDirectoryOwnerNotice: "Owner activation required",
       english: "English",
@@ -34,7 +42,9 @@ vi.mock("@/components/app-provider", () => ({
   }),
 }));
 
-import { AdminAccountDetail } from "./admin-account-detail";
+import { AdminAccountDetail, isFreshDisableTarget } from "./admin-account-detail";
+
+type AccountState = "active" | "pending_setup" | "disabled" | "inactive_unverified";
 
 const refs = {
   openerRef: { current: null },
@@ -42,7 +52,7 @@ const refs = {
   canRestoreFocus: () => true,
 };
 
-function row(role: "customer" | "staff" | "manager" | "admin", active = true) {
+function row(role: "customer" | "staff" | "manager" | "admin", active = true, accountState: AccountState = active ? "active" : "pending_setup") {
   return {
     accountRef: "acct_v1_0000000000000000000000000000000000000000000000000000000000000000",
     email: `${role}@example.test`,
@@ -51,7 +61,7 @@ function row(role: "customer" | "staff" | "manager" | "admin", active = true) {
     role,
     departmentId: role === "staff" ? "card_atm" as const : null,
     active,
-    setupStatus: active ? "active" as const : "pending_setup" as const,
+    accountState,
   };
 }
 
@@ -89,5 +99,23 @@ describe("AdminAccountDetail", () => {
     const adminMarkup = renderToStaticMarkup(<AdminAccountDetail row={row("admin", false)} {...refs} onClose={() => undefined} />);
     expect(staffMarkup).toContain("Owner activation required");
     expect(adminMarkup).not.toContain("Owner activation required");
+  });
+
+  it("keeps disabled and unavailable states distinct from pending setup", () => {
+    const disabledMarkup = renderToStaticMarkup(<AdminAccountDetail row={row("staff", false, "disabled")} {...refs} onClose={() => undefined} />);
+    const unavailableMarkup = renderToStaticMarkup(<AdminAccountDetail row={row("customer", false, "inactive_unverified")} {...refs} onClose={() => undefined} />);
+    expect(disabledMarkup).toContain("Disabled");
+    expect(disabledMarkup).not.toContain("Owner activation required");
+    expect(unavailableMarkup).toContain("Inactive status unavailable");
+    expect(unavailableMarkup).not.toContain("Owner activation required");
+  });
+
+  it("gates fresh Disable targets on active account state and supported role", () => {
+    expect(isFreshDisableTarget(row("customer"))).toBe(true);
+    expect(isFreshDisableTarget(row("staff"))).toBe(true);
+    expect(isFreshDisableTarget(row("staff", false, "disabled"))).toBe(false);
+    expect(isFreshDisableTarget(row("staff", false, "pending_setup"))).toBe(false);
+    expect(isFreshDisableTarget(row("customer", false, "inactive_unverified"))).toBe(false);
+    expect(isFreshDisableTarget(row("admin"))).toBe(false);
   });
 });

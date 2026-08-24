@@ -35,12 +35,25 @@ describe("localization foundation", () => {
       "adminLifecycleOperationReassign",
       "adminLifecycleRecoveryTitle",
       "adminLifecycleOperatorRequired",
+      "adminDirectoryState_active",
+      "adminDirectoryState_pending_setup",
+      "adminDirectoryState_disabled",
+      "adminDirectoryState_inactive_unverified",
+      "adminDetailStateActive",
+      "adminDetailStatePending",
+      "adminDetailStateDisabled",
+      "adminDetailStateUnavailable",
     ] as const) {
       expect(translate("en", key)).not.toMatch(/^\[/u);
       expect(translate("my", key)).not.toMatch(/^\[/u);
     }
     expect(translate("my", "adminLifecycleManagementTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "adminLifecycleOperatorRequired")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("en", "adminDirectoryState_disabled")).toBe("Disabled");
+    expect(translate("en", "adminDirectoryState_inactive_unverified")).toBe("Inactive status unavailable");
+    expect(translate("my", "adminDirectoryState_pending_setup")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "adminDirectoryState_disabled")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "adminDirectoryState_pending_setup")).not.toBe(translate("my", "adminDirectoryState_disabled"));
     expect(translate("my", "modelAnalyticsTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "evidenceTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("en", "evidencePredictionConfidence")).toBe("Model confidence");
