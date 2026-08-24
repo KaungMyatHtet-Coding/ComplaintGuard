@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { ComplaintForm } from "@/components/complaint-form";
 import { CustomerTicketHistory } from "@/components/customer-ticket-history";
@@ -15,6 +15,7 @@ import {
   type CustomerTicketDetail,
   type CustomerTicketSummary,
 } from "@/lib/customer-workflow";
+import type { ComplaintAttempt, ComplaintSuccess } from "@/lib/complaint-submission";
 
 async function currentToken(): Promise<string> {
   const user = getFirebaseServices().auth.currentUser;
@@ -23,7 +24,7 @@ async function currentToken(): Promise<string> {
 }
 
 export function CustomerDashboardWorkflow() {
-  const { locale, t } = useApp();
+  const { locale, profile, t } = useApp();
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [tickets, setTickets] = useState<CustomerTicketSummary[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -31,41 +32,97 @@ export function CustomerDashboardWorkflow() {
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submissionAttempt, setSubmissionAttempt] = useState<ComplaintAttempt | null>(null);
+  const listRequestRef = useRef(0);
+  const detailRequestRef = useRef(0);
+  const selectedTicketRef = useRef<string | null>(null);
+  const confirmedComplaintRef = useRef<{ sessionUid: string; complaintId: string } | null>(null);
+  const sessionUid = profile?.role === "customer" && profile.active ? profile.uid : null;
 
-  const loadTickets = useCallback(async () => {
+  useEffect(() => {
+    selectedTicketRef.current = selectedTicketId;
+  }, [selectedTicketId]);
+
+  useEffect(() => {
+    listRequestRef.current += 1;
+    detailRequestRef.current += 1;
+    queueMicrotask(() => {
+      setTickets([]);
+      setSelectedTicketId(null);
+      setTicketDetail(null);
+      setError(null);
+      setSubmissionAttempt(null);
+      confirmedComplaintRef.current = null;
+    });
+  }, [sessionUid]);
+
+  const loadTickets = useCallback(async (preferredTicketId?: string) => {
+    if (!sessionUid) return;
+    const requestId = ++listRequestRef.current;
+    const requestSessionUid = sessionUid;
     setLoadingList(true);
     setError(null);
     try {
       const idToken = await currentToken();
       if (!idToken) throw new Error("No token");
       const list = await fetchCustomerTickets(idToken);
+      if (
+        requestId !== listRequestRef.current ||
+        sessionUid !== requestSessionUid ||
+        profile?.uid !== requestSessionUid ||
+        getFirebaseServices().auth.currentUser?.uid !== requestSessionUid
+      ) return;
       setTickets(list);
-      if (list.length > 0 && !selectedTicketId) {
-        setSelectedTicketId(list[0].id);
+      const confirmed = confirmedComplaintRef.current;
+      const requestedId = preferredTicketId ?? (
+        confirmed?.sessionUid === requestSessionUid ? confirmed.complaintId : undefined
+      );
+      const nextId = requestedId && list.some((ticket) => ticket.id === requestedId)
+        ? requestedId
+        : selectedTicketRef.current && list.some((ticket) => ticket.id === selectedTicketRef.current)
+          ? selectedTicketRef.current
+          : list[0]?.id ?? null;
+      setSelectedTicketId(nextId);
+      if (confirmed?.sessionUid === requestSessionUid && list.some((ticket) => ticket.id === confirmed.complaintId)) {
+        confirmedComplaintRef.current = null;
       }
     } catch {
-      setError(t("customerLoadError"));
+      if (requestId === listRequestRef.current && sessionUid === requestSessionUid && profile?.uid === requestSessionUid) {
+        setError(t("customerLoadError"));
+      }
     } finally {
-      setLoadingList(false);
+      if (requestId === listRequestRef.current) setLoadingList(false);
     }
-  }, [selectedTicketId, t]);
+  }, [profile, sessionUid, t]);
 
   const loadTicketDetail = useCallback(
     async (ticketId: string) => {
+      if (!sessionUid) return;
+      const requestId = ++detailRequestRef.current;
+      const requestSessionUid = sessionUid;
       setLoadingDetail(true);
       setError(null);
       try {
         const idToken = await currentToken();
         if (!idToken) throw new Error("No token");
         const detail = await fetchCustomerTicketDetail(ticketId, idToken);
+        if (
+          requestId !== detailRequestRef.current ||
+          selectedTicketRef.current !== ticketId ||
+          sessionUid !== requestSessionUid ||
+          profile?.uid !== requestSessionUid ||
+          getFirebaseServices().auth.currentUser?.uid !== requestSessionUid
+        ) return;
         setTicketDetail(detail);
       } catch {
-        setError(t("customerDetailLoadError"));
+        if (requestId === detailRequestRef.current && sessionUid === requestSessionUid && profile?.uid === requestSessionUid) {
+          setError(t("customerDetailLoadError"));
+        }
       } finally {
-        setLoadingDetail(false);
+        if (requestId === detailRequestRef.current) setLoadingDetail(false);
       }
     },
-    [t]
+    [profile, sessionUid, t]
   );
 
   useEffect(() => {
@@ -86,6 +143,14 @@ export function CustomerDashboardWorkflow() {
       queueMicrotask(() => setTicketDetail(null));
     }
   }, [selectedTicketId, loadTicketDetail]);
+
+  const handleComplaintSuccess = useCallback((result: ComplaintSuccess) => {
+    if (!sessionUid || profile?.role !== "customer" || !profile.active || profile.uid !== sessionUid || getFirebaseServices().auth.currentUser?.uid !== sessionUid) return;
+    confirmedComplaintRef.current = { sessionUid, complaintId: result.complaintId };
+    setSubmissionAttempt(null);
+    setIsComposeOpen(false);
+    void loadTickets(result.complaintId);
+  }, [loadTickets, profile, sessionUid]);
 
   const handleSendMessage = async (text: string) => {
     if (!selectedTicketId) return;
@@ -138,7 +203,15 @@ export function CustomerDashboardWorkflow() {
                 </svg>
               </button>
             </div>
-            <ComplaintForm onSuccess={loadTickets} hideTitle={true} />
+            {sessionUid ? (
+              <ComplaintForm
+                sessionUid={sessionUid}
+                attempt={submissionAttempt}
+                onAttemptChange={setSubmissionAttempt}
+                onSuccess={handleComplaintSuccess}
+                hideTitle={true}
+              />
+            ) : null}
           </div>
         </div>
       )}
@@ -150,7 +223,11 @@ export function CustomerDashboardWorkflow() {
             locale={locale}
             tickets={tickets}
             selectedTicketId={selectedTicketId}
-            onSelectTicket={(id) => setSelectedTicketId(id)}
+            onSelectTicket={(id) => {
+              selectedTicketRef.current = id;
+              setTicketDetail(null);
+              setSelectedTicketId(id);
+            }}
             loading={loadingList}
             error={error}
             onRefresh={loadTickets}

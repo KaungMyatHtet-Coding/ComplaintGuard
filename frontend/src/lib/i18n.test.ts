@@ -43,12 +43,24 @@ describe("localization foundation", () => {
       "adminDetailStatePending",
       "adminDetailStateDisabled",
       "adminDetailStateUnavailable",
+      "complaintUnknownOutcome",
+      "complaintRetryUnknown",
+      "complaintUnknownEdit",
     ] as const) {
       expect(translate("en", key)).not.toMatch(/^\[/u);
       expect(translate("my", key)).not.toMatch(/^\[/u);
     }
     expect(translate("my", "adminLifecycleManagementTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "adminLifecycleOperatorRequired")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("en", "complaintUnknownOutcome")).toContain("could not confirm");
+    expect(translate("en", "complaintRetryUnknown")).toBe("Retry safely");
+    expect(translate("my", "complaintUnknownOutcome")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "complaintRetryUnknown")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "complaintUnknownOutcome")).not.toMatch(/[\uFFFD]/u);
+    expect(translate("my", "complaintRetryUnknown")).not.toMatch(/[\uFFFD]/u);
+    expect(translate("en", "complaintUnknownEdit")).toContain("restore");
+    expect(translate("my", "complaintUnknownEdit")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "complaintUnknownEdit")).not.toMatch(/[\uFFFD]/u);
     expect(translate("en", "adminDirectoryState_disabled")).toBe("Disabled");
     expect(translate("en", "adminDirectoryState_inactive_unverified")).toBe("Inactive status unavailable");
     expect(translate("my", "adminDirectoryState_pending_setup")).toMatch(/[\u1000-\u109f]/u);
