@@ -33,6 +33,13 @@ export type AdminDisableResult = {
   profileState: "inactive";
 };
 
+export type AdminReactivateResult = {
+  accountRef: string;
+  operation: "reactivate";
+  status: "completed";
+  profileState: "active";
+};
+
 export type AdminLifecycleRequestOutcome = "definitive" | "unknown";
 
 export class AdminLifecycleRequestError extends AdminDirectoryError {
@@ -124,6 +131,27 @@ export function parseAdminDisableResult(value: unknown): AdminDisableResult {
   };
 }
 
+export function parseAdminReactivateResult(value: unknown): AdminReactivateResult {
+  if (!hasExactKeys(value, ["accountRef", "operation", "status", "profileState"])) {
+    throw new AdminDirectoryError("validation");
+  }
+  if (
+    typeof value.accountRef !== "string" ||
+    !accountReferencePattern.test(value.accountRef) ||
+    value.operation !== "reactivate" ||
+    value.status !== "completed" ||
+    value.profileState !== "active"
+  ) {
+    throw new AdminDirectoryError("validation");
+  }
+  return {
+    accountRef: value.accountRef,
+    operation: "reactivate",
+    status: "completed",
+    profileState: "active",
+  };
+}
+
 export function generateAdminLifecycleIdempotencyKey(): string {
   const cryptoApi = globalThis.crypto;
   if (!cryptoApi || typeof cryptoApi.getRandomValues !== "function") {
@@ -152,10 +180,11 @@ function mapStatus(status: number): AdminDirectoryErrorCode {
 async function postAdminLifecycle(
   accountRef: string,
   body: Record<string, string>,
-  endpoint: "disable" | "lifecycle-recovery",
+  endpoint: "disable" | "reactivate" | "lifecycle-recovery",
+  operation: "disable" | "reactivate",
   fetcher: typeof fetch,
   signal: AbortSignal | undefined,
-): Promise<AdminDisableResult> {
+): Promise<AdminDisableResult | AdminReactivateResult> {
   if (!accountReferencePattern.test(accountRef)) throw new AdminDirectoryError("validation");
   let apiBase: string;
   try {
@@ -199,7 +228,9 @@ async function postAdminLifecycle(
     throw new AdminLifecycleRequestError(mapStatus(response.status), "definitive", response.status);
   }
   try {
-    const parsed = parseAdminDisableResult(await response.json());
+    const parsed = operation === "disable"
+      ? parseAdminDisableResult(await response.json())
+      : parseAdminReactivateResult(await response.json());
     if (parsed.accountRef !== accountRef) throw new AdminDirectoryError("validation");
     return parsed;
   } catch (error) {
@@ -217,7 +248,7 @@ export async function disableAdminAccount(
   signal?: AbortSignal,
 ): Promise<AdminDisableResult> {
   validateIdempotencyKey(idempotencyKey);
-  return postAdminLifecycle(accountRef, { idempotencyKey }, "disable", fetcher, signal);
+  return postAdminLifecycle(accountRef, { idempotencyKey }, "disable", "disable", fetcher, signal) as Promise<AdminDisableResult>;
 }
 
 export async function continueAdminDisable(
@@ -229,9 +260,35 @@ export async function continueAdminDisable(
     accountRef,
     { operation: "disable" },
     "lifecycle-recovery",
+    "disable",
     fetcher,
     signal,
-  );
+  ) as Promise<AdminDisableResult>;
+}
+
+export async function reactivateAdminAccount(
+  accountRef: string,
+  idempotencyKey: string,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<AdminReactivateResult> {
+  validateIdempotencyKey(idempotencyKey);
+  return postAdminLifecycle(accountRef, { idempotencyKey }, "reactivate", "reactivate", fetcher, signal) as Promise<AdminReactivateResult>;
+}
+
+export async function continueAdminReactivate(
+  accountRef: string,
+  fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
+): Promise<AdminReactivateResult> {
+  return postAdminLifecycle(
+    accountRef,
+    { operation: "reactivate" },
+    "lifecycle-recovery",
+    "reactivate",
+    fetcher,
+    signal,
+  ) as Promise<AdminReactivateResult>;
 }
 
 export async function loadAdminLifecycleRecoveryStatus(

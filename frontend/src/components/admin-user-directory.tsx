@@ -38,6 +38,10 @@ const errorMessages: Record<AdminDirectoryErrorCode, "adminDirectoryAuthenticati
   unexpected: "adminDirectoryUnexpected",
 };
 
+export function reconciliationMarkerKey(adminUid: string | undefined, accountRef: string): string | null {
+  return adminUid ? `${adminUid}:${accountRef}` : null;
+}
+
 export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refreshKey?: number; onSummaryChange?: (snapshot: AdminOverviewSnapshot) => void }) {
   const { locale, profile, t } = useApp();
   const [role, setRole] = useState<"" | AdminDirectoryRole>("");
@@ -59,6 +63,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
   const focusRestoreAllowedRef = useRef(false);
   const preserveDetailOnRefreshFailureRef = useRef(false);
   const confirmedDisabledAccountRefsRef = useRef(new Set<string>());
+  const confirmedActiveAccountRefsRef = useRef(new Set<string>());
   const [selectedOwnerUid, setSelectedOwnerUid] = useState<string | undefined>(profile?.uid);
   const [selectedRow, setSelectedRow] = useState<AdminDirectoryResponse["rows"][number] | null>(null);
 
@@ -75,6 +80,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     if (previousAdminUidRef.current !== profile?.uid || !isAdmin) {
       previousAdminUidRef.current = profile?.uid;
       confirmedDisabledAccountRefsRef.current.clear();
+      confirmedActiveAccountRefsRef.current.clear();
       queueMicrotask(() => {
         setSelectedOwnerUid(undefined);
         setSelectedRow(null);
@@ -86,6 +92,7 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     const requestId = ++requestIdRef.current;
     if (!isAdmin) {
       confirmedDisabledAccountRefsRef.current.clear();
+      confirmedActiveAccountRefsRef.current.clear();
       focusRestoreAllowedRef.current = false;
       onSummaryChange?.({ state: "empty", rows: [] });
       return;
@@ -119,9 +126,17 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
         const nextResult = await loadAdminDirectory(filters);
         if (shouldApplyDirectoryResponse(requestId, requestIdRef.current)) {
           const reconciledRows = nextResult.rows.map((row) => {
-            if (!confirmedDisabledAccountRefsRef.current.has(row.accountRef)) return row;
+            const markerKey = reconciliationMarkerKey(profile?.uid, row.accountRef);
+            if (markerKey && confirmedActiveAccountRefsRef.current.has(markerKey)) {
+              if (row.active && row.accountState === "active") {
+                confirmedActiveAccountRefsRef.current.delete(markerKey);
+                return row;
+              }
+              return { ...row, active: true, accountState: "active" as const };
+            }
+            if (!markerKey || !confirmedDisabledAccountRefsRef.current.has(markerKey)) return row;
             if (row.active && row.accountState === "active") {
-              confirmedDisabledAccountRefsRef.current.delete(row.accountRef);
+              confirmedDisabledAccountRefsRef.current.delete(markerKey);
               return row;
             }
             return { ...row, active: false, accountState: "disabled" as const };
@@ -197,18 +212,25 @@ export function AdminUserDirectory({ refreshKey = 0, onSummaryChange }: { refres
     preserveDetailOnRefreshFailureRef.current = true;
     setRetryNonce((value) => value + 1);
   }, []);
-  const handleLifecycleSuccess = useCallback((accountRef: string) => {
-    confirmedDisabledAccountRefsRef.current.add(accountRef);
-    const markInactive = (row: AdminDirectoryResponse["rows"][number]) => row.accountRef === accountRef
-      ? { ...row, active: false, accountState: "disabled" as const }
+  const handleLifecycleSuccess = useCallback((accountRef: string, operation: "disable" | "reactivate" = "disable") => {
+    const markerKey = reconciliationMarkerKey(profile?.uid, accountRef);
+    if (!markerKey) return;
+    const reactivate = operation === "reactivate";
+    if (reactivate) {
+      confirmedActiveAccountRefsRef.current.add(markerKey);
+      confirmedDisabledAccountRefsRef.current.delete(markerKey);
+    } else {
+      confirmedDisabledAccountRefsRef.current.add(markerKey);
+      confirmedActiveAccountRefsRef.current.delete(markerKey);
+    }
+    const reconcile = (row: AdminDirectoryResponse["rows"][number]) => row.accountRef === accountRef
+      ? reactivate ? { ...row, active: true, accountState: "active" as const } : { ...row, active: false, accountState: "disabled" as const }
       : row;
-    setResult((current) => current ? { ...current, rows: current.rows.map(markInactive) } : current);
-    summaryRowsRef.current = summaryRowsRef.current.map(markInactive);
-    setSelectedRow((current) => current?.accountRef === accountRef
-      ? markInactive(current)
-      : current);
+    setResult((current) => current ? { ...current, rows: current.rows.map(reconcile) } : current);
+    summaryRowsRef.current = summaryRowsRef.current.map(reconcile);
+    setSelectedRow((current) => current?.accountRef === accountRef ? reconcile(current) : current);
     refreshDirectory();
-  }, [refreshDirectory]);
+  }, [profile?.uid, refreshDirectory]);
 
   if (!isAdmin) return null;
 

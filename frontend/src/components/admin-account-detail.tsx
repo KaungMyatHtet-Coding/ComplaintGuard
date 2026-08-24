@@ -7,10 +7,13 @@ import { useApp } from "@/components/app-provider";
 import { getDepartmentLabel } from "@/lib/department-labels";
 import {
   continueAdminDisable,
+  continueAdminReactivate,
   disableAdminAccount,
   generateAdminLifecycleIdempotencyKey,
   loadAdminLifecycleRecoveryStatus,
+  reactivateAdminAccount,
   type AdminDisableResult,
+  type AdminReactivateResult,
   type AdminLifecycleRequestError,
   type AdminLifecycleRecoveryOperation,
   type AdminLifecycleRecoveryStatus,
@@ -38,7 +41,7 @@ type AdminAccountDetailProps = {
   fallbackRef: React.RefObject<HTMLElement | null>;
   canRestoreFocus: () => boolean;
   onClose: () => void;
-  onLifecycleSuccess?: (accountRef: string) => void;
+  onLifecycleSuccess?: (accountRef: string, operation?: "disable" | "reactivate") => void;
 };
 
 function focusableElements(container: HTMLElement): HTMLElement[] {
@@ -72,9 +75,29 @@ const eligibilityReasonMessages: Record<NonNullable<AdminLifecycleEligibility["o
 };
 
 type DisableMutationState = "idle" | "confirming" | "submitting" | "unknown" | "retryable" | "recoverable" | "success" | "operator_required" | "error";
+type ReactivateMutationState = DisableMutationState;
 
 export function isFreshDisableTarget(row: AdminDirectoryRow): boolean {
   return row.active && row.accountState === "active" && (row.role === "customer" || row.role === "staff" || row.role === "manager");
+}
+
+export function isFreshReactivateTarget(row: AdminDirectoryRow): boolean {
+  return !row.active && row.accountState === "disabled" && (row.role === "customer" || row.role === "staff" || row.role === "manager");
+}
+
+export function isFreshReactivateEligible(
+  row: AdminDirectoryRow,
+  eligibility: AdminLifecycleEligibility,
+): boolean {
+  return isFreshReactivateTarget(row) && eligibility.profileState === "inactive" && eligibility.operations.reactivate.eligible;
+}
+
+export function isFreshReactivateRecoveryCompatible(recovery: AdminLifecycleRecoveryStatus): boolean {
+  return recovery.recoveryState === "none" || (
+    recovery.recoveryState === "completed" &&
+    recovery.operation === "disable" &&
+    recovery.departmentId === null
+  );
 }
 
 function operationLabel(t: (key: MessageKey) => string, operation: AdminLifecycleRecoveryOperation): string {
@@ -88,21 +111,31 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const disableButtonRef = useRef<HTMLButtonElement>(null);
+  const reactivateButtonRef = useRef<HTMLButtonElement>(null);
   const confirmationDialogRef = useRef<HTMLDivElement>(null);
   const confirmationCancelRef = useRef<HTMLButtonElement>(null);
   const confirmationContinueRef = useRef(false);
   const disableKeyRef = useRef<string | null>(null);
   const disableAttemptControllerRef = useRef<AbortController | null>(null);
   const disableRequestIdRef = useRef(0);
+  const reactivateKeyRef = useRef<string | null>(null);
+  const reactivateAttemptControllerRef = useRef<AbortController | null>(null);
+  const reactivateRequestIdRef = useRef(0);
   const unknownOutcomeRef = useRef(false);
   const resolvedUnknownRef = useRef(false);
+  const reactivateUnknownOutcomeRef = useRef(false);
+  const reactivateResolvedUnknownRef = useRef(false);
   const recoveryStatusInFlightRef = useRef(false);
   const confirmationOpenRef = useRef(false);
+  const confirmationOperationRef = useRef<"disable" | "reactivate">("disable");
   const [lifecycleState, setLifecycleState] = useState<LifecycleDetailState>({ status: "loading" });
   const [lifecycleRetryNonce, setLifecycleRetryNonce] = useState(0);
   const [disableMutationState, setDisableMutationState] = useState<DisableMutationState>("idle");
   const [disableConfirmationOpen, setDisableConfirmationOpen] = useState(false);
   const [disableMessage, setDisableMessage] = useState<"success" | "unknown" | "error" | null>(null);
+  const [reactivateMutationState, setReactivateMutationState] = useState<ReactivateMutationState>("idle");
+  const [reactivateMessage, setReactivateMessage] = useState<"success" | "unknown" | "error" | null>(null);
+  const [confirmationOperation, setConfirmationOperation] = useState<"disable" | "reactivate">("disable");
   const lifecycleRequestIdRef = useRef(0);
   useEffect(() => {
     confirmationOpenRef.current = disableConfirmationOpen;
@@ -135,6 +168,12 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     resolvedUnknownRef.current = false;
   };
 
+  const clearReactivateAttempt = () => {
+    reactivateKeyRef.current = null;
+    reactivateUnknownOutcomeRef.current = false;
+    reactivateResolvedUnknownRef.current = false;
+  };
+
   const finishDisable = useCallback((result: AdminDisableResult) => {
     if (result.accountRef !== row.accountRef) {
       setDisableMutationState("error");
@@ -147,7 +186,23 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     setDisableMutationState("success");
     setDisableMessage("success");
     setDisableConfirmationOpen(false);
-    onLifecycleSuccess?.(row.accountRef);
+    onLifecycleSuccess?.(row.accountRef, "disable");
+    setLifecycleRetryNonce((value) => value + 1);
+  }, [onLifecycleSuccess, row.accountRef]);
+
+  const finishReactivate = useCallback((result: AdminReactivateResult) => {
+    if (result.accountRef !== row.accountRef) {
+      setReactivateMutationState("error");
+      setReactivateMessage("error");
+      clearReactivateAttempt();
+      return;
+    }
+    reactivateAttemptControllerRef.current = null;
+    clearReactivateAttempt();
+    setReactivateMutationState("success");
+    setReactivateMessage("success");
+    setDisableConfirmationOpen(false);
+    onLifecycleSuccess?.(row.accountRef, "reactivate");
     setLifecycleRetryNonce((value) => value + 1);
   }, [onLifecycleSuccess, row.accountRef]);
 
@@ -207,6 +262,54 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
       .finally(() => clearTimeout(timeoutId));
   };
 
+  const handleReactivateFailure = (error: unknown) => {
+    reactivateAttemptControllerRef.current = null;
+    const requestError = error as Partial<AdminLifecycleRequestError>;
+    if (requestError.outcome === "unknown" || requestError.httpStatus === 409 || requestError.httpStatus === 503) {
+      reactivateUnknownOutcomeRef.current = true;
+      setReactivateMutationState("unknown");
+      setReactivateMessage(requestError.outcome === "unknown" ? "unknown" : "error");
+      setLifecycleRetryNonce((value) => value + 1);
+      return;
+    }
+    clearReactivateAttempt();
+    setReactivateMutationState("error");
+    setReactivateMessage("error");
+  };
+
+  const submitReactivate = (continueExisting: boolean) => {
+    if (reactivateMutationState === "submitting" || reactivateAttemptControllerRef.current) return;
+    let key = reactivateKeyRef.current;
+    if (!continueExisting && !key) {
+      try {
+        key = generateAdminLifecycleIdempotencyKey();
+        reactivateKeyRef.current = key;
+      } catch {
+        setReactivateMutationState("error");
+        setReactivateMessage("error");
+        return;
+      }
+    }
+    if (!continueExisting && !key) return;
+    const controller = new AbortController();
+    const requestId = ++reactivateRequestIdRef.current;
+    reactivateAttemptControllerRef.current = controller;
+    setReactivateMutationState("submitting");
+    setReactivateMessage(null);
+    const request = continueExisting
+      ? continueAdminReactivate(row.accountRef, fetch, controller.signal)
+      : reactivateAdminAccount(row.accountRef, key as string, fetch, controller.signal);
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    void request
+      .then((result) => {
+        if (requestId === reactivateRequestIdRef.current) finishReactivate(result);
+      })
+      .catch((error: unknown) => {
+        if (requestId === reactivateRequestIdRef.current) handleReactivateFailure(error);
+      })
+      .finally(() => clearTimeout(timeoutId));
+  };
+
   const reconcileUnknownOutcome = useCallback((recovery: AdminLifecycleRecoveryStatus) => {
     if (!unknownOutcomeRef.current || resolvedUnknownRef.current) return;
     resolvedUnknownRef.current = true;
@@ -230,6 +333,29 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     }
   }, [finishDisable, row.accountRef]);
 
+  const reconcileReactivateUnknownOutcome = useCallback((recovery: AdminLifecycleRecoveryStatus) => {
+    if (!reactivateUnknownOutcomeRef.current || reactivateResolvedUnknownRef.current) return;
+    reactivateResolvedUnknownRef.current = true;
+    reactivateUnknownOutcomeRef.current = false;
+    if (recovery.recoveryState === "recoverable" && recovery.operation === "reactivate") {
+      setReactivateMutationState("recoverable");
+      setReactivateMessage(null);
+    } else if (recovery.recoveryState === "completed" && recovery.operation === "reactivate") {
+      finishReactivate({ accountRef: row.accountRef, operation: "reactivate", status: "completed", profileState: "active" });
+    } else if (recovery.recoveryState === "none") {
+      setReactivateMutationState("retryable");
+      setReactivateMessage("unknown");
+    } else if (recovery.recoveryState === "operator_required") {
+      setReactivateMutationState("operator_required");
+      setReactivateMessage(null);
+      clearReactivateAttempt();
+    } else {
+      setReactivateMutationState("error");
+      setReactivateMessage("error");
+      clearReactivateAttempt();
+    }
+  }, [finishReactivate, row.accountRef]);
+
   useEffect(() => {
     const requestId = ++lifecycleRequestIdRef.current;
     const controller = new AbortController();
@@ -240,6 +366,7 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
         if (!controller.signal.aborted && requestId === lifecycleRequestIdRef.current) {
           setLifecycleState({ status: "error", accountRef: row.accountRef, profileUid: profile?.uid ?? "", code: "authentication" });
         }
+        if (requestId === lifecycleRequestIdRef.current) recoveryStatusInFlightRef.current = false;
         return;
       }
       setLifecycleState({ status: "loading" });
@@ -251,6 +378,7 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
         if (!controller.signal.aborted && requestId === lifecycleRequestIdRef.current) {
           setLifecycleState({ status: "ready", accountRef: row.accountRef, profileUid: profile.uid, eligibility, recovery });
           reconcileUnknownOutcome(recovery);
+          reconcileReactivateUnknownOutcome(recovery);
         }
       } catch (error: unknown) {
         if (controller.signal.aborted || requestId !== lifecycleRequestIdRef.current) return;
@@ -264,13 +392,17 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
       }
     })();
     return () => controller.abort();
-  }, [lifecycleRetryNonce, profile, reconcileUnknownOutcome, row.accountRef, row.active, row.accountState, row.departmentId, row.role]);
+  }, [lifecycleRetryNonce, profile, reconcileReactivateUnknownOutcome, reconcileUnknownOutcome, row.accountRef, row.active, row.accountState, row.departmentId, row.role]);
 
   useEffect(() => () => {
     disableRequestIdRef.current += 1;
     disableAttemptControllerRef.current?.abort();
     disableAttemptControllerRef.current = null;
     clearDisableAttempt();
+    reactivateRequestIdRef.current += 1;
+    reactivateAttemptControllerRef.current?.abort();
+    reactivateAttemptControllerRef.current = null;
+    clearReactivateAttempt();
   }, [profile?.uid, row.accountRef]);
 
   const lifecycleStateForRow = lifecycleState.status === "loading" || (
@@ -279,29 +411,57 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
 
   const lifecycleReady = lifecycleStateForRow.status === "ready";
   const disableEligible = lifecycleReady && lifecycleStateForRow.eligibility.operations.disable.eligible;
+  const reactivateEligible = lifecycleReady && lifecycleStateForRow.eligibility.operations.reactivate.eligible;
   const supportedRole = row.role === "customer" || row.role === "staff" || row.role === "manager";
   const freshDisableTarget = isFreshDisableTarget(row);
   const operatorRequired = lifecycleReady && lifecycleStateForRow.recovery.recoveryState === "operator_required";
   const recoveryBlocksFreshDisable = lifecycleReady && lifecycleStateForRow.recovery.recoveryState === "recoverable";
   const showFreshDisable = lifecycleReady && freshDisableTarget && disableEligible && !operatorRequired && !recoveryBlocksFreshDisable && disableMutationState !== "submitting" && disableMutationState !== "unknown" && disableMutationState !== "recoverable" && disableMutationState !== "success";
   const showContinueDisable = lifecycleReady && supportedRole && lifecycleStateForRow.recovery.recoveryState === "recoverable" && lifecycleStateForRow.recovery.operation === "disable" && disableMutationState !== "submitting";
+  const showFreshReactivate = lifecycleReady && isFreshReactivateEligible(row, lifecycleStateForRow.eligibility) && supportedRole && reactivateEligible && isFreshReactivateRecoveryCompatible(lifecycleStateForRow.recovery) && reactivateMutationState !== "submitting" && reactivateMutationState !== "unknown" && reactivateMutationState !== "success";
+  const showContinueReactivate = lifecycleReady && isFreshReactivateTarget(row) && supportedRole && lifecycleStateForRow.recovery.recoveryState === "recoverable" && lifecycleStateForRow.recovery.operation === "reactivate" && reactivateMutationState !== "submitting";
   const openDisableConfirmation = () => {
     if (!showFreshDisable) return;
     confirmationContinueRef.current = false;
+    confirmationOperationRef.current = "disable";
+    setConfirmationOperation("disable");
     setDisableConfirmationOpen(true);
     setDisableMutationState(disableMutationState === "retryable" ? "retryable" : "confirming");
   };
   const openContinueConfirmation = () => {
     if (!showContinueDisable) return;
     confirmationContinueRef.current = true;
+    confirmationOperationRef.current = "disable";
+    setConfirmationOperation("disable");
     setDisableConfirmationOpen(true);
     setDisableMutationState("recoverable");
   };
-  const checkRecoveryStatus = () => {
+  const openReactivateConfirmation = () => {
+    if (!showFreshReactivate) return;
+    confirmationContinueRef.current = false;
+    confirmationOperationRef.current = "reactivate";
+    setConfirmationOperation("reactivate");
+    setDisableConfirmationOpen(true);
+    setReactivateMutationState(reactivateMutationState === "retryable" ? "retryable" : "confirming");
+  };
+  const openContinueReactivateConfirmation = () => {
+    if (!showContinueReactivate) return;
+    confirmationContinueRef.current = true;
+    confirmationOperationRef.current = "reactivate";
+    setConfirmationOperation("reactivate");
+    setDisableConfirmationOpen(true);
+    setReactivateMutationState("recoverable");
+  };
+  const checkRecoveryStatus = (operation: "disable" | "reactivate" = "disable") => {
     if (recoveryStatusInFlightRef.current) return;
     recoveryStatusInFlightRef.current = true;
-    unknownOutcomeRef.current = true;
-    resolvedUnknownRef.current = false;
+    if (operation === "disable") {
+      unknownOutcomeRef.current = true;
+      resolvedUnknownRef.current = false;
+    } else {
+      reactivateUnknownOutcomeRef.current = true;
+      reactivateResolvedUnknownRef.current = false;
+    }
     setLifecycleRetryNonce((value) => value + 1);
   };
 
@@ -346,7 +506,8 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
         if (confirmationOpenRef.current) {
           confirmationContinueRef.current = false;
           setDisableConfirmationOpen(false);
-          queueMicrotask(() => disableButtonRef.current?.focus());
+          setConfirmationOperation("disable");
+          queueMicrotask(() => (confirmationOperationRef.current === "reactivate" ? reactivateButtonRef : disableButtonRef).current?.focus());
         } else {
           onClose();
         }
@@ -402,6 +563,8 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
     if (!disableConfirmationOpen) return;
     confirmationCancelRef.current?.focus();
   }, [disableConfirmationOpen]);
+
+  const confirmationIsReactivate = confirmationOperation === "reactivate";
 
   const content = (
     <div className="admin-account-detail-overlay">
@@ -459,24 +622,30 @@ export function AdminAccountDetail({ row, openerRef, fallbackRef, canRestoreFocu
               </section>
               {showFreshDisable ? <button ref={disableButtonRef} className="admin-danger-button" type="button" onClick={openDisableConfirmation}>{disableMutationState === "retryable" ? t("adminDisableRetry") : t("adminDisableAccount")}</button> : null}
               {showContinueDisable ? <button ref={disableButtonRef} className="admin-secondary-button" type="button" onClick={openContinueConfirmation}>{t("adminContinueDisable")}</button> : null}
+              {showFreshReactivate ? <button ref={reactivateButtonRef} className="admin-secondary-button" type="button" onClick={openReactivateConfirmation}>{reactivateMutationState === "retryable" ? t("adminReactivateRetry") : t("adminReactivateAccount")}</button> : null}
+              {showContinueReactivate ? <button ref={reactivateButtonRef} className="admin-secondary-button" type="button" onClick={openContinueReactivateConfirmation}>{t("adminContinueReactivate")}</button> : null}
               {lifecycleStateForRow.recovery.recoveryState === "recoverable" ? <section className="admin-lifecycle-recovery" aria-labelledby="admin-lifecycle-recovery-title"><h4 id="admin-lifecycle-recovery-title">{t("adminLifecycleRecoveryTitle")}</h4><p>{t("adminLifecycleRecoverableMessage")}</p><p>{operationLabel(t, lifecycleStateForRow.recovery.operation as AdminLifecycleRecoveryOperation)}{lifecycleStateForRow.recovery.operation === "reassign_department" && lifecycleStateForRow.recovery.departmentId ? `: ${getDepartmentLabel(lifecycleStateForRow.recovery.departmentId, locale)}` : ""}</p></section> : null}
               {lifecycleStateForRow.recovery.recoveryState === "completed" ? <section className="admin-lifecycle-recovery" aria-labelledby="admin-lifecycle-recovery-title"><h4 id="admin-lifecycle-recovery-title">{t("adminLifecycleRecoveryTitle")}</h4><p>{t("adminLifecycleCompletedMessage")}</p><p>{operationLabel(t, lifecycleStateForRow.recovery.operation as AdminLifecycleRecoveryOperation)}{lifecycleStateForRow.recovery.operation === "reassign_department" && lifecycleStateForRow.recovery.departmentId ? `: ${getDepartmentLabel(lifecycleStateForRow.recovery.departmentId, locale)}` : ""}</p></section> : null}
               {lifecycleStateForRow.recovery.recoveryState === "operator_required" ? <section className="admin-lifecycle-recovery" aria-labelledby="admin-lifecycle-recovery-title"><h4 id="admin-lifecycle-recovery-title">{t("adminLifecycleRecoveryTitle")}</h4><p>{t("adminLifecycleOperatorRequired")}</p></section> : null}
             </> : null}
             {disableMessage === "success" ? <p className="admin-lifecycle-status admin-lifecycle-success" role="status">{t("adminDisableSuccess")}</p> : null}
             {disableMutationState === "submitting" ? <p className="admin-lifecycle-status" role="status" aria-live="polite">{t("adminDisableSubmitting")}</p> : null}
-            {disableMessage === "unknown" ? <div className="admin-lifecycle-status" role="alert"><p>{t("adminDisableUnknownOutcome")}</p><button className="admin-secondary-button" type="button" onClick={checkRecoveryStatus}>{t("adminDisableCheckStatus")}</button></div> : null}
+            {disableMessage === "unknown" ? <div className="admin-lifecycle-status" role="alert"><p>{t("adminDisableUnknownOutcome")}</p><button className="admin-secondary-button" type="button" onClick={() => checkRecoveryStatus("disable")}>{t("adminDisableCheckStatus")}</button></div> : null}
             {disableMessage === "error" ? <p className="admin-lifecycle-status" role="alert">{t("adminDisableSafeError")}</p> : null}
+            {reactivateMessage === "success" ? <p className="admin-lifecycle-status admin-lifecycle-success" role="status">{t("adminReactivateSuccess")}</p> : null}
+            {reactivateMutationState === "submitting" ? <p className="admin-lifecycle-status" role="status" aria-live="polite">{t("adminReactivateSubmitting")}</p> : null}
+            {reactivateMessage === "unknown" ? <div className="admin-lifecycle-status" role="alert"><p>{t("adminReactivateUnknownOutcome")}</p><button className="admin-secondary-button" type="button" onClick={() => checkRecoveryStatus("reactivate")}>{t("adminReactivateCheckStatus")}</button></div> : null}
+            {reactivateMessage === "error" ? <p className="admin-lifecycle-status" role="alert">{t("adminReactivateSafeError")}</p> : null}
           </section>
         </div>
         {disableConfirmationOpen ? <div className="admin-disable-confirmation-layer">
-          <button className="admin-disable-confirmation-backdrop" type="button" aria-label={t("adminDisableCancel")} onClick={() => { confirmationContinueRef.current = false; setDisableConfirmationOpen(false); disableButtonRef.current?.focus(); }} />
+          <button className="admin-disable-confirmation-backdrop" type="button" aria-label={t(confirmationIsReactivate ? "adminReactivateCancel" : "adminDisableCancel")} onClick={() => { const operation = confirmationOperationRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); (operation === "reactivate" ? reactivateButtonRef : disableButtonRef).current?.focus(); }} />
           <div ref={confirmationDialogRef} className="admin-disable-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="admin-disable-confirmation-title" aria-describedby="admin-disable-confirmation-body" tabIndex={-1}>
-            <h3 id="admin-disable-confirmation-title">{t("adminDisableConfirmationTitle")}</h3>
-            <p id="admin-disable-confirmation-body">{t("adminDisableConfirmationBody")}</p>
+            <h3 id="admin-disable-confirmation-title">{t(confirmationIsReactivate ? "adminReactivateConfirmationTitle" : "adminDisableConfirmationTitle")}</h3>
+            <p id="admin-disable-confirmation-body">{t(confirmationIsReactivate ? "adminReactivateConfirmationBody" : "adminDisableConfirmationBody")}</p>
             <div className="admin-dialog-actions">
-              <button ref={confirmationCancelRef} className="admin-secondary-button" type="button" onClick={() => { confirmationContinueRef.current = false; setDisableConfirmationOpen(false); disableButtonRef.current?.focus(); }}>{t("adminDisableCancel")}</button>
-              <button className="admin-danger-button" type="button" onClick={() => { const continueExisting = confirmationContinueRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); submitDisable(continueExisting); }}>{t("adminDisableConfirm")}</button>
+              <button ref={confirmationCancelRef} className="admin-secondary-button" type="button" onClick={() => { const operation = confirmationOperationRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); (operation === "reactivate" ? reactivateButtonRef : disableButtonRef).current?.focus(); }}>{t(confirmationIsReactivate ? "adminReactivateCancel" : "adminDisableCancel")}</button>
+              <button className={confirmationIsReactivate ? "admin-secondary-button" : "admin-danger-button"} type="button" onClick={() => { const operation = confirmationOperationRef.current; const continueExisting = confirmationContinueRef.current; confirmationContinueRef.current = false; setDisableConfirmationOpen(false); setConfirmationOperation("disable"); if (operation === "reactivate") submitReactivate(continueExisting); else submitDisable(continueExisting); }}>{t(confirmationIsReactivate ? "adminReactivateConfirm" : "adminDisableConfirm")}</button>
             </div>
           </div>
         </div> : null}

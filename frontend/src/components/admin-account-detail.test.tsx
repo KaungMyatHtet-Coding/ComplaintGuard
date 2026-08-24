@@ -42,7 +42,7 @@ vi.mock("@/components/app-provider", () => ({
   }),
 }));
 
-import { AdminAccountDetail, isFreshDisableTarget } from "./admin-account-detail";
+import { AdminAccountDetail, isFreshDisableTarget, isFreshReactivateEligible, isFreshReactivateRecoveryCompatible, isFreshReactivateTarget } from "./admin-account-detail";
 
 type AccountState = "active" | "pending_setup" | "disabled" | "inactive_unverified";
 
@@ -117,5 +117,40 @@ describe("AdminAccountDetail", () => {
     expect(isFreshDisableTarget(row("staff", false, "pending_setup"))).toBe(false);
     expect(isFreshDisableTarget(row("customer", false, "inactive_unverified"))).toBe(false);
     expect(isFreshDisableTarget(row("admin"))).toBe(false);
+  });
+
+  it("gates fresh Reactivate targets on disabled state and supported non-Admin roles", () => {
+    expect(isFreshReactivateTarget(row("customer", false, "disabled"))).toBe(true);
+    expect(isFreshReactivateTarget(row("staff", false, "disabled"))).toBe(true);
+    expect(isFreshReactivateTarget(row("manager", false, "disabled"))).toBe(true);
+    expect(isFreshReactivateTarget(row("customer", true, "active"))).toBe(false);
+    expect(isFreshReactivateTarget(row("customer", false, "pending_setup"))).toBe(false);
+    expect(isFreshReactivateTarget(row("customer", false, "inactive_unverified"))).toBe(false);
+    expect(isFreshReactivateTarget(row("admin", false, "disabled"))).toBe(false);
+  });
+
+  it("rejects contradictory loaded eligibility for Reactivate", () => {
+    const disabled = row("customer", false, "disabled");
+    const base = {
+      accountRef: disabled.accountRef,
+      profileState: "inactive" as const,
+      operations: {
+        disable: { eligible: false, reason: "already_inactive" as const },
+        reactivate: { eligible: true, reason: null },
+        reassignDepartment: { eligible: false, reason: "role_not_reassignable" as const },
+      },
+    };
+    expect(isFreshReactivateEligible(disabled, base)).toBe(true);
+    expect(isFreshReactivateEligible(disabled, { ...base, profileState: "active" })).toBe(false);
+    expect(isFreshReactivateEligible(disabled, { ...base, operations: { ...base.operations, reactivate: { eligible: false, reason: "already_inactive" } } })).toBe(false);
+  });
+
+  it("accepts only completed Disable lineage or no recovery for a fresh Reactivate", () => {
+    expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "none", operation: null, departmentId: null })).toBe(true);
+    expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "completed", operation: "disable", departmentId: null })).toBe(true);
+    expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "completed", operation: "reactivate", departmentId: null })).toBe(false);
+    expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "completed", operation: "reassign_department", departmentId: "card_atm" })).toBe(false);
+    expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "recoverable", operation: "disable", departmentId: null })).toBe(false);
+    expect(isFreshReactivateRecoveryCompatible({ accountRef: row("customer").accountRef, recoveryState: "operator_required", operation: null, departmentId: null })).toBe(false);
   });
 });
