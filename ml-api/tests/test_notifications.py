@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import create_app
 from app.notifications import (
     FirebaseAdminNotificationBackend,
@@ -20,8 +18,14 @@ from app.notifications import (
     decode_cursor,
     notification_reference,
 )
+from fastapi.testclient import TestClient
 
 NOW = datetime(2026, 8, 22, 10, 0, tzinfo=timezone.utc)
+
+
+class UnresolvedTimezone(tzinfo):
+    def utcoffset(self, _dt: datetime | None) -> timedelta | None:
+        return None
 
 
 def request(
@@ -218,6 +222,110 @@ def test_firestore_query_orders_and_starts_after_document_reference() -> None:
         ("__name__", "DESCENDING"),
     ]
     assert query.cursor == cursor
+
+
+class _FakeNotificationReference:
+    def __init__(self, document_id: str) -> None:
+        self.id = document_id
+
+
+class _FakeNotificationSnapshot:
+    def __init__(self, reference: _FakeNotificationReference, data: dict[str, Any] | None) -> None:
+        self.id = reference.id
+        self._data = data
+        self.exists = data is not None
+
+    def to_dict(self) -> dict[str, Any]:
+        assert self._data is not None
+        return self._data
+
+
+class _FakeNotificationTransaction:
+    def __init__(self, data: dict[str, Any] | None = None) -> None:
+        self.data = data
+        self.read_count = 0
+        self.created: list[dict[str, Any]] = []
+
+    def get(self, reference: _FakeNotificationReference):
+        self.read_count += 1
+        yield _FakeNotificationSnapshot(reference, self.data)
+
+    def create(self, _reference: _FakeNotificationReference, document: dict[str, Any]) -> None:
+        self.created.append(document)
+
+
+class _FakeNotificationDatabase:
+    def collection(self, _name: str):
+        return self
+
+    def document(self, document_id: str) -> _FakeNotificationReference:
+        return _FakeNotificationReference(document_id)
+
+
+def test_firestore_creation_uses_one_aware_clock_for_both_timestamps() -> None:
+    trusted_now = datetime(2026, 8, 22, 10, 0, 0, 123456, timezone(timedelta(hours=6, minutes=30)))
+    clock_calls = 0
+
+    def clock() -> datetime:
+        nonlocal clock_calls
+        clock_calls += 1
+        return trusted_now
+
+    transaction = _FakeNotificationTransaction()
+    backend = FirebaseAdminNotificationBackend(
+        db=_FakeNotificationDatabase(),
+        server_timestamp="must-not-be-written",
+        clock=clock,
+    )
+    record = backend.stage_create(transaction, request())
+
+    expected_created_at = trusted_now.astimezone(timezone.utc)
+    assert clock_calls == 1
+    assert record.created_at == expected_created_at
+    assert record.expires_at == expected_created_at + timedelta(days=90)
+    assert len(transaction.created) == 1
+    assert transaction.created[0]["createdAt"] == expected_created_at
+    assert transaction.created[0]["expiresAt"] == expected_created_at + timedelta(days=90)
+    assert transaction.created[0]["createdAt"] != "must-not-be-written"
+
+
+@pytest.mark.parametrize(
+    "clock_value",
+    [
+        NOW.replace(tzinfo=None),
+        datetime(2026, 8, 22, 10, 0, tzinfo=UnresolvedTimezone()),
+    ],
+)
+def test_firestore_creation_rejects_unusable_clock_before_repository_access(clock_value: datetime) -> None:
+    transaction = _FakeNotificationTransaction()
+    backend = FirebaseAdminNotificationBackend(
+        db=_FakeNotificationDatabase(),
+        server_timestamp="server",
+        clock=lambda: clock_value,
+    )
+
+    with pytest.raises(NotificationValidationError):
+        backend.stage_create(transaction, request())
+    assert transaction.read_count == 0
+    assert transaction.created == []
+
+
+def test_firestore_retry_is_immutable_and_conflicts_on_changed_content() -> None:
+    transaction = _FakeNotificationTransaction()
+    backend = FirebaseAdminNotificationBackend(
+        db=_FakeNotificationDatabase(), server_timestamp="server", clock=lambda: NOW
+    )
+    first = backend.stage_create(transaction, request())
+    retry_transaction = _FakeNotificationTransaction(transaction.created[0])
+    replay = backend.stage_create(retry_transaction, request())
+    assert replay == first
+    assert retry_transaction.read_count == 1
+    assert retry_transaction.created == []
+
+    conflict_transaction = _FakeNotificationTransaction(transaction.created[0])
+    with pytest.raises(NotificationConflictError):
+        backend.stage_create(conflict_transaction, request(severity="urgent"))
+    assert conflict_transaction.created == []
 
 
 def test_expiry_boundary_and_naive_clock_are_safe() -> None:

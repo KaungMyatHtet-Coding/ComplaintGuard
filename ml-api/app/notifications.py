@@ -268,6 +268,12 @@ def _utc_now() -> datetime:
 def _normalise_datetime(value: datetime) -> datetime:
     if value.tzinfo is None:
         raise NotificationValidationError("notification timestamps must include a timezone")
+    try:
+        offset = value.utcoffset()
+    except (TypeError, ValueError) as exc:
+        raise NotificationValidationError("notification timestamp timezone is unresolved") from exc
+    if offset is None:
+        raise NotificationValidationError("notification timestamp timezone is unresolved")
     return value.astimezone(timezone.utc)
 
 
@@ -826,7 +832,14 @@ def require_active_notification_profile(authorization: str | None, backend: Any)
 class FirebaseAdminNotificationBackend:
     """Local-only Admin SDK adapter; construction is explicitly fail-closed."""
 
-    def __init__(self, db: Any = None, server_timestamp: object | None = None) -> None:
+    def __init__(
+        self,
+        db: Any = None,
+        server_timestamp: object | None = None,
+        *,
+        clock: Any = _utc_now,
+    ) -> None:
+        self._clock = clock
         if db is not None:
             self._db = db
             if server_timestamp is None:
@@ -865,7 +878,11 @@ class FirebaseAdminNotificationBackend:
         self, transaction: Any, record: NotificationRecord
     ) -> NotificationRecord:
         reference = self._db.collection("notifications").document(record.notification_ref)
-        document = _immutable_payload(record) | {"createdAt": self._server_timestamp, "readAt": None, "expiresAt": record.expires_at}
+        document = _immutable_payload(record) | {
+            "createdAt": record.created_at,
+            "readAt": None,
+            "expiresAt": record.expires_at,
+        }
         snapshot = next(transaction.get(reference))
         if snapshot.exists:
             existing = self._record_from_document(snapshot.to_dict(), snapshot.id)
@@ -878,7 +895,10 @@ class FirebaseAdminNotificationBackend:
     def stage_create(
         self, transaction: Any, request: NotificationCreateRequest
     ) -> NotificationRecord:
-        return self._stage_record(transaction, validate_creation(request, now=_utc_now()))
+        trusted_now = self._clock()
+        return self._stage_record(
+            transaction, validate_creation(request, now=trusted_now)
+        )
 
     def create(self, record: NotificationRecord) -> NotificationRecord:
         def operation(transaction: Any) -> NotificationRecord:
