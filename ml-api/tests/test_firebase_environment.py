@@ -104,8 +104,23 @@ def test_invalid_staging_configurations_fail(environment: dict[str, str]) -> Non
 def test_staging_admin_creation_is_blocked_before_firebase_import(monkeypatch: pytest.MonkeyPatch) -> None:
     from app import ticketing
 
+    for key in (
+        "GCLOUD_PROJECT",
+        "GOOGLE_CLOUD_PROJECT",
+        "FIREBASE_AUTH_EMULATOR_HOST",
+        "FIRESTORE_EMULATOR_HOST",
+        "FIREBASE_CONFIG",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "GOOGLE_APPLICATION_CREDENTIALS_JSON",
+        "FIREBASE_ADMIN_CREDENTIALS",
+        "FIREBASE_ADMIN_CREDENTIALS_JSON",
+        "FIREBASE_SERVICE_ACCOUNT_JSON",
+        "GOOGLE_SERVICE_ACCOUNT_JSON",
+    ):
+        monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("APP_ENV", "cloud-staging")
     monkeypatch.setenv("GCLOUD_PROJECT", "complaintguard")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "complaintguard")
     original_import = builtins.__import__
 
     def guarded_import(name, *args, **kwargs):
@@ -115,6 +130,40 @@ def test_staging_admin_creation_is_blocked_before_firebase_import(monkeypatch: p
 
     monkeypatch.setattr(builtins, "__import__", guarded_import)
     with pytest.raises(ticketing.PersistenceError, match="cloud_staging_not_adopted"):
+        ticketing.firebase_admin_clients()
+
+
+def test_conflicting_project_variables_fail_before_firebase_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app import ticketing
+
+    for key in (
+        "GCLOUD_PROJECT",
+        "GOOGLE_CLOUD_PROJECT",
+        "FIREBASE_AUTH_EMULATOR_HOST",
+        "FIRESTORE_EMULATOR_HOST",
+        "FIREBASE_CONFIG",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "GOOGLE_APPLICATION_CREDENTIALS_JSON",
+        "FIREBASE_ADMIN_CREDENTIALS",
+        "FIREBASE_ADMIN_CREDENTIALS_JSON",
+        "FIREBASE_SERVICE_ACCOUNT_JSON",
+        "GOOGLE_SERVICE_ACCOUNT_JSON",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("APP_ENV", "cloud-staging")
+    monkeypatch.setenv("GCLOUD_PROJECT", "complaintguard")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "other-project")
+    original_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name == "firebase_admin" or name.startswith("firebase_admin."):
+            raise AssertionError("Firebase must not be imported before project validation")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    with pytest.raises(ticketing.PersistenceError, match="project_id_conflict"):
         ticketing.firebase_admin_clients()
 
 
