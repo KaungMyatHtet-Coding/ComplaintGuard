@@ -94,6 +94,13 @@ class EmulatorRun:
         return uid, token
 
     def set_profile(self, uid: str, *, role: str, active: bool = True, department: str | None = None) -> None:
+        account_state = (
+            "active"
+            if active
+            else "pending_setup"
+            if role in {"staff", "manager"}
+            else "inactive_unverified"
+        )
         self.db.collection("users").document(uid).set(
             {
                 "email": self.emails[uid],
@@ -102,6 +109,7 @@ class EmulatorRun:
                 "role": role,
                 "departmentId": department,
                 "active": active,
+                "accountState": account_state,
                 "createdAt": NOW,
                 "updatedAt": NOW,
             }

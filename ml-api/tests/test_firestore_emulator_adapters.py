@@ -22,6 +22,10 @@ from app.manager_workflow import (
     TicketNotFound as ManagerTicketNotFound,
 )
 from app.model import FrozenDepartmentClassifier
+from app.notifications import (
+    build_customer_notification_request,
+    notification_reference,
+)
 from app.routing import RoutingPrediction, TrustedRoutingInference
 from app.schemas import (
     CustomerFeedbackRequest,
@@ -49,6 +53,15 @@ pytestmark = pytest.mark.skipif(
     reason="requires the local Firestore Emulator",
 )
 
+EMULATOR_CUSTOMER_PROFILE_IDS = (
+    "customer-a",
+    "customer-b",
+    "customer-messages",
+    "customer-routing",
+    "customer-routing-e2e",
+)
+RUN_OWNED_NOTIFICATION_REFS: set[str] = set()
+
 
 @pytest.fixture(scope="session")
 def emulator_db():
@@ -56,10 +69,45 @@ def emulator_db():
         project=os.getenv("GCLOUD_PROJECT", "demo-complaintguard"),
         credentials=AnonymousCredentials(),
     )
+    created_profile_ids: list[str] = []
+    RUN_OWNED_NOTIFICATION_REFS.clear()
     try:
+        profile_time = datetime.now(timezone.utc)
+        for uid in EMULATOR_CUSTOMER_PROFILE_IDS:
+            profile_ref = client.collection("users").document(uid)
+            if profile_ref.get().exists:
+                raise AssertionError("synthetic emulator customer profile collision")
+            profile_ref.set(
+                {
+                    "email": f"{uid}@complaintguard.test",
+                    "displayName": "Synthetic Emulator Customer",
+                    "locale": "en",
+                    "role": "customer",
+                    "departmentId": None,
+                    "active": True,
+                    "accountState": "active",
+                    "createdAt": profile_time,
+                    "updatedAt": profile_time,
+                }
+            )
+            created_profile_ids.append(uid)
         yield client
     finally:
+        cleanup_errors: list[Exception] = []
+        for notification_ref in sorted(RUN_OWNED_NOTIFICATION_REFS):
+            try:
+                client.collection("notifications").document(notification_ref).delete()
+            except Exception as exc:  # pragma: no cover - exercised only on cleanup failure  # noqa: BLE001
+                cleanup_errors.append(exc)
+        for uid in created_profile_ids:
+            try:
+                client.collection("users").document(uid).delete()
+            except Exception as exc:  # pragma: no cover - exercised only on cleanup failure  # noqa: BLE001
+                cleanup_errors.append(exc)
+        RUN_OWNED_NOTIFICATION_REFS.clear()
         client.close()
+        if cleanup_errors:
+            raise AssertionError("synthetic emulator cleanup failed") from cleanup_errors[0]
 
 
 def ticket_id(prefix: str) -> str:
@@ -211,9 +259,14 @@ def test_cross_role_message_schema_and_retry_are_emulator_backed(emulator_db):
     customer_detail = customer_service.get_ticket_detail(
         "customer-messages", current_id
     )
-    assert [message.text for message in customer_detail.messages] == [
+    assert [message.body for message in customer_detail.messages] == [
         "Complete staff reply."
     ]
+    assert all(
+        set(message.model_dump(by_alias=True)) == {"senderRole", "body", "createdAt"}
+        and not hasattr(message, "text")
+        for message in customer_detail.messages
+    )
 
     customer_time = datetime.now(timezone.utc) + timedelta(seconds=1)
     customer_request = CustomerMessageRequest(
@@ -562,7 +615,7 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
 
         def get_user_profile(self, uid: str) -> dict:
             assert uid == "customer-routing-e2e"
-            return {"active": True, "role": "customer"}
+            return {"active": True, "accountState": "active", "role": "customer"}
 
     classifier = FrozenDepartmentClassifier.load(artifact, expected_sha256=MODEL_SHA256)
     service = ComplaintSubmissionService(
@@ -577,6 +630,15 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
             actionId="emulator-submission-001",
         ),
     )
+    first_notification_ref = notification_reference(
+        build_customer_notification_request(
+            notification_type="complaint_received",
+            recipient_uid="customer-routing-e2e",
+            ticket_ref=result.complaint_id,
+            source_key=f"ticket:{result.complaint_id}:complaint_received",
+        )
+    )
+    RUN_OWNED_NOTIFICATION_REFS.add(first_notification_ref)
     retry = service.submit(
         authorization="Bearer emulator-token",
         payload=SubmitComplaintRequest(
@@ -593,6 +655,15 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
             actionId="emulator-submission-002",
         ),
     )
+    second_notification_ref = notification_reference(
+        build_customer_notification_request(
+            notification_type="complaint_received",
+            recipient_uid="customer-routing-e2e",
+            ticket_ref=separate.complaint_id,
+            source_key=f"ticket:{separate.complaint_id}:complaint_received",
+        )
+    )
+    RUN_OWNED_NOTIFICATION_REFS.add(second_notification_ref)
     assert retry.complaint_id == result.complaint_id
     assert separate.complaint_id != result.complaint_id
     ticket = emulator_db.collection("tickets").document(result.complaint_id).get()
@@ -602,6 +673,8 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
     assert ticket.get("departmentId") == "fraud_security"
     assert ticket.get("routingSource") == "model"
     assert ticket.get("status") == "triaged"
+    assert emulator_db.collection("notifications").document(first_notification_ref).get().exists
+    assert emulator_db.collection("notifications").document(second_notification_ref).get().exists
     owned = list(
         emulator_db.collection("tickets")
         .where("customerId", "==", "customer-routing-e2e")
