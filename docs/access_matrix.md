@@ -112,25 +112,22 @@ underlying workflow boundaries are verified locally with emulator and browser
 tests. This does not constitute browser-based visual verification of UI/UX
 Slices A-D.
 
-R0.1 records approved future policy only. The current Customer API still has a
-future data-minimization projection requirement: Customer responses must later
-exclude customer IDs, model fields, message/sender IDs, raw event/action names
-and IDs, actor IDs, model rationale, and internal reassignment/escalation
-reasons. The current Staff workflow remains department-level and does not
-enforce claim or assignment ownership. Durable in-app notifications, Customer
-History pagination/unread state, response-target calculation, proactive alerts,
-and all-role Admin listing remain unimplemented.
+R0.1 records approved future policy only. The implemented Customer API now has
+the approved six-field history projection and bounded pagination; it excludes
+customer IDs, model fields, message/sender IDs, raw event/action names and IDs,
+actor IDs, model rationale, and internal reassignment/escalation reasons. The
+current Staff workflow remains department-level and does not enforce claim or
+assignment ownership. Durable in-app notifications, unread state,
+response-target calculation, proactive alerts, and all-role Admin listing
+remain unimplemented.
 
 ### R2C10B0 future Customer History read boundary
 
-R2C10B0 is documentation-only approval. The current Customer implementation
-still permits the existing local ownership reads and remains unbounded; direct
-Customer Firestore reads are not yet disabled by this checkpoint.
-
-The future R2C10B-A contract moves Customer ticket history, ticket detail, and
-participant-visible message reads to trusted API projections only. A later
-rules implementation must deny direct client reads of raw `tickets`, ticket
-`messages`, and ticket `events`, while preserving denied direct client writes.
+R2C10B0 was documentation-only approval. R2C10B-A is now implemented and
+locally verified: Customer ticket history is bounded and uses the strict
+six-field projection, while ticket detail and participant-visible message reads
+use trusted API projections. Repository Firestore rules deny direct client
+reads and writes of raw `tickets`, ticket `messages`, and ticket `events`.
 Customer profile reads, departments, unrelated approved collections, and the
 separately approved notification contract remain unchanged. The trusted
 Firebase Admin backend is not constrained by client rules and must continue to
@@ -146,9 +143,16 @@ R2C10A complaint submission confirmation, same-action unknown-outcome recovery,
 and exact Customer complaint selection remain implemented and verified. This
 documentation checkpoint does not alter that behavior.
 
-No route, parser, frontend state, rules, index, or runtime behavior is claimed
-as implemented by R2C10B0. The future rules change requires Emulator tests
-before adoption.
+R2C10B0 did not implement the route. The current local R2C10B-A route,
+frontend pagination behavior, rules boundary, and unfiltered index are
+implemented and locally verified. R2C10B-B0 approves only the future exact
+status/department filter, version-2 cursor, and three additional index shapes;
+no B-B filter, control, index, or runtime behavior is implemented. Local
+Emulator verification remains required before later adoption claims.
+
+The existing A frontend history has no explicit Closed localization path and
+falls back incorrectly for that status. B-B0 records the required future fix;
+it does not modify frontend code.
 
 ### Customer — implemented locally
 

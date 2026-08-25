@@ -2,9 +2,9 @@
 
 Status: Phase 2 safety/adoption preparation complete; Cloud runtime and
 application connection deferred by the owner's no-budget/no-billing decision.
-Cloud staging is adopted as an owner-approved project boundary and preserved
-for possible future use, but the application is not connected and no Cloud
-runtime or workflow is verified.
+The owner-approved `complaintguard` project is preserved for possible future
+use, but Cloud staging is not adopted by the application: it is not connected
+and no Cloud runtime or workflow is verified.
 
 ## Approved audit record
 
@@ -25,7 +25,9 @@ runtime or workflow is verified.
   feedback, or complaint records.
 - Existing Cloud data is owner-controlled staging identity data, not a
   production dataset.
-- No composite Firestore indexes exist.
+- No Cloud composite Firestore indexes exist. The local repository manifest has
+  the approved unfiltered Customer History index, but it is not Cloud evidence
+  and has not been deployed.
 - App Check is not registered or enforced.
 - Managed backup/PITR is unavailable on Spark.
 - Usage is minimal and one human owner has project access.
@@ -67,7 +69,7 @@ workflow evidence.
 
 | Query site | Path and operation | Predicates / ordering | Composite index? | Reason |
 |---|---|---|---|---|
-| Customer ticket history (current local implementation) | `tickets`; `where customerId == uid`; `order_by createdAt DESC` | Equality + descending order | Yes | Current query is unbounded and has no cursor or deterministic document-ID tie-breaker. |
+| Customer ticket history (implemented local R2C10B-A) | `tickets`; `where customerId == uid`; `order_by createdAt DESC`, `__name__ DESC`; `limit(pageSize + 1)` | Ownership equality + deterministic descending order | Yes, local manifest only | Bounded API projection; Cloud is not connected or verified. |
 | Customer ticket detail | `tickets/{ticketId}` document read | None | No | Direct document lookup. |
 | Customer messages | `tickets/{ticketId}/messages`; `order_by createdAt ASC` | Single-field order | No | Single-field/subcollection ordering. |
 | Staff department queue | `tickets`; `where departmentId == departmentId` | One equality predicate | No | Status, priority, and date filters are applied after the scoped read. |
@@ -80,16 +82,17 @@ workflow evidence.
 | Fixture inspection | `users`, `tickets`, `feedback`, `fixtureMeta`; collection-group `messages`, `events`, `actions` | Unfiltered reads | No | Emulator fixture contract only. |
 | Fixture subcollections | `tickets/{ticketId}/{messages,events,actions}`; collection reads | None | No | Emulator fixture contract only. |
 
-The repository has no implemented Firestore `limit`, cursor, listener, or
-additional compound query. Manager and staff reads may need redesign before a
-larger Cloud dataset; adding filters or pagination must trigger a fresh index
-review rather than relying on this matrix.
+The local Customer History implementation has a bounded Firestore `limit`,
+cursor, and deterministic tie-break query. No Cloud query has been run or
+verified. Manager and staff reads may need redesign before a larger Cloud
+dataset; adding filters or pagination must trigger a fresh index review rather
+than relying on this matrix.
 
-### R2C10B0 future Customer History index contract
+### R2C10B0/R2C10B-B0 Customer History index contract
 
-R2C10B0 approves documentation only. It does not add or deploy an index and
-does not change the current unbounded local query. The future R2C10B-A query
-requires this reviewed shape:
+R2C10B0 approved the A index shape; R2C10B-A is implemented locally and the
+local manifest contains this approved unfiltered shape. No Cloud index is
+deployed or verified:
 
 ```text
 customerId ASC
@@ -103,16 +106,41 @@ tie-breaker. The local index manifest and any deployed index must not be
 described as adopted until separate implementation, Emulator validation, and
 owner-approved cost/index review are complete.
 
-R2C10B-B status and department filters require an exact reviewed index manifest
-before implementation. Arbitrary combinatorial indexes and date-range indexes
-are not approved by R2C10B0. R2C10B-C date-range filtering and any exact
-reference list lookup remain deferred for separate index and cost review.
+R2C10B-B0 now approves exactly three future B-B ticket indexes, for future
+manifest implementation/testing only:
 
-The future Customer read boundary is API-only: direct client reads of raw
-tickets, ticket messages, and ticket events must later be denied by Firestore
-rules, while direct writes remain denied. R2C10B0 does not modify rules and no
-Cloud rules/index deployment is authorized. Local Emulator rules tests are
-required before adoption.
+```text
+customerId ASC
+status ASC
+createdAt DESC
+__name__ DESC
+```
+
+```text
+customerId ASC
+departmentId ASC
+createdAt DESC
+__name__ DESC
+```
+
+```text
+customerId ASC
+status ASC
+departmentId ASC
+createdAt DESC
+__name__ DESC
+```
+
+No status/department filter is implemented by this checkpoint. No other ticket
+index is approved. Date-range, exact-reference list, text-search,
+alternative-ordering, speculative/combinatorial, and total-count indexes are
+forbidden in B-B. R2C10B-C date-range filtering and exact-reference list lookup
+remain deferred for separate query, index, and cost review.
+
+The implemented Customer read boundary is API-only: repository Firestore rules
+deny direct client reads and writes of raw tickets, ticket messages, and ticket
+events. R2C10B-B0 does not modify rules and no Cloud rules/index deployment is
+authorized. Local Emulator rules tests remain required before later adoption.
 
 ### Local `firestore.indexes.json` preparation
 
@@ -129,7 +157,8 @@ owner review before any future deployment.
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "customerId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
       ]
     }
   ],

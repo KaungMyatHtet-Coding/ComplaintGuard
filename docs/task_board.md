@@ -447,11 +447,12 @@ implemented until a corresponding evidence-backed completion entry is added.
 - R2C0 status: Complete as documentation and contract approval only. No
   lifecycle implementation or runtime verification exists.
 
-### Completed - R2C10B0 Customer History contract approval
+### Completed - R2C10B0 Customer History contract approval (historical)
 
 - [x] Approve the future API-only Customer ticket/detail/participant-message
-  read boundary without claiming that the current direct Firestore reads are
-  disabled.
+  read boundary. At this historical checkpoint, implementation status was not
+  claimed; the later R2C10B-A implementation now has API-only reads and rules
+  denying direct raw ticket/message/event reads.
 - [x] Approve R2C10B-A bounded unfiltered history pagination, exact minimal
   projection, deterministic `createdAt DESC` plus document-ID `DESC` ordering,
   page-size bounds, and unsigned Customer/filter-bound cursors.
@@ -465,8 +466,40 @@ implemented until a corresponding evidence-backed completion entry is added.
 - [x] Defer R2C10B-C date ranges and exact-reference list lookup to separate
   index and cost review.
 - R2C10B0 status: Complete as documentation and contract approval only. No
-  route, frontend, backend, rule, index, or runtime behavior is implemented
-  or verified by this checkpoint.
+  B-B filter route, frontend controls, B-B backend behavior, B-B indexes, or
+  B-B runtime behavior is implemented by this checkpoint. R2C10B-A is tracked
+  separately as implemented and locally verified.
+
+### Completed - R2C10B-B0 exact filter/cursor/index contract approval
+
+- [x] Reconcile the implemented local R2C10B-A state: bounded history
+  pagination, page size `1`-`50` with default `25`, strict six-field
+  projection, `createdAt DESC` plus document-ID `DESC`, Customer-bound version-1
+  cursors, API-only Customer ticket/detail/message reads, denied raw ticket
+  reads/writes in repository rules, the approved unfiltered local index,
+  frontend pagination safeguards, session isolation, and R2C10A submission
+  reconciliation.
+- [x] Approve exact future B-B query parameters: `pageSize`, `cursor`, `status`,
+  and `departmentId`; omission means All; exact six-status and six-department
+  allowlists; logical AND; strict empty/repeated/extra/whitespace/case/coercion
+  rejection with `422`; server-side ownership-bound filtering; and the required
+  authorization ordering.
+- [x] Approve version-2 cursors, rejection of all A version-1 cursors after
+  authorization, canonical URL-safe Base64 encoding, exact five-key payload,
+  Customer/project binding, four filter-shape fingerprints, exact filter-value
+  binding, and safe cross-Customer/cross-filter rejection.
+- [x] Approve exactly three future ticket indexes: status-only,
+  department-only, and status-plus-department, each retaining Customer
+  ownership equality and `createdAt DESC` plus `__name__ DESC` ordering.
+- [x] Explicitly defer date ranges, exact-reference list lookup, full-text
+  search, counts, charts, exports, bulk actions, saved filters, and Staff/Admin
+  controls. No Cloud rule/index deployment or Cloud staging adoption is implied.
+- [x] Record the future frontend filter, selection, stale-response,
+  submission-reconciliation, accessibility, bilingual Closed-status, and
+  mobile requirements without modifying frontend code.
+- R2C10B-B0 status: Complete as documentation and exact contract approval only.
+  No status/department filter, filter cursor, filter index, frontend control,
+  rule, deployment, or runtime behavior is implemented or verified.
 
 ### Current local-only implementation order
 

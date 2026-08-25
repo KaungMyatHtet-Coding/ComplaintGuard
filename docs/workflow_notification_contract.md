@@ -99,20 +99,57 @@ projection. They must exclude:
 - model rationale
 - internal reassignment or escalation reasons
 
-Approved History features:
+Approved History features across the staged sequence:
 
 - owned tickets only;
 - deterministic cursor pagination;
-- status filter;
-- department filter;
-- date range;
-- safe public ticket-reference search;
+- status and department filters (R2C10B-B0 only; future implementation);
 - created, updated, and resolved timestamps;
 - unread reply indicator/count;
 - public response-target state;
 - Customer-safe timeline;
 - participant messages without internal IDs or UIDs;
 - no technical model or dataset evidence.
+
+Date-range filtering and exact-reference list lookup are not B-B features. They
+are deferred to R2C10B-C and require separate query, index, and cost review.
+Full-text search remains prohibited; any later reference lookup must not become
+raw full-text complaint search.
+
+### R2C10B-B0 exact Customer History filter approval
+
+This is documentation-only approval. R2C10B-A is implemented locally; B-B
+status/department filters, version-2 cursors, filter controls, and three new
+ticket indexes are future work and are not implemented or deployed.
+
+The future `GET /customer/tickets` route accepts only optional `pageSize`,
+`cursor`, `status`, and `departmentId` after B-B implementation. `pageSize` is
+an ASCII decimal integer, defaults to `25`, is bounded to `1`-`50`, and occurs
+at most once. `cursor` is a version-2 opaque cursor, maximum `512` ASCII
+characters, and occurs at most once. `status` and `departmentId` each occur at
+most once; omission means all. Their exact allowlists are:
+
+- Status: `submitted`, `triaged`, `in_progress`, `awaiting_customer`,
+  `resolved`, `closed`.
+- Department: `transfer_payment`, `account_support`, `card_atm`,
+  `fraud_security`, `loan_credit`, `general_support`.
+
+Both filters are logical AND. The UI All option omits the parameter. Empty,
+repeated, extra, whitespace, trimmed, case-folded, aliased, coerced, and
+comma-separated values return `422`. Filters are server-side and ownership-
+bound; no Customer UID or ownership field is client-supplied.
+
+Authorization is Bearer authentication, token validation, Customer profile
+validation, `role == customer`, `active == true` and `accountState == active`,
+then page-size/filter/cursor validation, then the ownership-bound query.
+Unauthorized callers receive no filter/cursor details and cause no ticket query.
+
+The exact version-2 cursor and canonical query-contract inputs are authoritative
+in `docs/firestore_schema.md`. Version-1 A cursors are rejected after
+authorization; B-B cursors use version exactly `2`, preserve the existing five
+decoded keys and `createdAt`/document-ID boundary, and bind to the exact
+Customer, filter combination/value, projection, bounds, and ordering. Four
+filter shapes are distinct: unfiltered, status only, department only, and both.
 
 Initial search must not introduce raw full-text complaint searching.
 
