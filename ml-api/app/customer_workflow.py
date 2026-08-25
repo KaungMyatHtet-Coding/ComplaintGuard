@@ -80,6 +80,13 @@ _RFC3339_PATTERN = re.compile(
     r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?"
     r"(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$"
 )
+_MESSAGE_ACTION_DOMAIN = "complaintguard:customer-message:v1"
+_MESSAGE_ACTION_VERSION = 1
+_MESSAGE_ACTION_OPERATION = "customer_message"
+_MESSAGE_ACTION_FINGERPRINT_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+_ACTION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+_MESSAGE_READ_LIMIT = 100
+_MESSAGE_READ_BOUND = _MESSAGE_READ_LIMIT + 1
 
 
 class CustomerHistoryCursorError(ValueError):
@@ -88,6 +95,150 @@ class CustomerHistoryCursorError(ValueError):
 
 class CustomerHistoryDataError(PersistenceError):
     """Raised when an owned ticket cannot be safely projected."""
+
+
+class CustomerMessageIdempotencyConflict(ValueError):
+    """Raised when an action ID is reused for different message details."""
+
+
+def _message_request_fingerprint(
+    customer_id: str,
+    ticket_id: str,
+    message_text: str,
+    action_id: str,
+) -> str:
+    canonical = json.dumps(
+        {
+            "actionId": action_id,
+            "customerId": customer_id,
+            "domain": _MESSAGE_ACTION_DOMAIN,
+            "messageText": message_text,
+            "ticketId": ticket_id,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _canonical_message_timestamp(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _validated_message_action_result(
+    record: Any,
+    expected_fingerprint: str,
+    expected_customer_id: str,
+    expected_ticket_id: str,
+    expected_action_id: str,
+) -> dict[str, Any]:
+    required_keys = {
+        "version",
+        "type",
+        "customerId",
+        "ticketId",
+        "operation",
+        "state",
+        "actionId",
+        "fingerprint",
+        "messageId",
+        "result",
+    }
+    if not isinstance(record, dict) or set(record) != required_keys:
+        raise PersistenceError("customer message idempotency record is invalid")
+    if (
+        type(record.get("version")) is not int
+        or record.get("version") != _MESSAGE_ACTION_VERSION
+        or record.get("type") != _MESSAGE_ACTION_OPERATION
+        or record.get("operation") != _MESSAGE_ACTION_OPERATION
+        or record.get("state") != "completed"
+    ):
+        raise PersistenceError("customer message idempotency record is invalid")
+    if not isinstance(record.get("customerId"), str) or not record["customerId"]:
+        raise PersistenceError("customer message idempotency record is invalid")
+    if not isinstance(record.get("ticketId"), str) or not record["ticketId"]:
+        raise PersistenceError("customer message idempotency record is invalid")
+    if not isinstance(record.get("actionId"), str) or not _ACTION_ID_PATTERN.fullmatch(record["actionId"]):
+        raise PersistenceError("customer message idempotency record is invalid")
+    if not isinstance(record.get("messageId"), str) or record["messageId"] != record["actionId"]:
+        raise PersistenceError("customer message idempotency record is invalid")
+    if record["customerId"] != expected_customer_id or record["ticketId"] != expected_ticket_id:
+        raise CustomerMessageIdempotencyConflict(
+            "This message action was already used for different details."
+        )
+    if record["actionId"] != expected_action_id:
+        raise PersistenceError("customer message idempotency record is invalid")
+    persisted_fingerprint = record.get("fingerprint")
+    if (
+        not isinstance(persisted_fingerprint, str)
+        or not _MESSAGE_ACTION_FINGERPRINT_PATTERN.fullmatch(persisted_fingerprint)
+    ):
+        raise PersistenceError("customer message idempotency record is invalid")
+    if persisted_fingerprint != expected_fingerprint:
+        raise CustomerMessageIdempotencyConflict(
+            "This message action was already used for different details."
+        )
+    try:
+        result = CustomerMessageItem.model_validate(record.get("result"))
+    except Exception as exc:
+        raise PersistenceError("customer message idempotency result is invalid") from exc
+    if (
+        result.sender_role != "customer"
+        or not _is_timeline_timestamp(result.created_at)
+        or not result.created_at.endswith("Z")
+    ):
+        raise PersistenceError("customer message idempotency result is invalid")
+    try:
+        parsed_result_timestamp = _timestamp_from_value(result.created_at)
+    except CustomerHistoryDataError as exc:
+        raise PersistenceError("customer message idempotency result is invalid") from exc
+    if result.created_at != _rfc3339(parsed_result_timestamp):
+        raise PersistenceError("customer message idempotency result is invalid")
+    return result.model_dump(by_alias=True)
+
+
+def _validated_persisted_customer_message(
+    record: Any,
+    expected_customer_id: str,
+    expected_action_id: str,
+    expected_result: dict[str, Any],
+) -> None:
+    if not isinstance(record, dict):
+        raise PersistenceError("customer message persistence is invalid")
+    try:
+        canonical = normalize_message_document(record)
+    except (TypeError, ValueError) as exc:
+        raise PersistenceError("customer message persistence is invalid") from exc
+    if set(canonical) != {
+        "authorId",
+        "authorRole",
+        "body",
+        "visibility",
+        "createdAt",
+        "id",
+    }:
+        raise PersistenceError("customer message persistence is invalid")
+    if (
+        canonical.get("id") != expected_action_id
+        or canonical.get("authorId") != expected_customer_id
+        or canonical.get("authorRole") != "customer"
+        or canonical.get("visibility") != "participants"
+        or not isinstance(canonical.get("body"), str)
+    ):
+        raise PersistenceError("customer message persistence is invalid")
+    occurred_at = _timestamp_text(canonical.get("createdAt"))
+    if not occurred_at or not _is_timeline_timestamp(occurred_at):
+        raise PersistenceError("customer message persistence is invalid")
+    if canonical["body"] != expected_result["body"]:
+        raise PersistenceError("customer message persistence is invalid")
+    try:
+        persisted_at = _timestamp_from_value(occurred_at)
+        result_at = _timestamp_from_value(expected_result["createdAt"])
+    except CustomerHistoryDataError as exc:
+        raise PersistenceError("customer message persistence is invalid") from exc
+    if persisted_at.astimezone(timezone.utc) != result_at.astimezone(timezone.utc):
+        raise PersistenceError("customer message persistence is invalid")
 
 
 class CustomerHistoryCursor:
@@ -406,6 +557,7 @@ class CustomerBackend(ABC):
         message_text: str,
         created_at: datetime,
         action_id: str,
+        request_text: str | None = None,
     ) -> dict[str, Any]:
         """Add customer message to ticket thread and update ticket timestamp."""
 
@@ -436,6 +588,7 @@ class InMemoryCustomerBackend(CustomerBackend):
         }
         self.feedbacks: dict[str, dict[str, Any]] = {}
         self.actions: dict[tuple[str, str], dict[str, Any]] = {}
+        self.message_actions: dict[str, dict[str, Any]] = {}
 
     def list_customer_tickets(
         self,
@@ -482,7 +635,20 @@ class InMemoryCustomerBackend(CustomerBackend):
 
     def get_ticket_messages(self, ticket_id: str) -> list[dict[str, Any]]:
         msgs = self.messages.get(ticket_id, [])
-        msgs_sorted = sorted(msgs, key=lambda x: x.get("createdAt", ""))
+        if len(msgs) > _MESSAGE_READ_BOUND:
+            raise PersistenceError("customer message limit exceeded")
+        try:
+            msgs_sorted = sorted(
+                msgs,
+                key=lambda item: (
+                    _timestamp_from_value(item.get("createdAt")),
+                    item.get("id", ""),
+                ),
+            )
+        except Exception as exc:
+            raise PersistenceError("customer messages cannot be ordered safely") from exc
+        if len(msgs_sorted) > _MESSAGE_READ_LIMIT:
+            raise PersistenceError("customer message limit exceeded")
         return msgs_sorted
 
     def get_ticket_events(self, ticket_id: str) -> list[dict[str, Any]]:
@@ -495,12 +661,33 @@ class InMemoryCustomerBackend(CustomerBackend):
         message_text: str,
         created_at: datetime,
         action_id: str,
+        request_text: str | None = None,
     ) -> dict[str, Any]:
-        key = (ticket_id, f"message:{action_id}")
-        if key in self.actions:
-            return dict(self.actions[key])
+        fingerprint = _message_request_fingerprint(
+            customer_id,
+            ticket_id,
+            request_text if request_text is not None else message_text,
+            action_id,
+        )
+        if action_id in self.message_actions:
+            result = _validated_message_action_result(
+                self.message_actions[action_id],
+                fingerprint,
+                customer_id,
+                ticket_id,
+                action_id,
+            )
+            stored = next(
+                (item for item in self.messages.get(ticket_id, []) if item.get("id") == action_id),
+                None,
+            )
+            _validated_persisted_customer_message(
+                stored, customer_id, action_id, result
+            )
+            return result
         msg_id = action_id
         iso_str = created_at.isoformat()
+        response_timestamp = _canonical_message_timestamp(created_at)
         msg_doc = {
             "id": msg_id,
             "authorId": customer_id,
@@ -509,15 +696,28 @@ class InMemoryCustomerBackend(CustomerBackend):
             "visibility": "participants",
             "createdAt": iso_str,
         }
+        if any(item.get("id") == action_id for item in self.messages.get(ticket_id, [])):
+            raise PersistenceError("customer message persistence is contradictory")
         if ticket_id not in self.messages:
             self.messages[ticket_id] = []
         self.messages[ticket_id].append(msg_doc)
         result = {
             "senderRole": "customer",
             "body": message_text,
-            "createdAt": iso_str,
+            "createdAt": response_timestamp,
         }
-        self.actions[key] = dict(result)
+        self.message_actions[action_id] = {
+            "version": _MESSAGE_ACTION_VERSION,
+            "type": "customer_message",
+            "customerId": customer_id,
+            "ticketId": ticket_id,
+            "operation": _MESSAGE_ACTION_OPERATION,
+            "state": "completed",
+            "actionId": action_id,
+            "fingerprint": fingerprint,
+            "messageId": msg_id,
+            "result": dict(result),
+        }
 
         if ticket_id in self.tickets:
             self.tickets[ticket_id]["updatedAt"] = iso_str
@@ -636,12 +836,16 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
             .document(ticket_id)
             .collection("messages")
             .order_by("createdAt", direction="ASCENDING")
+            .order_by("__name__", direction="ASCENDING")
+            .limit(_MESSAGE_READ_BOUND)
         )
         results = []
         for d in msgs_ref.stream():
             data = d.to_dict()
             data["id"] = d.id
             results.append(data)
+        if len(results) > _MESSAGE_READ_LIMIT:
+            raise PersistenceError("customer message limit exceeded")
         return results
 
     def get_ticket_events(self, ticket_id: str) -> list[dict[str, Any]]:
@@ -665,12 +869,20 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         message_text: str,
         created_at: datetime,
         action_id: str,
+        request_text: str | None = None,
     ) -> dict[str, Any]:
         from app.ticketing import PersistenceError, run_firestore_transaction
 
         doc_ref = self.db.collection("tickets").document(ticket_id)
         msg_ref = doc_ref.collection("messages").document(action_id)
-        action_ref = doc_ref.collection("actions").document(f"message_{action_id}")
+        action_ref = self.db.collection("customerMessageActions").document(action_id)
+        legacy_action_ref = doc_ref.collection("actions").document(f"message_{action_id}")
+        fingerprint = _message_request_fingerprint(
+            customer_id,
+            ticket_id,
+            request_text if request_text is not None else message_text,
+            action_id,
+        )
         msg_data = {
             "authorId": customer_id,
             "authorRole": "customer",
@@ -681,22 +893,70 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         result = {
             "senderRole": "customer",
             "body": message_text,
-            "createdAt": created_at.isoformat(),
+            "createdAt": _canonical_message_timestamp(created_at),
         }
         try:
 
             def operation(transaction: Any) -> dict[str, Any]:
                 action_snapshot = next(transaction.get(action_ref))
+                legacy_action_snapshot = next(transaction.get(legacy_action_ref))
+                message_snapshot = next(transaction.get(msg_ref))
+                if legacy_action_snapshot.exists:
+                    raise PersistenceError(
+                        "legacy customer message idempotency record is unsupported"
+                    )
                 if action_snapshot.exists:
-                    return action_snapshot.to_dict()["result"]
+                    replay = _validated_message_action_result(
+                        action_snapshot.to_dict(),
+                        fingerprint,
+                        customer_id,
+                        ticket_id,
+                        action_id,
+                    )
+                    if not message_snapshot.exists:
+                        raise PersistenceError(
+                            "customer message idempotency record has no message"
+                        )
+                    persisted_message = message_snapshot.to_dict() or {}
+                    if "id" in persisted_message:
+                        raise PersistenceError("customer message persistence is invalid")
+                    persisted_message["id"] = message_snapshot.id
+                    _validated_persisted_customer_message(
+                        persisted_message, customer_id, action_id, replay
+                    )
+                    return replay
+                if message_snapshot.exists:
+                    raise PersistenceError(
+                        "customer message exists without idempotency record"
+                    )
+                ticket_snapshot = next(transaction.get(doc_ref))
+                ticket_data = ticket_snapshot.to_dict() or {}
+                if not ticket_snapshot.exists or ticket_data.get("customerId") != customer_id:
+                    raise TicketNotFound("Ticket not found.")
                 transaction.set(msg_ref, msg_data)
                 transaction.update(doc_ref, {"updatedAt": created_at})
                 transaction.set(
-                    action_ref, {"type": "customer_message", "result": result}
+                    action_ref,
+                    {
+                        "version": _MESSAGE_ACTION_VERSION,
+                        "type": "customer_message",
+                        "customerId": customer_id,
+                        "ticketId": ticket_id,
+                        "operation": _MESSAGE_ACTION_OPERATION,
+                        "state": "completed",
+                        "actionId": action_id,
+                        "fingerprint": fingerprint,
+                        "messageId": action_id,
+                        "result": result,
+                    },
                 )
                 return result
 
             return run_firestore_transaction(self.db, operation)
+        except (CustomerMessageIdempotencyConflict, TicketNotFound):
+            raise
+        except PersistenceError:
+            raise
         except Exception as exc:
             raise PersistenceError("customer message transaction failed") from exc
 
@@ -1011,6 +1271,10 @@ class CustomerWorkflowService:
             feedback=feedback_dict,
         )
 
+    def ensure_owned_ticket(self, customer_id: str, ticket_id: str) -> None:
+        if not self.backend.get_customer_ticket(customer_id, ticket_id):
+            raise TicketNotFound("Ticket not found.")
+
     def send_message(
         self,
         customer_id: str,
@@ -1022,7 +1286,7 @@ class CustomerWorkflowService:
         if detail.status in ("closed",):
             raise InvalidTicketState("Cannot add message to closed ticket.")
 
-        raw_msg = getattr(req, "text", "") or getattr(req, "message_text", "")
+        raw_msg = req.message_text
         clean_text = redact_pii(raw_msg.strip())
         if not clean_text:
             raise ValueError("Message text cannot be empty.")
@@ -1034,6 +1298,7 @@ class CustomerWorkflowService:
             message_text=clean_text,
             created_at=now_dt,
             action_id=req.action_id,
+            request_text=raw_msg,
         )
 
     def submit_feedback(

@@ -29,6 +29,7 @@ describe("CustomerTicketDetailView", () => {
         ticket={ticket}
         loading={false}
         onSendMessage={vi.fn()}
+        onCancelMessage={vi.fn()}
         onSubmitFeedback={vi.fn()}
       />,
     );
@@ -38,6 +39,7 @@ describe("CustomerTicketDetailView", () => {
         ticket={ticket}
         loading={false}
         onSendMessage={vi.fn()}
+        onCancelMessage={vi.fn()}
         onSubmitFeedback={vi.fn()}
       />,
     );
@@ -78,6 +80,7 @@ describe("CustomerTicketDetailView", () => {
           }}
           loading={false}
           onSendMessage={vi.fn()}
+          onCancelMessage={vi.fn()}
           onSubmitFeedback={vi.fn()}
         />
       </AppProvider>,

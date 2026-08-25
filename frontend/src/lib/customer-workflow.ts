@@ -81,6 +81,10 @@ export type CustomerWorkflowErrorCode =
   | "not_found"
   | "conflict"
   | "validation"
+  | "closed_ticket"
+  | "idempotency_conflict"
+  | "unknown"
+  | "aborted"
   | "backend"
   | "unexpected";
 
@@ -88,6 +92,28 @@ export class CustomerWorkflowError extends Error {
   constructor(public readonly code: CustomerWorkflowErrorCode) {
     super(code);
   }
+}
+
+export function normalizeCustomerMessageText(value: string): string {
+  return value.normalize("NFC").trim().split(/\s+/u).join(" ");
+}
+
+export function parseCustomerMessageItem(value: unknown): CustomerMessageItem {
+  if (
+    !isPlainObject(value)
+    || !exactKeys(value, ["senderRole", "body", "createdAt"])
+    || value.senderRole !== "customer"
+    || typeof value.body !== "string"
+    || value.body.length > 5_000
+    || typeof value.createdAt !== "string"
+    || !parseTimestamp(value.createdAt)
+    || !value.createdAt.endsWith("Z")
+  ) throw new CustomerWorkflowError("unexpected");
+  return {
+    senderRole: "customer",
+    body: value.body,
+    createdAt: value.createdAt,
+  };
 }
 
 const TICKET_ID_PATTERN = /^ticket_[a-f0-9]{32}$/u;
@@ -306,36 +332,61 @@ export async function sendCustomerMessage(
   messageText: string,
   idToken: string,
   fetcher: Fetcher = fetch,
-  actionId: string = crypto.randomUUID()
+  actionId: string = crypto.randomUUID(),
+  signal?: AbortSignal,
 ): Promise<CustomerMessageItem> {
-  const baseUrl = getApiUrl();
+  const normalizedMessage = typeof messageText === "string"
+    ? normalizeCustomerMessageText(messageText)
+    : "";
+  if (
+    typeof messageText !== "string"
+    || messageText.length > 5_000
+    || !normalizedMessage
+    || normalizedMessage.length > 5_000
+    || !/^[A-Za-z0-9_-]{8,64}$/u.test(actionId)
+  ) throw new CustomerWorkflowError("validation");
+  if (signal?.aborted) throw new CustomerWorkflowError("aborted");
+  let baseUrl: string;
+  try { baseUrl = getApiUrl(); } catch { throw new CustomerWorkflowError("backend"); }
   let response: Response;
+  let dispatched = false;
   try {
-    response = await fetcher(`${baseUrl}/customer/tickets/${ticketId}/messages`, {
+    dispatched = true;
+    response = await fetcher(`${baseUrl}/customer/tickets/${encodeURIComponent(ticketId)}/messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${idToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ messageText, actionId }),
+      body: JSON.stringify({ messageText: normalizedMessage, actionId }),
+      signal,
     });
   } catch {
-    throw new CustomerWorkflowError("backend");
+    throw new CustomerWorkflowError(dispatched ? "unknown" : "backend");
   }
+
+  if (signal?.aborted) throw new CustomerWorkflowError("unknown");
 
   if (response.status === 401) throw new CustomerWorkflowError("auth");
   if (response.status === 403) throw new CustomerWorkflowError("permission");
   if (response.status === 404) throw new CustomerWorkflowError("not_found");
-  if (response.status === 409) throw new CustomerWorkflowError("conflict");
-  if (response.status === 422) throw new CustomerWorkflowError("validation");
-  if (!response.ok) throw new CustomerWorkflowError("backend");
-
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || typeof (data as { body?: unknown }).body !== "string") {
-    throw new CustomerWorkflowError("unexpected");
+  if (response.status === 409) {
+    let code: unknown = null;
+    try {
+      const errorBody = await response.json() as unknown;
+      if (isPlainObject(errorBody) && isPlainObject(errorBody.error)) code = errorBody.error.code;
+    } catch { /* safe generic conflict */ }
+    if (code === "idempotency_conflict") throw new CustomerWorkflowError("idempotency_conflict");
+    if (code === "closed_ticket") throw new CustomerWorkflowError("closed_ticket");
+    throw new CustomerWorkflowError("conflict");
   }
+  if (response.status === 422) throw new CustomerWorkflowError("validation");
+  if (!response.ok) throw new CustomerWorkflowError(response.status >= 500 ? "unknown" : "backend");
 
-  return data as CustomerMessageItem;
+  try { return parseCustomerMessageItem(await response.json() as unknown); }
+  catch {
+    throw new CustomerWorkflowError("unknown");
+  }
 }
 
 export async function submitCustomerFeedback(

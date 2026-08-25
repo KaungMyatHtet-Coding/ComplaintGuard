@@ -1,16 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CustomerFeedbackPanel } from "@/components/customer-feedback-panel";
 import type { Locale, MessageKey } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
-import type { CustomerTicketDetail, CustomerTimelineType } from "@/lib/customer-workflow";
+import {
+  CustomerWorkflowError,
+  type CustomerTicketDetail,
+  type CustomerTimelineType,
+} from "@/lib/customer-workflow";
 
 type CustomerTicketDetailProps = {
   locale: Locale;
   ticket: CustomerTicketDetail | null;
   loading: boolean;
   onSendMessage: (text: string) => Promise<void>;
+  onCancelMessage: () => void;
   onSubmitFeedback: (rating: number, comments: string) => Promise<void>;
 };
 
@@ -19,12 +24,17 @@ export function CustomerTicketDetailView({
   ticket,
   loading,
   onSendMessage,
+  onCancelMessage,
   onSubmitFeedback,
 }: CustomerTicketDetailProps) {
   const [messageText, setMessageText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => () => {
+    onCancelMessage();
+  }, [onCancelMessage]);
 
   if (loading) {
     return (
@@ -45,19 +55,31 @@ export function CustomerTicketDetailView({
     );
   }
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitMessage = async () => {
     if (!messageText.trim() || sendingMsg) return;
     setErrorMsg(null);
     setSendingMsg(true);
     try {
       await onSendMessage(messageText.trim());
       setMessageText("");
-    } catch {
-      setErrorMsg(translate(locale, "customerMessageSendError"));
+    } catch (error) {
+      const code = error instanceof CustomerWorkflowError ? error.code : "backend";
+      if (code === "unknown") setErrorMsg(translate(locale, "customerMessageUnknownOutcome"));
+      else if (code === "idempotency_conflict") setErrorMsg(translate(locale, "customerMessageIdempotencyConflict"));
+      else if (code === "closed_ticket") setErrorMsg(translate(locale, "customerMessageClosedConflict"));
+      else if (code !== "aborted") setErrorMsg(translate(locale, "customerMessageSafeFailure"));
     } finally {
       setSendingMsg(false);
     }
+  };
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    void submitMessage();
+  };
+
+  const handleRetry = () => {
+    void submitMessage();
   };
 
   const timelineLabels: Record<CustomerTimelineType, MessageKey> = {
@@ -97,7 +119,14 @@ export function CustomerTicketDetailView({
 
         <div className="cust-scroll-area">
           {errorMsg && (
-            <div className="cust-error" role="alert" style={{ marginBottom: '1rem' }}>{errorMsg}</div>
+            <div
+              id="customer-message-error"
+              className="cust-error"
+              role="alert"
+              style={{ marginBottom: '1rem' }}
+            >
+              {errorMsg}
+            </div>
           )}
 
         {/* Visual Timeline */}
@@ -153,7 +182,12 @@ export function CustomerTicketDetailView({
           <div className="cust-modal-content">
             <div className="cust-modal-header">
               <h2 className="cust-compose-title" style={{ margin: 0 }}>{translate(locale, "staffMessages")}</h2>
-              <button className="icon-button" onClick={() => setIsChatOpen(false)}>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={translate(locale, "customerCloseMessages")}
+                onClick={() => { onCancelMessage(); setIsChatOpen(false); }}
+              >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -200,11 +234,15 @@ export function CustomerTicketDetailView({
             <form onSubmit={handleSend} className="cust-msg-composer">
               <input
                 type="text"
+                id="customer-message-input"
                 value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
+                onChange={(e) => { setMessageText(e.target.value); setErrorMsg(null); }}
                 placeholder={translate(locale, "customerSendMessage")}
                 disabled={sendingMsg}
                 className="cust-msg-input"
+                aria-label={translate(locale, "customerSendMessage")}
+                aria-describedby={errorMsg ? "customer-message-error" : undefined}
+                aria-invalid={errorMsg ? true : undefined}
               />
               <button
                 type="submit"
@@ -221,6 +259,11 @@ export function CustomerTicketDetailView({
               </button>
             </form>
           )}
+          {errorMsg && errorMsg === translate(locale, "customerMessageUnknownOutcome") ? (
+            <button type="button" className="cust-refresh-btn" onClick={handleRetry} disabled={sendingMsg}>
+              {translate(locale, "customerMessageRetry")}
+            </button>
+          ) : null}
         </div>
         </div>
         </div>

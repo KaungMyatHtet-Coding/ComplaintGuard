@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchCustomerTickets,
   fetchCustomerTicketDetail,
+  normalizeCustomerMessageText,
+  parseCustomerMessageItem,
   parseCustomerTicketHistoryPage,
   sendCustomerMessage,
   submitCustomerFeedback,
@@ -152,7 +154,7 @@ describe("Customer Workflow Client Library", () => {
         inputLocale: "en",
         priority: "high",
         timeline: [],
-        createdAt: "2026-08-01",
+        createdAt: "2026-08-01T00:00:00Z",
         updatedAt: "2026-08-01",
         messages: [],
       }),
@@ -175,12 +177,127 @@ describe("Customer Workflow Client Library", () => {
       json: async () => ({
         senderRole: "customer",
         body: "Please follow up",
-        createdAt: "2026-08-01",
+        createdAt: "2026-08-01T00:00:00Z",
       }),
     });
 
     const msg = await sendCustomerMessage("t1", "Please follow up", "test_token", mockFetcher as unknown as typeof fetch);
     expect(msg.body).toBe("Please follow up");
+  });
+
+  it("strictly parses the minimal customer message response", () => {
+    const valid = {
+      senderRole: "customer",
+      body: "Safe reply",
+      createdAt: "2026-08-01T00:00:00Z",
+    };
+    expect(parseCustomerMessageItem(valid)).toEqual(valid);
+    expect(() => parseCustomerMessageItem({ ...valid, privateField: "x" })).toThrow();
+    expect(() => parseCustomerMessageItem({ ...valid, senderRole: "support_team" })).toThrow();
+    const accessor = { ...valid };
+    Object.defineProperty(accessor, "body", { enumerable: true, get: () => "Safe reply" });
+    expect(() => parseCustomerMessageItem(accessor)).toThrow();
+    const inherited = Object.create({ body: "Safe reply" });
+    Object.assign(inherited, { senderRole: "customer", createdAt: valid.createdAt });
+    expect(() => parseCustomerMessageItem(inherited)).toThrow();
+  });
+
+  it("sends the exact body, fresh action, and AbortSignal", async () => {
+    const mockFetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        senderRole: "customer",
+        body: "Safe reply",
+        createdAt: "2026-08-01T00:00:00Z",
+      }),
+    });
+    const controller = new AbortController();
+    await sendCustomerMessage(
+      "ticket_" + "a".repeat(32),
+      "  Safe reply  ",
+      "test_token",
+      mockFetcher as unknown as typeof fetch,
+      "message-action-001",
+      controller.signal,
+    );
+    expect(mockFetcher).toHaveBeenCalledWith(
+      "http://localhost:8000/customer/tickets/ticket_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/messages",
+      expect.objectContaining({
+        signal: controller.signal,
+        body: JSON.stringify({ messageText: "Safe reply", actionId: "message-action-001" }),
+      }),
+    );
+  });
+
+  it("uses the backend-compatible normalized text and encoded ticket path", async () => {
+    const mockFetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        senderRole: "customer",
+        body: "Safe reply",
+        createdAt: "2026-08-01T00:00:00Z",
+      }),
+    });
+
+    expect(normalizeCustomerMessageText("  Safe\t\nreply  ")).toBe("Safe reply");
+    await sendCustomerMessage(
+      "ticket/unsafe",
+      "  Safe\t\nreply  ",
+      "test_token",
+      mockFetcher as unknown as typeof fetch,
+      "message-action-004",
+    );
+    expect(mockFetcher).toHaveBeenCalledWith(
+      "http://localhost:8000/customer/tickets/ticket%2Funsafe/messages",
+      expect.objectContaining({
+        body: JSON.stringify({ messageText: "Safe reply", actionId: "message-action-004" }),
+      }),
+    );
+  });
+
+  it("treats an abort after dispatch as an unknown outcome", async () => {
+    const controller = new AbortController();
+    const mockFetcher = vi.fn().mockImplementation(async () => {
+      controller.abort();
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          senderRole: "customer",
+          body: "Safe reply",
+          createdAt: "2026-08-01T00:00:00Z",
+        }),
+      };
+    });
+
+    await expect(
+      sendCustomerMessage(
+        "t1",
+        "Safe reply",
+        "test_token",
+        mockFetcher as unknown as typeof fetch,
+        "message-action-005",
+        controller.signal,
+      ),
+    ).rejects.toMatchObject({ code: "unknown" });
+  });
+
+  it("classifies lost responses as unknown and maps safe 409 conflicts", async () => {
+    const unknownFetcher = vi.fn().mockRejectedValue(new Error("connection lost"));
+    await expect(
+      sendCustomerMessage("t1", "Safe reply", "token", unknownFetcher as unknown as typeof fetch, "message-action-002"),
+    ).rejects.toMatchObject({ code: "unknown" });
+
+    const conflictFetcher = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ error: { code: "idempotency_conflict" } }),
+    });
+    await expect(
+      sendCustomerMessage("t1", "Safe reply", "token", conflictFetcher as unknown as typeof fetch, "message-action-003"),
+    ).rejects.toMatchObject({ code: "idempotency_conflict" });
   });
 
   it("submits customer feedback for resolved ticket", async () => {

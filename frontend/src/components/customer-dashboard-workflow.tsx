@@ -9,6 +9,7 @@ import { getFirebaseServices } from "@/lib/firebase";
 import {
   fetchCustomerTickets,
   fetchCustomerTicketDetail,
+  normalizeCustomerMessageText,
   sendCustomerMessage,
   submitCustomerFeedback,
   CustomerWorkflowError,
@@ -19,11 +20,18 @@ import {
 } from "@/lib/customer-workflow";
 import type { ComplaintAttempt, ComplaintSuccess } from "@/lib/complaint-submission";
 
-async function currentToken(): Promise<string> {
+async function currentToken(forceRefresh = false): Promise<string> {
   const user = getFirebaseServices().auth.currentUser;
   if (!user) throw new Error("Unauthenticated");
-  return user.getIdToken();
+  return user.getIdToken(forceRefresh);
 }
+
+type CustomerMessageAttempt = {
+  sessionUid: string;
+  ticketId: string;
+  normalizedText: string;
+  actionId: string;
+};
 
 export function CustomerDashboardWorkflow() {
   const { locale, profile, t } = useApp();
@@ -46,6 +54,9 @@ export function CustomerDashboardWorkflow() {
   const loadingMoreRef = useRef(false);
   const detailRequestRef = useRef(0);
   const detailAbortRef = useRef<AbortController | null>(null);
+  const messageAbortRef = useRef<AbortController | null>(null);
+  const messageAttemptRef = useRef<CustomerMessageAttempt | null>(null);
+  const messageInFlightRef = useRef(false);
   const selectedTicketRef = useRef<string | null>(null);
   const pendingFilterSelectionRef = useRef<string | null>(null);
   const confirmedComplaintRef = useRef<{ sessionUid: string; complaintId: string } | null>(null);
@@ -78,10 +89,25 @@ export function CustomerDashboardWorkflow() {
       setLoadingDetail(false);
       setSubmissionAttempt(null);
       confirmedComplaintRef.current = null;
+      messageAbortRef.current?.abort();
+      messageAbortRef.current = null;
+      messageAttemptRef.current = null;
+      messageInFlightRef.current = false;
       setStatusFilter(null);
       setDepartmentFilter(null);
     });
   }, [sessionUid]);
+
+  useEffect(() => {
+    messageAbortRef.current?.abort();
+    messageAbortRef.current = null;
+    messageAttemptRef.current = null;
+    messageInFlightRef.current = false;
+  }, [selectedTicketId]);
+
+  useEffect(() => () => {
+    messageAbortRef.current?.abort();
+  }, []);
 
   const loadTickets = useCallback(async (preferredTicketId?: string) => {
     if (!sessionUid) return;
@@ -284,12 +310,62 @@ export function CustomerDashboardWorkflow() {
   }, [loadTickets, profile, sessionUid]);
 
   const handleSendMessage = async (text: string) => {
-    if (!selectedTicketId) return;
-    const idToken = await currentToken();
-    if (!idToken) return;
-    await sendCustomerMessage(selectedTicketId, text, idToken);
-    await loadTicketDetail(selectedTicketId);
+    if (!selectedTicketId || !sessionUid || messageInFlightRef.current) {
+      throw new CustomerWorkflowError("aborted");
+    }
+    const normalizedText = normalizeCustomerMessageText(text);
+    if (!normalizedText) throw new CustomerWorkflowError("validation");
+    const previous = messageAttemptRef.current;
+    const attempt = previous
+      && previous.sessionUid === sessionUid
+      && previous.ticketId === selectedTicketId
+      && previous.normalizedText === normalizedText
+      ? previous
+      : {
+        sessionUid,
+        ticketId: selectedTicketId,
+        normalizedText,
+        actionId: crypto.randomUUID(),
+      };
+    messageAttemptRef.current = attempt;
+    const controller = new AbortController();
+    messageAbortRef.current = controller;
+    messageInFlightRef.current = true;
+    try {
+      let idToken: string;
+      try { idToken = await currentToken(true); }
+      catch { throw new CustomerWorkflowError("auth"); }
+      await sendCustomerMessage(
+        selectedTicketId,
+        normalizedText,
+        idToken,
+        fetch,
+        attempt.actionId,
+        controller.signal,
+      );
+      if (
+        controller.signal.aborted
+        || sessionUid !== attempt.sessionUid
+        || selectedTicketRef.current !== attempt.ticketId
+        || getFirebaseServices().auth.currentUser?.uid !== attempt.sessionUid
+      ) return;
+      await loadTicketDetail(attempt.ticketId);
+      messageAttemptRef.current = null;
+    } catch (error) {
+      if (!(error instanceof CustomerWorkflowError) || error.code !== "unknown") {
+        messageAttemptRef.current = null;
+      }
+      throw error;
+    } finally {
+      messageInFlightRef.current = false;
+      if (messageAbortRef.current === controller) messageAbortRef.current = null;
+    }
   };
+
+  const cancelMessageAttempt = useCallback(() => {
+    messageAbortRef.current?.abort();
+    messageAbortRef.current = null;
+  }, []);
 
   const handleSubmitFeedback = async (rating: number, comments: string) => {
     if (!selectedTicketId) return;
@@ -372,10 +448,12 @@ export function CustomerDashboardWorkflow() {
           />
         </aside>
         <CustomerTicketDetailView
+          key={`${sessionUid ?? "none"}:${selectedTicketId ?? "none"}`}
           locale={locale}
           ticket={ticketDetail}
           loading={loadingDetail}
           onSendMessage={handleSendMessage}
+          onCancelMessage={cancelMessageAttempt}
           onSubmitFeedback={handleSubmitFeedback}
         />
       </div>

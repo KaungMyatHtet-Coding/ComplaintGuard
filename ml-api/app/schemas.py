@@ -641,23 +641,14 @@ class CustomerTicketDetail(BaseModel):
 
 
 class CustomerMessageRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid")
 
-    text: Annotated[StrictStr, Field(default="", max_length=MAX_COMPLAINT_LENGTH)]
+    message_text: Annotated[
+        StrictStr, Field(alias="messageText", max_length=MAX_COMPLAINT_LENGTH)
+    ]
     action_id: ActionId = Field(alias="actionId")
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_normalize(cls, values: Any) -> Any:
-        if (
-            isinstance(values, dict)
-            and "messageText" in values
-            and ("text" not in values or not values["text"])
-        ):
-            values["text"] = values.pop("messageText")
-        return values
-
-    @field_validator("text")
+    @field_validator("message_text")
     @classmethod
     def normalize_message_text(cls, value: str) -> str:
         normalized = normalize_input(value)

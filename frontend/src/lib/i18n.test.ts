@@ -99,4 +99,20 @@ describe("localization foundation", () => {
     expect(translate("en", "statusClosed")).not.toBe(translate("en", "statusSubmitted"));
     expect(translate("my", "statusClosed")).toMatch(/[\u1000-\u109f]/u);
   });
+
+  it("provides localized safe Customer message retry states", () => {
+    for (const key of [
+      "customerSending",
+      "customerMessageUnknownOutcome",
+      "customerMessageRetry",
+      "customerMessageIdempotencyConflict",
+      "customerMessageClosedConflict",
+      "customerMessageSafeFailure",
+      "customerCloseMessages",
+    ] as const) {
+      expect(translate("en", key)).not.toMatch(/^\[/u);
+      expect(translate("my", key)).toMatch(/[\u1000-\u109f]/u);
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
+  });
 });

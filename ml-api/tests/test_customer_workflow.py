@@ -13,6 +13,7 @@ from app.customer_workflow import (
     CUSTOMER_HISTORY_STATUSES,
     CustomerHistoryCursor,
     CustomerHistoryFilters,
+    CustomerMessageIdempotencyConflict,
     CustomerWorkflowService,
     FirebaseAdminCustomerBackend,
     InMemoryCustomerBackend,
@@ -22,6 +23,8 @@ from app.customer_workflow import (
     encode_customer_history_cursor,
 )
 from app.main import create_app
+from app.schemas import CustomerMessageRequest
+from app.ticketing import PersistenceError
 
 
 class FakeTicketBackend:
@@ -180,6 +183,22 @@ def test_customer_detail_rejects_incomplete_message_instead_of_blank_body():
 
     with pytest.raises(ValueError, match="no recognized complete schema"):
         CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
+
+
+def test_customer_detail_malformed_message_is_safe_503():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.messages["t1"] = [{"id": "malformed-message", "body": None}]
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+
+    response = client.get(
+        "/customer/tickets/t1",
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+
+    assert response.status_code == 503
+    assert "malformed-message" not in response.text
 
 
 def test_cross_customer_ticket_does_not_leak_existence():
@@ -357,6 +376,149 @@ def test_retried_customer_message_is_idempotent():
     assert first.status_code == second.status_code == 200
     assert first.json() == second.json()
     assert len(backend.messages["t1"]) == 3
+
+
+def test_message_body_is_not_validated_before_authentication():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+
+    response = client.post(
+        "/customer/tickets/t1/messages",
+        json={"text": None, "actionId": "bad"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "authentication_required"
+
+
+def test_message_body_is_not_validated_before_owned_ticket_resolution():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+
+    response = client.post(
+        "/customer/tickets/t3_other/messages",
+        json={"text": None, "actionId": "bad"},
+        headers={"Authorization": "Bearer valid_customer_token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "ticket_not_found"
+
+
+def test_message_fingerprint_binds_original_normalized_text_before_redaction():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    service = CustomerWorkflowService(backend)
+    first = service.send_message(
+        "cust_123",
+        "t1",
+        CustomerMessageRequest(
+            messageText="password: first-secret", actionId="message-redact-001"
+        ),
+    )
+    assert first["body"] == "password [REDACTED]"
+
+    with pytest.raises(CustomerMessageIdempotencyConflict):
+        service.send_message(
+            "cust_123",
+            "t1",
+            CustomerMessageRequest(
+                messageText="password: second-secret", actionId="message-redact-001"
+            ),
+        )
+    assert len(backend.messages["t1"]) == 3
+
+
+def test_message_action_and_message_must_exist_as_an_atomic_pair():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    service = CustomerWorkflowService(backend)
+    request = CustomerMessageRequest(
+        messageText="Persist exactly once", actionId="message-pair-001"
+    )
+    service.send_message("cust_123", "t1", request)
+    backend.messages["t1"] = [
+        item for item in backend.messages["t1"] if item["id"] != request.action_id
+    ]
+
+    with pytest.raises(PersistenceError):
+        service.send_message("cust_123", "t1", request)
+
+
+def test_customer_message_action_reuse_conflicts_across_text_and_ticket():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+    headers = {"Authorization": "Bearer valid_customer_token"}
+    payload = {"messageText": "First message", "actionId": "message-context-001"}
+
+    assert client.post("/customer/tickets/t1/messages", json=payload, headers=headers).status_code == 200
+    changed = client.post(
+        "/customer/tickets/t1/messages",
+        json={**payload, "messageText": "Changed message"},
+        headers=headers,
+    )
+    other_ticket = client.post(
+        "/customer/tickets/t2/messages", json=payload, headers=headers
+    )
+
+    assert changed.status_code == other_ticket.status_code == 409
+    assert changed.json()["error"]["code"] == "idempotency_conflict"
+    assert other_ticket.json()["error"]["code"] == "idempotency_conflict"
+    assert len(backend.messages["t1"]) == 3
+    assert backend.messages["t2"] == []
+
+
+def test_customer_message_rejects_text_alias_and_malformed_action_record():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    client = TestClient(
+        create_app(ticket_backend=FakeTicketBackend(), customer_backend=backend)
+    )
+    headers = {"Authorization": "Bearer valid_customer_token"}
+    alias = client.post(
+        "/customer/tickets/t1/messages",
+        json={"text": "Not accepted", "actionId": "message-alias-001"},
+        headers=headers,
+    )
+    assert alias.status_code == 422
+
+    backend.message_actions["message-corrupt-001"] = {
+        "type": "customer_message",
+        "fingerprint": "not-a-fingerprint",
+        "result": {"senderRole": "customer", "body": "x", "createdAt": "2026-08-01T00:00:00Z"},
+    }
+    corrupt = client.post(
+        "/customer/tickets/t1/messages",
+        json={"messageText": "Retry", "actionId": "message-corrupt-001"},
+        headers=headers,
+    )
+    assert corrupt.status_code == 503
+    assert len(backend.messages["t1"]) == 2
+
+
+def test_customer_message_read_is_bounded_and_tie_breaks_by_message_id():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.messages["t1"] = [
+        {
+            "id": f"message-{index:03d}",
+            "authorId": "cust_123",
+            "authorRole": "customer",
+            "body": f"Message {index}",
+            "visibility": "participants",
+            "createdAt": "2026-08-01T10:00:00Z",
+        }
+        for index in range(100)
+    ]
+    detail = CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
+    assert len(detail.messages) == 100
+    assert detail.messages[0].body == "Message 0"
+
+    backend.messages["t1"].append(dict(backend.messages["t1"][0], id="message-100"))
+    with pytest.raises(PersistenceError):
+        CustomerWorkflowService(backend).get_ticket_detail("cust_123", "t1")
 
 
 def test_missing_invalid_wrong_role_and_inactive_customer_are_denied():

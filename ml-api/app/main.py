@@ -102,6 +102,7 @@ from app.customer_workflow import (
     CustomerBackend,
     CustomerHistoryCursorError,
     CustomerHistoryFilters,
+    CustomerMessageIdempotencyConflict,
     CustomerWorkflowService,
     FeedbackAlreadySubmitted,
     FirebaseAdminCustomerBackend,
@@ -1454,6 +1455,12 @@ def create_app(
                 code="ticket_not_found",
                 message="Ticket not found.",
             ) from None
+        except (PersistenceError, TypeError, ValueError):
+            raise ApiError(
+                status_code=503,
+                code="customer_service_unavailable",
+                message="The customer service is unavailable.",
+            ) from None
 
     @api.post(
         "/customer/tickets/{ticket_id}/messages",
@@ -1462,11 +1469,27 @@ def create_app(
     )
     async def add_customer_message(
         ticket_id: str,
-        payload: CustomerMessageRequest,
+        request: Request,
         authorization: str | None = Header(default=None),
     ) -> CustomerMessageItem:
         cust_id = customer_actor(authorization)
         svc = customer_svc()
+        try:
+            svc.ensure_owned_ticket(cust_id, ticket_id)
+        except TicketNotFound:
+            raise ApiError(
+                status_code=404,
+                code="ticket_not_found",
+                message="Ticket not found.",
+            ) from None
+        try:
+            payload = CustomerMessageRequest.model_validate(await request.json())
+        except (TypeError, ValueError):
+            raise ApiError(
+                status_code=422,
+                code="invalid_message",
+                message="The message request is invalid.",
+            ) from None
         try:
             return CustomerMessageItem.model_validate(
                 svc.send_message(cust_id, ticket_id, payload)
@@ -1477,17 +1500,23 @@ def create_app(
                 code="ticket_not_found",
                 message="Ticket not found.",
             ) from None
-        except InvalidTicketState as exc:
+        except InvalidTicketState:
             raise ApiError(
                 status_code=409,
-                code="invalid_ticket_state",
-                message=str(exc),
+                code="closed_ticket",
+                message="Messages cannot be added to a closed ticket.",
             ) from None
-        except ValueError as exc:
+        except CustomerMessageIdempotencyConflict:
+            raise ApiError(
+                status_code=409,
+                code="idempotency_conflict",
+                message="This message could not be safely retried.",
+            ) from None
+        except ValueError:
             raise ApiError(
                 status_code=422,
                 code="invalid_message",
-                message=str(exc),
+                message="The message request is invalid.",
             ) from None
         except PersistenceError:
             raise ApiError(
@@ -1503,11 +1532,27 @@ def create_app(
     )
     async def submit_customer_feedback(
         ticket_id: str,
-        payload: CustomerFeedbackRequest,
+        request: Request,
         authorization: str | None = Header(default=None),
     ) -> CustomerFeedbackResponse:
         cust_id = customer_actor(authorization)
         svc = customer_svc()
+        try:
+            svc.ensure_owned_ticket(cust_id, ticket_id)
+        except TicketNotFound:
+            raise ApiError(
+                status_code=404,
+                code="ticket_not_found",
+                message="Ticket not found.",
+            ) from None
+        try:
+            payload = CustomerFeedbackRequest.model_validate(await request.json())
+        except (TypeError, ValueError):
+            raise ApiError(
+                status_code=422,
+                code="invalid_feedback",
+                message="The feedback request is invalid.",
+            ) from None
         try:
             return svc.submit_feedback(cust_id, ticket_id, payload)
         except TicketNotFound:
@@ -1528,11 +1573,11 @@ def create_app(
                 code="feedback_already_submitted",
                 message=str(exc),
             ) from None
-        except ValueError as exc:
+        except ValueError:
             raise ApiError(
                 status_code=422,
                 code="invalid_feedback",
-                message=str(exc),
+                message="The feedback request is invalid.",
             ) from None
         except PersistenceError:
             raise ApiError(
