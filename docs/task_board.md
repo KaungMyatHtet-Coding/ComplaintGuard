@@ -695,3 +695,42 @@ Move Day 3 work to Done only after archive validation, extracted-size verificati
 ## Day 5 completion rule
 
 Day 5 started early with owner approval on 23 July 2026. Move Day 5 work to Done only after the reusable cleaner and synthetic tests pass, the complete raw CSV is processed successfully in bounded chunks, all input rows reconcile to retained plus mutually exclusive rejection counts, the aggregate report is reviewed, the full cleaned CSV and processing artifacts are confirmed ignored, raw-file integrity is unchanged, and tracked outputs are scanned to confirm that they contain no complaint IDs, narratives, row-level records, or personal identifiers. A bounded smoke test alone does not complete Day 5. Mapping, EDA, translation, feature engineering, sampling, model training, frontend work, and Firebase implementation remain deferred.
+
+### Approved - R2C10C-0 Customer detail and message-safety contract
+
+- [x] Approve the documentation-only Customer detail projection with no
+  priority, ownership/actor IDs, assignment, model/routing metadata, raw event,
+  message, action, or idempotency references, private notes, unknown fields, or
+  extra fields.
+- [x] Approve safe `404` for missing/cross-Customer tickets and safe `503` for
+  malformed or contradictory owned persistence without partial detail.
+- [x] Approve authorization before request-body parsing and persistence access
+  for Customer detail, message, and feedback routes.
+- [x] Approve the exact `messageText`/`actionId` request, request-fingerprint
+  conflict behavior, same-action lost-response retry, and memory-only frontend
+  attempt isolation.
+- [x] Approve the V1 cap of 100 participant-visible messages, at most 101
+  ordered reads using `createdAt ASC` plus document-ID `ASC`, safe `503` on a
+  101st message or malformed data, and no new composite index.
+- [x] Record trusted ticket status as current-status authority and approve
+  bounded English/Myanmar guidance for all six statuses without deadline,
+  outcome, assignment, reopening, or automatic-response promises.
+- [x] Preserve resolved/closed feedback behavior, existing notifications,
+  API-only Firestore access, denied direct raw writes, and the Cloud-deferred
+  no-budget boundary.
+
+### Future - R2C10C implementation slices
+
+- [ ] **R2C10C-1:** message fingerprint idempotency, stable frontend attempts,
+  abort/session/ticket isolation, strict message parsing, and deterministic
+  bounded message reads.
+- [ ] **R2C10C-2:** remove priority; implement strict backend/frontend detail
+  projection, safe persistence errors, authenticated body-validation ordering,
+  and strict nested message/timeline/feedback parsing.
+- [ ] **R2C10C-3:** implement accessible current-status and next-action UI in
+  English and Myanmar.
+- [ ] Defer message pagination, unread counts, SLA/response targets, proactive
+  notifications, automatic status transitions, reopen/close controls,
+  Staff/Admin detail changes, full-text search, date/reference filtering,
+  charts, exports, bulk actions, Myanmar complaint classification, and Cloud
+  deployment.

@@ -163,6 +163,39 @@ it does not modify frontend code.
 - Public self-registration is Customer-only and implemented locally; its
   registration Emulator E2E remains pending.
 
+### R2C10C-0 future Customer detail and message boundary
+
+R2C10C-0 is documentation-only approval. The future Customer detail exposes
+only the ticket reference, trusted lifecycle status, complaint text, input
+locale, approved department, canonical timestamps, participant-safe messages,
+historical public timeline entries, and eligible feedback. It excludes
+priority, all Customer/Staff/Manager or actor UIDs, assignment fields,
+model/routing metadata, raw event names, event/message/action/idempotency
+references, internal reasons, private notes, and unknown or extra fields.
+
+Detail, message, and feedback authorization is ordered as Bearer header, token,
+profile, strict Customer role, `active=true`, strict `accountState=active`,
+path/ownership, request-body contract, then persistence. Unauthorized callers
+receive no request-schema detail and trigger no lookup. Authenticated raw-body
+parsing is an approved implementation option where framework validation would
+otherwise run first.
+
+Only `messageText` and `actionId` are accepted. Fingerprints bind the trusted
+Customer, owned ticket, normalized/redacted request, action ID, and contract
+domain. Same-fingerprint retries return the original safe result; conflicting
+reuse returns safe `409`. Action IDs remain memory-only in the frontend. The V1
+message cap is 100 participant-visible messages, with at most 101 deterministic
+reads ordered by `createdAt ASC` and document ID `ASC`; a 101st message or
+malformed data produces safe `503`. Pagination is deferred and no new
+composite index is approved here.
+
+Trusted ticket status is current-status authority; timeline entries are
+historical and may be incomplete. Existing resolved/closed feedback eligibility,
+ownership, PII redaction, same-action idempotency, duplicate prevention, and
+safe errors remain unchanged. Customer replies do not themselves transition
+status or create new Customer notifications. API-only reads, denied direct raw
+writes, unchanged rules, and the Cloud/no-budget boundary remain in force.
+
 ### Department Staff — implemented locally within department scope
 
 - Sees only tickets assigned to the staff member's department, views authorized

@@ -841,3 +841,154 @@ documented `auth_disable_pending`, `auth_enable_pending`, and
 or worker is implemented by R2C0. Permanent deletion and cleanup remain
 deferred pending retention, anonymization, ownership, cascade, audit, and
 recovery policy approval.
+
+## R2C10C-0 Customer detail and message-safety approval
+
+R2C10C-0 is documentation-only approval. It does not implement or verify
+Customer detail changes, message retry behavior, bounded message reads,
+frontend parsing, status guidance, notifications, rules, indexes, or Cloud
+runtime behavior. The current local implementation and the approved future
+contract are intentionally separate below.
+
+### Current local behavior
+
+The local Customer API currently provides `GET /customer/tickets/{ticketId}`,
+`POST /customer/tickets/{ticketId}/messages`, and
+`POST /customer/tickets/{ticketId}/feedback` through the trusted backend.
+Customer ownership is checked before owned-ticket reads, missing and
+cross-Customer tickets use the same safe not-found behavior, participant
+message fields are projected without sender IDs, and feedback is restricted to
+resolved or closed tickets with backend action idempotency. The current
+message read is not yet bounded, the frontend message retry does not yet
+retain one action identifier across an uncertain outcome, and the current
+detail response/parser still require the stricter contract approved below.
+These are current implementation facts, not claims of C implementation.
+
+### Approved future implementation slices
+
+R2C10C is split into three future slices:
+
+- **R2C10C-1:** message fingerprint idempotency, a stable in-memory frontend
+  attempt, abort/session/ticket isolation, strict message parsing, and
+  deterministic bounded message reads.
+- **R2C10C-2:** removal of `priority`, strict backend and frontend detail
+  projection, safe persistence errors, authenticated body-validation ordering,
+  and strict nested message/timeline/feedback parsing.
+- **R2C10C-3:** accessible current-status and next-action presentation in
+  English and Myanmar.
+
+### Approved Customer detail projection
+
+The future `GET /customer/tickets/{ticketId}` success response is exactly:
+
+```json
+{
+  "id": "ticket_<32 lowercase hex characters>",
+  "status": "submitted|triaged|in_progress|awaiting_customer|resolved|closed",
+  "complaintText": "string",
+  "inputLocale": "en|my",
+  "departmentId": "approved department or null",
+  "createdAt": "canonical UTC RFC3339 timestamp",
+  "updatedAt": "canonical UTC RFC3339 timestamp",
+  "resolvedAt": "canonical UTC RFC3339 timestamp or null",
+  "messages": [
+    {
+      "senderRole": "customer|support_team",
+      "body": "string",
+      "createdAt": "canonical UTC RFC3339 timestamp"
+    }
+  ],
+  "timeline": [
+    {
+      "type": "approved public event type",
+      "occurredAt": "canonical UTC RFC3339 timestamp",
+      "departmentId": "approved department or null"
+    }
+  ],
+  "feedback": null
+}
+```
+
+Messages contain only `senderRole`, `body`, and `createdAt`. Timeline entries
+contain only the approved public `type`, `occurredAt`, and `departmentId`.
+When present, `feedback` is exactly:
+
+```json
+{
+  "rating": "integer 1-5",
+  "comments": "string or null",
+  "submittedAt": "canonical UTC RFC3339 timestamp"
+}
+```
+
+No `priority`, UID, assignment,
+model/routing metadata, raw event name, event/message/action/idempotency
+reference, internal reason, private note, unknown field, or extra field may be
+returned. Malformed or contradictory owned persistence fails closed with safe
+`503` and no partial detail response. Missing and cross-Customer tickets remain
+the same safe `404`.
+
+### Authorization and message contract
+
+Customer detail, message, and feedback routes must perform, in order: Bearer
+header validation; Firebase token verification; Customer profile load; strict
+Customer role validation; `active=true`; strict `accountState=active`; path
+and ownership validation; request-body parsing and contract validation; then
+persistence reads or mutation. Unauthorized callers receive no request-schema
+details and trigger no ticket, message, or feedback lookup. Authenticated
+raw-body parsing may be required where framework body validation would run
+first.
+
+The future message request accepts only:
+
+```json
+{"messageText":"1-5000 character string","actionId":"8-64 ASCII characters matching [A-Za-z0-9_-]+"}
+```
+
+The alternate `text` field, missing/null/blank/whitespace-only or extra fields,
+private/inherited fields, malformed identifiers, unsupported encodings, and
+coercions are rejected. Existing trusted normalization and PII-redaction order
+must be documented and applied consistently before persistence and
+fingerprinting.
+
+The fingerprint binds authenticated Customer UID, owned ticket ID, normalized
+original request, action ID, and an approved contract/version domain. The same
+fingerprint returns the original safe result without another message. Reusing
+an action ID with different text, Customer, ticket, or request context returns
+safe `409 idempotency_conflict`. Action IDs and fingerprints are backend-only.
+Lost-response retries reuse the same memory-only action ID; abort, sign-out,
+Customer change, ticket change, and unmount prevent late responses from
+changing another context. Transport failure, post-dispatch abort, `5xx`, or a
+malformed success response is an unknown outcome; allowlisted `4xx` responses
+remain confirmed failures.
+
+### Bounded messages, timeline, and status
+
+The future V1 message read is capped at 100 participant-visible messages. It
+reads at most 101 ordered documents (`createdAt ASC`, then document ID `ASC`),
+returns at most 100, and fails closed with safe `503` if a 101st
+participant-visible message exists or any message is malformed. Unbounded
+streams and collection scans are forbidden. Message pagination remains
+deferred. This single-ticket ordered subcollection query is expected to use
+single-field ordering support; no new composite index is approved here.
+
+The trusted ticket `status` is authoritative current status. The frontend must
+not infer it from the last timeline item. Timeline entries are historical
+public projections and may be incomplete; unknown or malformed events never
+expose private data and contradictions follow the safe detail `503` policy.
+
+Approved status guidance is: `submitted` means received and awaiting support
+review; `triaged` means routed to the appropriate support team and awaiting
+review; `in_progress` means support is reviewing and the Customer may provide
+relevant additional information; `awaiting_customer` means support needs more
+information and the Customer should reply in the message area; `resolved`
+means marked resolved and eligible for feedback; `closed` means closed, with
+further ticket messages unavailable and feedback possibly still available.
+English/Myanmar wording must not promise deadlines, assignment outcomes,
+reopening, resolution guarantees, or automatic responses.
+
+Message pagination, unread counts, SLA/response targets, proactive
+notifications, automatic status transitions, reopen/close controls, Staff/Admin
+detail changes, full-text search, date/reference filtering, charts, exports,
+bulk actions, Myanmar complaint classification, and Cloud deployment remain
+deferred.

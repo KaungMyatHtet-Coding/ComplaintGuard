@@ -307,3 +307,56 @@ R0.1 records approved contracts only. It does not claim implementation of:
 - redesigned navigation or shell;
 - scheduled workers;
 - Firestore rules or indexes.
+
+## R2C10C-0 Customer detail and message-safety approval
+
+R2C10C-0 approves documentation and future boundaries only; it does not claim
+implementation of the three C slices. The current local detail, message, and
+feedback routes use trusted API projections and ownership checks. Feedback is
+currently limited to resolved/closed tickets with PII-redacted comments and
+existing backend same-action idempotency. Current message reads are unbounded,
+and the frontend does not yet retain one action ID across an uncertain retry.
+
+Future slices are **R2C10C-1** message fingerprint idempotency, stable frontend
+attempts, abort/session/ticket isolation, strict message parsing, and bounded
+reads; **R2C10C-2** strict detail projection, removal of priority, safe
+persistence errors, authenticated body validation, and strict nested parsing;
+and **R2C10C-3** accessible English/Myanmar current-status and next-action
+presentation.
+
+The future detail projection excludes priority, all Customer/Staff/Manager or
+actor UIDs, assignment fields, model/routing metadata, raw event names,
+event/message/action/idempotency references, internal reasons, private notes,
+and unknown or extra fields. Malformed owned persistence fails with safe `503`
+and no partial response; missing and cross-Customer tickets remain the same
+safe `404`.
+
+Authorization order is Bearer header, token, profile, strict Customer role,
+`active=true`, strict `accountState=active`, path/ownership, request-body
+contract, then persistence. Unauthorized callers receive no schema detail and
+trigger no ticket/message/feedback lookup. An authenticated raw-body boundary
+may be required where framework validation otherwise runs first.
+
+Only `messageText` and `actionId` are accepted. The normalized/redacted request
+fingerprint binds the trusted Customer, owned ticket, action ID, message
+request, and contract domain. Same-fingerprint retries return the original
+safe result; conflicting action reuse returns `409 idempotency_conflict`.
+Action IDs/fingerprints are backend-only. Uncertain outcomes reuse one
+memory-only frontend action ID, while late responses are rejected after abort,
+unmount, ticket change, sign-out, or Customer change.
+
+The future V1 conversation read is capped at 100 participant-visible messages:
+read at most 101 ordered documents (`createdAt ASC`, document ID `ASC`), return
+at most 100, and fail closed with `503` for a 101st message or malformed data.
+Unbounded streams are forbidden; pagination remains deferred and no new
+composite index is approved by this slice.
+
+Trusted ticket `status`, never the final timeline item, drives current-status
+guidance. Timeline entries are historical public projections and may be
+incomplete. Guidance for all six statuses must not promise deadlines,
+assignment outcomes, reopening, resolution, or automatic responses.
+
+Customer messages do not themselves transition status or create a new Customer
+notification. Existing notification behavior is unchanged; no scheduler, SLA,
+unread counter, proactive notification, reopening behavior, or deadline
+mechanism is added.
