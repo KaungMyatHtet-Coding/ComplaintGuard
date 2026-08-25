@@ -25,6 +25,9 @@ describe("CustomerTicketHistory", () => {
         loadMoreError={null}
         hasMore={false}
         onLoadMore={vi.fn()}
+        statusFilter={null}
+        departmentFilter={null}
+        onFilterChange={vi.fn()}
       />,
     );
 
@@ -56,6 +59,9 @@ describe("CustomerTicketHistory", () => {
         loadMoreError={null}
         hasMore={false}
         onLoadMore={vi.fn()}
+        statusFilter={null}
+        departmentFilter={null}
+        onFilterChange={vi.fn()}
       />,
     );
 
@@ -86,11 +92,43 @@ describe("CustomerTicketHistory", () => {
         loadMoreError={null}
         hasMore
         onLoadMore={vi.fn()}
+        statusFilter={null}
+        departmentFilter={null}
+        onFilterChange={vi.fn()}
       />,
     );
     expect(markup).toContain("Load more");
     expect(markup).toContain('type="button"');
     expect(markup).not.toContain("Synthetic complaint summary");
     expect(markup).not.toContain("Priority");
+  });
+
+  it("renders Closed explicitly", () => {
+    const markup = renderToStaticMarkup(
+      <CustomerTicketHistory
+        locale="en"
+        tickets={[{
+          complaintId: "ticket_" + "4".repeat(32),
+          status: "closed",
+          departmentId: "general_support",
+          createdAt: "2026-08-11T00:00:00Z",
+          updatedAt: "2026-08-11T00:00:00Z",
+          resolvedAt: "2026-08-11T00:00:00Z",
+        }]}
+        selectedTicketId={null}
+        onSelectTicket={vi.fn()}
+        loading={false}
+        error={null}
+        onRefresh={vi.fn()}
+        loadingMore={false}
+        loadMoreError={null}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        statusFilter={"closed"}
+        departmentFilter={null}
+        onFilterChange={vi.fn()}
+      />,
+    );
+    expect(markup).toContain("Closed");
   });
 });

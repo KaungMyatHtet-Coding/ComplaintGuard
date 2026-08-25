@@ -29,6 +29,11 @@ export type CustomerTicketHistoryPage = {
   hasMore: boolean;
 };
 
+export type CustomerHistoryFilters = {
+  status: CustomerTicketStatus | null;
+  departmentId: CustomerDepartmentId | null;
+};
+
 export type CustomerMessageItem = {
   senderRole: "customer" | "support_team";
   body: string;
@@ -86,22 +91,24 @@ export class CustomerWorkflowError extends Error {
 }
 
 const TICKET_ID_PATTERN = /^ticket_[a-f0-9]{32}$/u;
-const CUSTOMER_HISTORY_STATUSES = new Set<CustomerTicketStatus>([
+export const CUSTOMER_HISTORY_STATUSES = [
   "submitted",
   "triaged",
   "in_progress",
   "awaiting_customer",
   "resolved",
   "closed",
-]);
-const CUSTOMER_DEPARTMENTS = new Set<CustomerDepartmentId>([
+ ] as const satisfies readonly CustomerTicketStatus[];
+export const CUSTOMER_HISTORY_DEPARTMENTS = [
   "transfer_payment",
   "account_support",
   "card_atm",
   "fraud_security",
   "loan_credit",
   "general_support",
-]);
+] as const satisfies readonly CustomerDepartmentId[];
+const CUSTOMER_HISTORY_STATUS_SET = new Set<CustomerTicketStatus>(CUSTOMER_HISTORY_STATUSES);
+const CUSTOMER_HISTORY_DEPARTMENT_SET = new Set<CustomerDepartmentId>(CUSTOMER_HISTORY_DEPARTMENTS);
 const CURSOR_HASH_PATTERN = /^[0-9a-f]{64}$/u;
 const CURSOR_ID_PATTERN = /^ticket_[a-f0-9]{32}$/u;
 const CURSOR_MAX_LENGTH = 512;
@@ -162,7 +169,7 @@ function validateCursor(value: unknown): string | null {
   try { payload = JSON.parse(decoded) as unknown; } catch { return null; }
   if (!isPlainObject(payload) || !exactKeys(payload, ["v", "customerBinding", "contract", "createdAt", "complaintId"])) return null;
   if (
-    payload.v !== 1
+    payload.v !== 2
     || typeof payload.customerBinding !== "string" || !CURSOR_HASH_PATTERN.test(payload.customerBinding)
     || typeof payload.contract !== "string" || !CURSOR_HASH_PATTERN.test(payload.contract)
     || typeof payload.createdAt !== "string" || !parseTimestamp(payload.createdAt) || !payload.createdAt.endsWith("Z")
@@ -180,8 +187,8 @@ function parseCustomerTicketRow(value: unknown): CustomerTicketSummary {
   const resolvedAt = value.resolvedAt === null ? null : parseTimestamp(value.resolvedAt);
   if (
     typeof value.complaintId !== "string" || !TICKET_ID_PATTERN.test(value.complaintId)
-    || typeof value.status !== "string" || !CUSTOMER_HISTORY_STATUSES.has(value.status as CustomerTicketStatus)
-    || (value.departmentId !== null && (typeof value.departmentId !== "string" || !CUSTOMER_DEPARTMENTS.has(value.departmentId as CustomerDepartmentId)))
+    || typeof value.status !== "string" || !CUSTOMER_HISTORY_STATUS_SET.has(value.status as CustomerTicketStatus)
+    || (value.departmentId !== null && (typeof value.departmentId !== "string" || !CUSTOMER_HISTORY_DEPARTMENT_SET.has(value.departmentId as CustomerDepartmentId)))
     || !createdAt || !updatedAt || (value.resolvedAt !== null && !resolvedAt)
   ) throw new CustomerWorkflowError("unexpected");
   if (value.status !== "submitted" && value.departmentId === null) throw new CustomerWorkflowError("unexpected");
@@ -227,14 +234,25 @@ function getApiUrl(): string {
 
 export async function fetchCustomerTickets(
   idToken: string,
-  options: { pageSize?: number; cursor?: string | null; signal?: AbortSignal; fetcher?: Fetcher } = {},
+  options: {
+    pageSize?: number;
+    cursor?: string | null;
+    status?: CustomerTicketStatus | null;
+    departmentId?: CustomerDepartmentId | null;
+    signal?: AbortSignal;
+    fetcher?: Fetcher;
+  } = {},
 ): Promise<CustomerTicketHistoryPage> {
   const pageSize = options.pageSize ?? 25;
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) throw new CustomerWorkflowError("validation");
   if (options.cursor !== undefined && options.cursor !== null && validateCursor(options.cursor) === null) throw new CustomerWorkflowError("validation");
+  if (options.status !== undefined && options.status !== null && !CUSTOMER_HISTORY_STATUS_SET.has(options.status)) throw new CustomerWorkflowError("validation");
+  if (options.departmentId !== undefined && options.departmentId !== null && !CUSTOMER_HISTORY_DEPARTMENT_SET.has(options.departmentId)) throw new CustomerWorkflowError("validation");
   const baseUrl = getApiUrl();
   const params = new URLSearchParams({ pageSize: String(pageSize) });
   if (options.cursor) params.set("cursor", options.cursor);
+  if (options.status !== undefined && options.status !== null) params.set("status", options.status);
+  if (options.departmentId !== undefined && options.departmentId !== null) params.set("departmentId", options.departmentId);
   let response: Response;
   try {
     response = await (options.fetcher ?? fetch)(`${baseUrl}/customer/tickets?${params.toString()}`, {

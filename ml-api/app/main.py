@@ -96,9 +96,12 @@ from app.auth_workflow import (
 from app.config import MODEL_VERSION, Settings
 from app.customer_workflow import (
     CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE,
+    CUSTOMER_HISTORY_DEPARTMENTS,
     CUSTOMER_HISTORY_MAX_PAGE_SIZE,
+    CUSTOMER_HISTORY_STATUSES,
     CustomerBackend,
     CustomerHistoryCursorError,
+    CustomerHistoryFilters,
     CustomerWorkflowService,
     FeedbackAlreadySubmitted,
     FirebaseAdminCustomerBackend,
@@ -1357,19 +1360,45 @@ def create_app(
         authorization: str | None = Header(default=None),
     ) -> CustomerTicketListResponse:
         cust_id = customer_actor(authorization)
+        allowed_parameters = {"pageSize", "cursor", "status", "departmentId"}
         if (
-            any(key not in {"pageSize", "cursor"} for key in request.query_params)
-            or any(len(request.query_params.getlist(key)) != 1 for key in ("pageSize", "cursor") if key in request.query_params)
+            any(key not in allowed_parameters for key in request.query_params)
+            or any(
+                len(request.query_params.getlist(key)) != 1
+                for key in allowed_parameters
+                if key in request.query_params
+            )
         ):
             raise ApiError(
                 status_code=422,
                 code="invalid_customer_history_query",
                 message="The customer history query is invalid.",
             )
+        status = request.query_params.get("status")
+        department_id = request.query_params.get("departmentId")
+        if (
+            status is not None and status not in CUSTOMER_HISTORY_STATUSES
+        ) or (
+            department_id is not None
+            and department_id not in CUSTOMER_HISTORY_DEPARTMENTS
+        ):
+            raise ApiError(
+                status_code=422,
+                code="invalid_customer_history_filter",
+                message="The customer history query is invalid.",
+            )
+        filters = CustomerHistoryFilters(
+            status=status,
+            department_id=department_id,
+        )
         page_size_text = request.query_params.get("pageSize")
         if page_size_text is None:
             page_size = CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE
-        elif not page_size_text.isascii() or not page_size_text.isdigit():
+        elif (
+            not page_size_text.isascii()
+            or not page_size_text.isdigit()
+            or (len(page_size_text) > 1 and page_size_text.startswith("0"))
+        ):
             raise ApiError(
                 status_code=422,
                 code="invalid_customer_history_page_size",
@@ -1386,7 +1415,7 @@ def create_app(
         cursor_value = request.query_params.get("cursor")
         try:
             cursor = (
-                decode_customer_history_cursor(cursor_value, cust_id)
+                decode_customer_history_cursor(cursor_value, cust_id, filters)
                 if cursor_value is not None
                 else None
             )
@@ -1398,7 +1427,7 @@ def create_app(
             ) from None
         svc = customer_svc()
         try:
-            return svc.list_ticket_page(cust_id, page_size, cursor)
+            return svc.list_ticket_page(cust_id, page_size, cursor, filters)
         except PersistenceError:
             raise ApiError(
                 status_code=503,

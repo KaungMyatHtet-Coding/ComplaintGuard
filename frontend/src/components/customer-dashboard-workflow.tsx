@@ -12,7 +12,9 @@ import {
   sendCustomerMessage,
   submitCustomerFeedback,
   CustomerWorkflowError,
+  type CustomerDepartmentId,
   type CustomerTicketDetail,
+  type CustomerTicketStatus,
   type CustomerTicketSummary,
 } from "@/lib/customer-workflow";
 import type { ComplaintAttempt, ComplaintSuccess } from "@/lib/complaint-submission";
@@ -37,12 +39,15 @@ export function CustomerDashboardWorkflow() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submissionAttempt, setSubmissionAttempt] = useState<ComplaintAttempt | null>(null);
+  const [statusFilter, setStatusFilter] = useState<CustomerTicketStatus | null>(null);
+  const [departmentFilter, setDepartmentFilter] = useState<CustomerDepartmentId | null>(null);
   const listRequestRef = useRef(0);
   const listAbortRef = useRef<AbortController | null>(null);
   const loadingMoreRef = useRef(false);
   const detailRequestRef = useRef(0);
   const detailAbortRef = useRef<AbortController | null>(null);
   const selectedTicketRef = useRef<string | null>(null);
+  const pendingFilterSelectionRef = useRef<string | null>(null);
   const confirmedComplaintRef = useRef<{ sessionUid: string; complaintId: string } | null>(null);
   const sessionUid = profile?.role === "customer" && profile.active ? profile.uid : null;
 
@@ -58,6 +63,7 @@ export function CustomerDashboardWorkflow() {
     listAbortRef.current = null;
     detailAbortRef.current = null;
     selectedTicketRef.current = null;
+    pendingFilterSelectionRef.current = null;
     queueMicrotask(() => {
       setTickets([]);
       setSelectedTicketId(null);
@@ -72,6 +78,8 @@ export function CustomerDashboardWorkflow() {
       setLoadingDetail(false);
       setSubmissionAttempt(null);
       confirmedComplaintRef.current = null;
+      setStatusFilter(null);
+      setDepartmentFilter(null);
     });
   }, [sessionUid]);
 
@@ -80,6 +88,8 @@ export function CustomerDashboardWorkflow() {
     listAbortRef.current?.abort();
     const requestId = ++listRequestRef.current;
     const requestSessionUid = sessionUid;
+    const requestStatus = statusFilter;
+    const requestDepartment = departmentFilter;
     const controller = new AbortController();
     listAbortRef.current = controller;
     loadingMoreRef.current = false;
@@ -90,25 +100,36 @@ export function CustomerDashboardWorkflow() {
     try {
       const idToken = await currentToken();
       if (!idToken) throw new Error("No token");
-      const page = await fetchCustomerTickets(idToken, { pageSize: 25, signal: controller.signal });
+      const page = await fetchCustomerTickets(idToken, {
+        pageSize: 25,
+        status: requestStatus,
+        departmentId: requestDepartment,
+        signal: controller.signal,
+      });
       if (
         requestId !== listRequestRef.current ||
         controller.signal.aborted ||
         sessionUid !== requestSessionUid ||
         profile?.uid !== requestSessionUid ||
         getFirebaseServices().auth.currentUser?.uid !== requestSessionUid
+        || statusFilter !== requestStatus
+        || departmentFilter !== requestDepartment
       ) return;
       setTickets(page.tickets);
       setNextCursor(page.nextCursor);
       setHasMore(page.hasMore);
       const confirmed = confirmedComplaintRef.current;
+      const preservedSelection = pendingFilterSelectionRef.current;
+      pendingFilterSelectionRef.current = null;
       const requestedId = preferredTicketId ?? (
         confirmed?.sessionUid === requestSessionUid ? confirmed.complaintId : undefined
       );
       const nextId = requestedId
         ? (page.tickets.some((ticket) => ticket.complaintId === requestedId) ? requestedId : null)
-        : selectedTicketRef.current && page.tickets.some((ticket) => ticket.complaintId === selectedTicketRef.current)
-          ? selectedTicketRef.current
+        : (preservedSelection ?? selectedTicketRef.current) && page.tickets.some(
+          (ticket) => ticket.complaintId === (preservedSelection ?? selectedTicketRef.current),
+        )
+          ? preservedSelection ?? selectedTicketRef.current
           : page.tickets[0]?.complaintId ?? null;
       setSelectedTicketId(nextId);
       if (confirmed?.sessionUid === requestSessionUid && page.tickets.some((ticket) => ticket.complaintId === confirmed.complaintId)) {
@@ -124,12 +145,14 @@ export function CustomerDashboardWorkflow() {
         if (listAbortRef.current === controller) listAbortRef.current = null;
       }
     }
-  }, [profile, sessionUid, t]);
+  }, [departmentFilter, profile, sessionUid, statusFilter, t]);
 
   const loadMoreTickets = useCallback(async () => {
     if (!sessionUid || loadingList || loadingMoreRef.current || !hasMore || !nextCursor) return;
     const requestId = listRequestRef.current;
     const requestSessionUid = sessionUid;
+    const requestStatus = statusFilter;
+    const requestDepartment = departmentFilter;
     const requestCursor = nextCursor;
     const controller = new AbortController();
     listAbortRef.current = controller;
@@ -138,7 +161,13 @@ export function CustomerDashboardWorkflow() {
     setLoadMoreError(null);
     try {
       const idToken = await currentToken();
-      const page = await fetchCustomerTickets(idToken, { pageSize: 25, cursor: requestCursor, signal: controller.signal });
+      const page = await fetchCustomerTickets(idToken, {
+        pageSize: 25,
+        cursor: requestCursor,
+        status: requestStatus,
+        departmentId: requestDepartment,
+        signal: controller.signal,
+      });
       if (
         controller.signal.aborted
         || requestId !== listRequestRef.current
@@ -146,6 +175,8 @@ export function CustomerDashboardWorkflow() {
         || profile?.uid !== requestSessionUid
         || getFirebaseServices().auth.currentUser?.uid !== requestSessionUid
         || nextCursor !== requestCursor
+        || statusFilter !== requestStatus
+        || departmentFilter !== requestDepartment
       ) return;
       setTickets((current) => {
         const seen = new Set(current.map((ticket) => ticket.complaintId));
@@ -162,7 +193,31 @@ export function CustomerDashboardWorkflow() {
         if (listAbortRef.current === controller) listAbortRef.current = null;
       }
     }
-  }, [hasMore, loadingList, nextCursor, profile, sessionUid, t]);
+  }, [departmentFilter, hasMore, loadingList, nextCursor, profile, sessionUid, statusFilter, t]);
+
+  const changeFilters = useCallback((nextStatus: CustomerTicketStatus | null, nextDepartment: CustomerDepartmentId | null) => {
+    if (nextStatus === statusFilter && nextDepartment === departmentFilter) return;
+    listRequestRef.current += 1;
+    detailRequestRef.current += 1;
+    listAbortRef.current?.abort();
+    detailAbortRef.current?.abort();
+    listAbortRef.current = null;
+    detailAbortRef.current = null;
+    loadingMoreRef.current = false;
+    pendingFilterSelectionRef.current = pendingFilterSelectionRef.current ?? selectedTicketRef.current;
+    setStatusFilter(nextStatus);
+    setDepartmentFilter(nextDepartment);
+    setTickets([]);
+    setSelectedTicketId(null);
+    setTicketDetail(null);
+    setNextCursor(null);
+    setHasMore(false);
+    setLoadMoreError(null);
+    setError(null);
+    setLoadingList(false);
+    setLoadingMore(false);
+    setLoadingDetail(false);
+  }, [departmentFilter, statusFilter]);
 
   const loadTicketDetail = useCallback(
     async (ticketId: string) => {
@@ -311,6 +366,9 @@ export function CustomerDashboardWorkflow() {
             loadMoreError={loadMoreError}
             hasMore={hasMore}
             onLoadMore={loadMoreTickets}
+            statusFilter={statusFilter}
+            departmentFilter={departmentFilter}
+            onFilterChange={changeFilters}
           />
         </aside>
         <CustomerTicketDetailView

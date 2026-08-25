@@ -6,9 +6,15 @@ from datetime import datetime
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
+
 from app.customer_workflow import (
+    CUSTOMER_HISTORY_DEPARTMENTS,
+    CUSTOMER_HISTORY_STATUSES,
     CustomerHistoryCursor,
+    CustomerHistoryFilters,
     CustomerWorkflowService,
+    FirebaseAdminCustomerBackend,
     InMemoryCustomerBackend,
     customer_history_binding,
     customer_history_contract_fingerprint,
@@ -16,7 +22,6 @@ from app.customer_workflow import (
     encode_customer_history_cursor,
 )
 from app.main import create_app
-from fastapi.testclient import TestClient
 
 
 class FakeTicketBackend:
@@ -509,9 +514,10 @@ def test_customer_history_empty_exact_boundary_and_read_bound():
             customer_id: str,
             page_size: int,
             cursor: CustomerHistoryCursor | None,
+            filters: CustomerHistoryFilters,
         ) -> list[dict[str, Any]]:
             self.requests.append((page_size, cursor))
-            return super().list_customer_tickets(customer_id, page_size, cursor)
+            return super().list_customer_tickets(customer_id, page_size, cursor, filters)
 
     empty_backend = RecordingBackend()
     empty_client = TestClient(
@@ -562,8 +568,8 @@ def test_customer_history_insertion_before_next_page_does_not_duplicate_or_skip(
 
 
 @pytest.mark.parametrize("query", [
-    "status=submitted",
-    "departmentId=card_atm",
+    "status=unknown",
+    "departmentId=unknown",
     "createdFrom=2026-01-01T00:00:00Z",
     "createdTo=2026-01-01T00:00:00Z",
     "search=anything",
@@ -592,6 +598,89 @@ def test_customer_history_rejects_cursor_before_query_without_leaking_details():
     assert "cursor" not in response.text.lower()
 
 
+@pytest.mark.parametrize("query", [
+    "status=",
+    "departmentId=",
+    "status= submitted",
+    "status=SUBMITTED",
+    "status=submitted,status=closed",
+    "departmentId=card_atm&departmentId=card_atm",
+    "pageSize=01",
+    "pageSize=+1",
+])
+def test_customer_history_rejects_invalid_filter_and_numeric_forms(query: str):
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=InMemoryCustomerBackend(_valid_history_tickets())))
+    response = client.get(f"/customer/tickets?{query}", headers={"Authorization": "Bearer valid_customer_token"})
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("query, expected", [
+    ("status=in_progress", {"ticket_" + "1" * 32}),
+    ("departmentId=card_atm", {"ticket_" + "2" * 32}),
+    ("status=resolved&departmentId=card_atm", {"ticket_" + "2" * 32}),
+])
+def test_customer_history_applies_server_side_filters(query: str, expected: set[str]):
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=InMemoryCustomerBackend(_valid_history_tickets())))
+    response = client.get(f"/customer/tickets?{query}", headers={"Authorization": "Bearer valid_customer_token"})
+    assert response.status_code == 200
+    assert {row["complaintId"] for row in response.json()["tickets"]} == expected
+
+
+@pytest.mark.parametrize("filters, expected_equalities", [
+    (CustomerHistoryFilters(), [("customerId", "cust_123")]),
+    (CustomerHistoryFilters(status="resolved"), [("customerId", "cust_123"), ("status", "resolved")]),
+    (CustomerHistoryFilters(department_id="card_atm"), [("customerId", "cust_123"), ("departmentId", "card_atm")]),
+    (CustomerHistoryFilters(status="resolved", department_id="card_atm"), [("customerId", "cust_123"), ("status", "resolved"), ("departmentId", "card_atm")]),
+])
+def test_firestore_customer_history_query_shape_is_bounded_and_server_side(
+    filters: CustomerHistoryFilters,
+    expected_equalities: list[tuple[str, str]],
+):
+    class Query:
+        def __init__(self) -> None:
+            self.where_calls: list[Any] = []
+            self.order_calls: list[tuple[str, str]] = []
+            self.limit_value: int | None = None
+
+        def where(self, **kwargs: Any) -> Query:
+            self.where_calls.append(kwargs["filter"])
+            return self
+
+        def order_by(self, field: str, *, direction: str) -> Query:
+            self.order_calls.append((field, direction))
+            return self
+
+        def limit(self, value: int) -> Query:
+            self.limit_value = value
+            return self
+
+        def stream(self) -> list[Any]:
+            return []
+
+    class Database:
+        def __init__(self) -> None:
+            self.query = Query()
+
+        def collection(self, _name: str) -> Query:
+            return self.query
+
+    database = Database()
+    FirebaseAdminCustomerBackend(db=database).list_customer_tickets("cust_123", 7, None, filters)
+    assert [(item.field_path, item.value) for item in database.query.where_calls] == expected_equalities
+    assert database.query.order_calls == [("createdAt", "DESCENDING"), ("__name__", "DESCENDING")]
+    assert database.query.limit_value == 8
+
+
+def test_customer_history_unauthorized_filter_is_not_inspected_or_queried():
+    class NoQueryBackend(InMemoryCustomerBackend):
+        def list_customer_tickets(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+            raise AssertionError("query must not execute")
+
+    client = TestClient(create_app(ticket_backend=FakeTicketBackend(), customer_backend=NoQueryBackend(_valid_history_tickets())))
+    response = client.get("/customer/tickets?status=bad", headers={"Authorization": "Bearer invalid"})
+    assert response.status_code == 401
+
+
 def test_customer_history_malformed_owned_ticket_fails_closed():
     tickets = _valid_history_tickets()
     tickets[0]["updatedAt"] = "not-a-timestamp"
@@ -610,16 +699,38 @@ def test_customer_history_malformed_owned_ticket_fails_closed():
 
 
 def test_customer_history_cursor_has_stable_vectors_and_rejects_alternates():
+    filters = CustomerHistoryFilters(status="resolved", department_id="card_atm")
     cursor = CustomerHistoryCursor(
         datetime.fromisoformat("2026-08-01T00:00:00+00:00"),
         "ticket_" + "a" * 32,
+        filters,
     )
-    assert customer_history_binding("cust_123") == "fdf71536d14b5ecf4fe0d2557eba7923e51c564743fcedd36d9350fe1ff92d19"
-    assert customer_history_contract_fingerprint() == "4ac5ad4a38cccd46411ad7c740dc66057e3bddae2e5cc3f86b6969f90ae0eeae"
-    encoded = encode_customer_history_cursor(cursor, "cust_123")
-    assert encoded == "eyJ2IjoxLCJjdXN0b21lckJpbmRpbmciOiJmZGY3MTUzNmQxNGI1ZWNmNGZlMGQyNTU3ZWJhNzkyM2U1MWM1NjQ3NDNmY2VkZDM2ZDkzNTBmZTFmZjkyZDE5IiwiY29udHJhY3QiOiI0YWM1YWQ0YTM4Y2NjZDQ2NDExYWQ3Yzc0MGRjNjYwNTdlM2JkZGFlMmU1Y2MzZjg2YjY5NjlmOTBhZTBlZWFlIiwiY3JlYXRlZEF0IjoiMjAyNi0wOC0wMVQwMDowMDowMFoiLCJjb21wbGFpbnRJZCI6InRpY2tldF9hYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSJ9"
-    assert decode_customer_history_cursor(encoded, "cust_123").complaint_id == cursor.complaint_id
-    assert decode_customer_history_cursor(encoded, "cust_123").created_at == cursor.created_at
+    assert customer_history_binding("cust_123") == "e256a888d7815dc06eb189a24848b87f3f95755f48b76911da055cd487e8a377"
+    assert customer_history_contract_fingerprint(CustomerHistoryFilters()) == "1869d2b3ae1a579d8346dda166a5d48da5f16b0ddb75ff3c9c709732d4de4c94"
+    assert customer_history_contract_fingerprint(CustomerHistoryFilters(status="resolved")) == "f77494629c2766e4e9f8dc1d60f3b5f1bc6e5393a47ded64c9e6d0e48a548264"
+    assert customer_history_contract_fingerprint(CustomerHistoryFilters(department_id="card_atm")) == "9acab90e393a7ea76983b1bfbe2c7159e76cb28fc0c9019995d73ada3fc28821"
+    assert customer_history_contract_fingerprint(filters) == "4206abb38e2642d1e48d2f4b9a64592901a98ba638aaa165a0b21724af8ed43d"
+    encoded = encode_customer_history_cursor(cursor, "cust_123", filters)
+    assert encoded.startswith("eyJ2Ijoy")
+    assert decode_customer_history_cursor(encoded, "cust_123", filters).complaint_id == cursor.complaint_id
+    assert decode_customer_history_cursor(encoded, "cust_123", filters).created_at == cursor.created_at
     for alternate in (encoded + "=", encoded.replace("A", " ", 1)):
         with pytest.raises(ValueError):
-            decode_customer_history_cursor(alternate, "cust_123")
+            decode_customer_history_cursor(alternate, "cust_123", filters)
+    with pytest.raises(ValueError):
+        decode_customer_history_cursor(encoded, "cust_123", CustomerHistoryFilters())
+
+
+def test_customer_history_contract_binds_all_49_exact_filter_states():
+    filters = [CustomerHistoryFilters()]
+    filters.extend(CustomerHistoryFilters(status=status) for status in CUSTOMER_HISTORY_STATUSES)
+    filters.extend(CustomerHistoryFilters(department_id=department) for department in CUSTOMER_HISTORY_DEPARTMENTS)
+    filters.extend(
+        CustomerHistoryFilters(status=status, department_id=department)
+        for status in CUSTOMER_HISTORY_STATUSES
+        for department in CUSTOMER_HISTORY_DEPARTMENTS
+    )
+    fingerprints = [customer_history_contract_fingerprint(item) for item in filters]
+    assert len(filters) == 49
+    assert len(set(fingerprints)) == 49
+    assert fingerprints == [customer_history_contract_fingerprint(item) for item in filters]

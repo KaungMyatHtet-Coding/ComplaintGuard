@@ -82,4 +82,21 @@ describe("localization foundation", () => {
     expect(normalizeLocale("fr")).toBe("en");
     expect(normalizeLocale(null)).toBe("en");
   });
+
+  it("provides localized Customer History filter labels", () => {
+    const keys = [
+      "customerHistoryFilters", "customerStatusFilter", "customerStatusFilterHelp",
+      "customerAllStatuses", "customerDepartmentFilter", "customerDepartmentFilterHelp",
+      "customerAllDepartments", "customerClearFilters", "customerActiveFilters",
+      "customerFilteredEmpty",
+    ] as const;
+    for (const key of keys) {
+      expect(translate("en", key)).not.toBe("");
+      expect(translate("my", key)).not.toBe("");
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
+    expect(translate("en", "statusClosed")).toBe("Closed");
+    expect(translate("en", "statusClosed")).not.toBe(translate("en", "statusSubmitted"));
+    expect(translate("my", "statusClosed")).toMatch(/[\u1000-\u109f]/u);
+  });
 });

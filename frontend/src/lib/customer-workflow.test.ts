@@ -61,6 +61,43 @@ describe("Customer Workflow Client Library", () => {
     ).rejects.toThrow(CustomerWorkflowError);
   });
 
+  it("serializes only selected exact filters and omits All values", async () => {
+    const mockFetcher = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ tickets: [], nextCursor: null, hasMore: false }),
+    });
+    await fetchCustomerTickets("test_token", {
+      status: "resolved",
+      departmentId: "card_atm",
+      fetcher: mockFetcher as unknown as typeof fetch,
+    });
+    expect(mockFetcher.mock.calls[0][0]).toBe(
+      "http://localhost:8000/customer/tickets?pageSize=25&status=resolved&departmentId=card_atm",
+    );
+
+    mockFetcher.mockClear();
+    await fetchCustomerTickets("test_token", {
+      status: null,
+      departmentId: null,
+      fetcher: mockFetcher as unknown as typeof fetch,
+    });
+    expect(mockFetcher.mock.calls[0][0]).toBe("http://localhost:8000/customer/tickets?pageSize=25");
+  });
+
+  it("rejects invalid filters before token/network use", async () => {
+    const fetcher = vi.fn();
+    await expect(fetchCustomerTickets("test_token", {
+      status: " RESOLVED" as never,
+      fetcher: fetcher as unknown as typeof fetch,
+    })).rejects.toMatchObject({ code: "validation" });
+    await expect(fetchCustomerTickets("test_token", {
+      departmentId: "card-atm" as never,
+      fetcher: fetcher as unknown as typeof fetch,
+    })).rejects.toMatchObject({ code: "validation" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it("does not fetch when the application environment is staging", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_ENV", "cloud-staging");
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "https://api.example.test");

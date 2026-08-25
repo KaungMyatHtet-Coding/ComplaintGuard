@@ -7,6 +7,7 @@ import hashlib
 import json
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -24,7 +25,17 @@ from app.schemas import (
 from app.ticketing import PersistenceError
 from app.ticketing import redact_sensitive_data as redact_pii
 
-_PUBLIC_DEPARTMENTS = frozenset(
+CUSTOMER_HISTORY_STATUSES = frozenset(
+    {
+        "submitted",
+        "triaged",
+        "in_progress",
+        "awaiting_customer",
+        "resolved",
+        "closed",
+    }
+)
+CUSTOMER_HISTORY_DEPARTMENTS = frozenset(
     {
         "transfer_payment",
         "account_support",
@@ -34,6 +45,7 @@ _PUBLIC_DEPARTMENTS = frozenset(
         "general_support",
     }
 )
+_PUBLIC_DEPARTMENTS = CUSTOMER_HISTORY_DEPARTMENTS
 _TIMELINE_STATUS_TYPES = {
     "in_progress": "review_started",
     "awaiting_customer": "information_requested",
@@ -51,10 +63,11 @@ CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE = 25
 CUSTOMER_HISTORY_MIN_PAGE_SIZE = 1
 CUSTOMER_HISTORY_MAX_PAGE_SIZE = 50
 CUSTOMER_HISTORY_CURSOR_MAX_LENGTH = 512
-CUSTOMER_HISTORY_CURSOR_VERSION = 1
-CUSTOMER_HISTORY_PROJECT = "local-emulator:demo-complaintguard"
-_CUSTOMER_HISTORY_CURSOR_DOMAIN = "complaintguard:customer-history-cursor:v1"
-_CUSTOMER_HISTORY_QUERY_DOMAIN = "complaintguard:customer-history-query:v1"
+CUSTOMER_HISTORY_CURSOR_VERSION = 2
+CUSTOMER_HISTORY_ENVIRONMENT = "local-emulator"
+CUSTOMER_HISTORY_PROJECT = "demo-complaintguard"
+_CUSTOMER_HISTORY_CURSOR_DOMAIN = "complaintguard:customer-history-cursor:v2"
+_CUSTOMER_HISTORY_QUERY_DOMAIN = "complaintguard:customer-history-query:v2"
 _CUSTOMER_HISTORY_PROJECTION = (
     "complaintId",
     "status",
@@ -78,9 +91,34 @@ class CustomerHistoryDataError(PersistenceError):
 
 
 class CustomerHistoryCursor:
-    def __init__(self, created_at: datetime, complaint_id: str) -> None:
+    def __init__(
+        self,
+        created_at: datetime,
+        complaint_id: str,
+        filters: CustomerHistoryFilters | None = None,
+    ) -> None:
         self.created_at = created_at
         self.complaint_id = complaint_id
+        self.filters = filters or CustomerHistoryFilters()
+
+
+@dataclass(frozen=True)
+class CustomerHistoryFilters:
+    status: str | None = None
+    department_id: str | None = None
+
+
+def validate_customer_history_filters(filters: CustomerHistoryFilters) -> None:
+    if (
+        filters.status is not None
+        and filters.status not in CUSTOMER_HISTORY_STATUSES
+    ):
+        raise ValueError("customer history status is invalid")
+    if (
+        filters.department_id is not None
+        and filters.department_id not in CUSTOMER_HISTORY_DEPARTMENTS
+    ):
+        raise ValueError("customer history department is invalid")
 
 
 def _canonical_json(value: object) -> str:
@@ -100,13 +138,18 @@ def customer_history_binding(customer_id: str) -> str:
     return _sha256_hex(
         {
             "domain": _CUSTOMER_HISTORY_CURSOR_DOMAIN,
+            "environment": CUSTOMER_HISTORY_ENVIRONMENT,
             "project": CUSTOMER_HISTORY_PROJECT,
             "uid": customer_id,
         }
     )
 
 
-def customer_history_contract_fingerprint() -> str:
+def customer_history_contract_fingerprint(
+    filters: CustomerHistoryFilters | None = None,
+) -> str:
+    selected = filters or CustomerHistoryFilters()
+    validate_customer_history_filters(selected)
     return _sha256_hex(
         {
             "domain": _CUSTOMER_HISTORY_QUERY_DOMAIN,
@@ -117,7 +160,10 @@ def customer_history_contract_fingerprint() -> str:
             },
             "projection": list(_CUSTOMER_HISTORY_PROJECTION),
             "query": {
-                "filters": [],
+                "filters": {
+                    "status": selected.status,
+                    "departmentId": selected.department_id,
+                },
                 "order": [["createdAt", "DESC"], ["__name__", "DESC"]],
             },
         }
@@ -147,13 +193,19 @@ def _cursor_payload(cursor: CustomerHistoryCursor, customer_id: str) -> dict[str
     return {
         "v": CUSTOMER_HISTORY_CURSOR_VERSION,
         "customerBinding": customer_history_binding(customer_id),
-        "contract": customer_history_contract_fingerprint(),
+        "contract": customer_history_contract_fingerprint(cursor.filters),
         "createdAt": _rfc3339(cursor.created_at),
         "complaintId": cursor.complaint_id,
     }
 
 
-def encode_customer_history_cursor(cursor: CustomerHistoryCursor, customer_id: str) -> str:
+def encode_customer_history_cursor(
+    cursor: CustomerHistoryCursor,
+    customer_id: str,
+    filters: CustomerHistoryFilters | None = None,
+) -> str:
+    if filters is not None and filters != cursor.filters:
+        cursor = CustomerHistoryCursor(cursor.created_at, cursor.complaint_id, filters)
     payload = _cursor_payload(cursor, customer_id)
     raw = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     encoded = base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii").rstrip("=")
@@ -162,7 +214,22 @@ def encode_customer_history_cursor(cursor: CustomerHistoryCursor, customer_id: s
     return encoded
 
 
-def decode_customer_history_cursor(value: str, customer_id: str) -> CustomerHistoryCursor:
+def _strict_object_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, item in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = item
+    return result
+
+
+def decode_customer_history_cursor(
+    value: str,
+    customer_id: str,
+    filters: CustomerHistoryFilters | None = None,
+) -> CustomerHistoryCursor:
+    selected = filters or CustomerHistoryFilters()
+    validate_customer_history_filters(selected)
     if (
         not isinstance(value, str)
         or not value
@@ -176,7 +243,9 @@ def decode_customer_history_cursor(value: str, customer_id: str) -> CustomerHist
     try:
         padding = "=" * (-len(value) % 4)
         raw = base64.b64decode(value + padding, altchars=b"-_", validate=True)
-        payload = json.loads(raw.decode("utf-8"))
+        payload = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=_strict_object_pairs
+        )
     except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise CustomerHistoryCursorError("cursor is invalid") from exc
     if (
@@ -188,7 +257,8 @@ def decode_customer_history_cursor(value: str, customer_id: str) -> CustomerHist
         or payload["customerBinding"] != customer_history_binding(customer_id)
         or not isinstance(payload.get("contract"), str)
         or not re.fullmatch(r"[0-9a-f]{64}", payload["contract"])
-        or payload["contract"] != customer_history_contract_fingerprint()
+        or payload["contract"]
+        != customer_history_contract_fingerprint(selected)
         or not isinstance(payload.get("createdAt"), str)
         or not isinstance(payload.get("complaintId"), str)
         or not _TICKET_ID_PATTERN.fullmatch(payload["complaintId"])
@@ -198,8 +268,14 @@ def decode_customer_history_cursor(value: str, customer_id: str) -> CustomerHist
         created_at = _timestamp_from_value(payload["createdAt"])
     except CustomerHistoryDataError as exc:
         raise CustomerHistoryCursorError("cursor timestamp is invalid") from exc
-    cursor = CustomerHistoryCursor(created_at, payload["complaintId"])
-    if encode_customer_history_cursor(cursor, customer_id) != value:
+    if payload["createdAt"] != _rfc3339(created_at):
+        raise CustomerHistoryCursorError("cursor timestamp is not canonical")
+    cursor = CustomerHistoryCursor(created_at, payload["complaintId"], selected)
+    try:
+        canonical = encode_customer_history_cursor(cursor, customer_id)
+    except (CustomerHistoryCursorError, UnicodeEncodeError) as exc:
+        raise CustomerHistoryCursorError("cursor is not canonical") from exc
+    if canonical != value:
         raise CustomerHistoryCursorError("cursor is not canonical")
     return cursor
 
@@ -304,6 +380,7 @@ class CustomerBackend(ABC):
         customer_id: str,
         page_size: int,
         cursor: CustomerHistoryCursor | None,
+        filters: CustomerHistoryFilters,
     ) -> list[dict[str, Any]]:
         """List at most page_size + 1 owned tickets after the cursor."""
 
@@ -365,10 +442,19 @@ class InMemoryCustomerBackend(CustomerBackend):
         customer_id: str,
         page_size: int,
         cursor: CustomerHistoryCursor | None,
+        filters: CustomerHistoryFilters,
     ) -> list[dict[str, Any]]:
         records: list[tuple[datetime, str, dict[str, Any]]] = []
+        validate_customer_history_filters(filters)
         for ticket in self.tickets.values():
             if ticket.get("customerId") != customer_id:
+                continue
+            if filters.status is not None and ticket.get("status") != filters.status:
+                continue
+            if (
+                filters.department_id is not None
+                and ticket.get("departmentId") != filters.department_id
+            ):
                 continue
             created_at = _timestamp_from_value(ticket.get("createdAt"))
             ticket_id = ticket.get("id")
@@ -494,12 +580,25 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
         customer_id: str,
         page_size: int,
         cursor: CustomerHistoryCursor | None,
+        filters: CustomerHistoryFilters,
     ) -> list[dict[str, Any]]:
         from google.cloud.firestore_v1.base_query import FieldFilter
 
+        validate_customer_history_filters(filters)
         query = (
             self.db.collection("tickets")
             .where(filter=FieldFilter("customerId", "==", customer_id))
+        )
+        if filters.status is not None:
+            query = query.where(filter=FieldFilter("status", "==", filters.status))
+        if filters.department_id is not None:
+            query = query.where(
+                filter=FieldFilter(
+                    "departmentId", "==", filters.department_id
+                )
+            )
+        query = (
+            query
             .order_by("createdAt", direction="DESCENDING")
             .order_by("__name__", direction="DESCENDING")
         )
@@ -670,10 +769,11 @@ class CustomerWorkflowService:
         customer_id: str,
         page_size: int,
         cursor: CustomerHistoryCursor | None,
+        filters: CustomerHistoryFilters,
     ) -> CustomerTicketListResponse:
         try:
             raw_tickets = self.backend.list_customer_tickets(
-                customer_id, page_size, cursor
+                customer_id, page_size, cursor, filters
             )
             if len(raw_tickets) > page_size + 1:
                 raise CustomerHistoryDataError("history page exceeded bound")
@@ -714,8 +814,10 @@ class CustomerWorkflowService:
                     CustomerHistoryCursor(
                         _timestamp_from_value(raw_tickets[page_size - 1]["createdAt"]),
                         raw_tickets[page_size - 1]["id"],
+                        filters,
                     ),
                     customer_id,
+                    filters,
                 )
                 if has_more
                 else None
@@ -737,13 +839,16 @@ class CustomerWorkflowService:
         customer_id: str,
         page_size: int | None = None,
         cursor: CustomerHistoryCursor | None = None,
+        filters: CustomerHistoryFilters | None = None,
     ) -> CustomerTicketListResponse | list[CustomerTicketSummary]:
+        selected = filters or CustomerHistoryFilters()
         page = self.list_ticket_page(
             customer_id,
             page_size or CUSTOMER_HISTORY_DEFAULT_PAGE_SIZE,
             cursor,
+            selected,
         )
-        if page_size is None and cursor is None:
+        if page_size is None and cursor is None and filters is None:
             return page.tickets
         return page
 

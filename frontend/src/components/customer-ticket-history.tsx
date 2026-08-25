@@ -3,7 +3,14 @@
 import React from "react";
 import type { Locale } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
-import type { CustomerTicketSummary } from "@/lib/customer-workflow";
+import {
+  CUSTOMER_HISTORY_DEPARTMENTS,
+  CUSTOMER_HISTORY_STATUSES,
+  type CustomerDepartmentId,
+  type CustomerTicketStatus,
+  type CustomerTicketSummary,
+} from "@/lib/customer-workflow";
+import { getDepartmentLabel } from "@/lib/department-labels";
 
 type CustomerTicketHistoryProps = {
   locale: Locale;
@@ -17,6 +24,9 @@ type CustomerTicketHistoryProps = {
   loadMoreError: string | null;
   hasMore: boolean;
   onLoadMore: () => void;
+  statusFilter: CustomerTicketStatus | null;
+  departmentFilter: CustomerDepartmentId | null;
+  onFilterChange: (status: CustomerTicketStatus | null, departmentId: CustomerDepartmentId | null) => void;
 };
 
 function statusClass(status: string) {
@@ -45,6 +55,8 @@ function formatStatus(status: string, locale: Locale) {
       return translate(locale, "statusAwaitingCustomer");
     case "resolved":
       return translate(locale, "statusResolved");
+    case "closed":
+      return translate(locale, "statusClosed");
     default:
       return translate(locale, "statusSubmitted");
   }
@@ -62,7 +74,11 @@ export function CustomerTicketHistory({
   loadMoreError,
   hasMore,
   onLoadMore,
+  statusFilter,
+  departmentFilter,
+  onFilterChange,
 }: CustomerTicketHistoryProps) {
+  const filtersActive = statusFilter !== null || departmentFilter !== null;
   return (
     <div className="cust-card">
       <div className="cust-card-header">
@@ -75,6 +91,61 @@ export function CustomerTicketHistory({
         >
           {loading ? translate(locale, "loading") : translate(locale, "customerRefreshHistory")}
         </button>
+      </div>
+
+      <div className="cust-history-filters" aria-label={translate(locale, "customerHistoryFilters") }>
+        <div className="cust-history-filter-field">
+          <label htmlFor="customer-history-status">{translate(locale, "customerStatusFilter")}</label>
+          <p id="customer-history-status-help" className="cust-filter-help">{translate(locale, "customerStatusFilterHelp")}</p>
+          <select
+            id="customer-history-status"
+            value={statusFilter ?? ""}
+            aria-describedby="customer-history-status-help"
+            onChange={(event) => onFilterChange(
+              event.target.value === "" ? null : event.target.value as CustomerTicketStatus,
+              departmentFilter,
+            )}
+          >
+            <option value="">{translate(locale, "customerAllStatuses")}</option>
+            {CUSTOMER_HISTORY_STATUSES.map((status) => (
+              <option key={status} value={status}>{formatStatus(status, locale)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="cust-history-filter-field">
+          <label htmlFor="customer-history-department">{translate(locale, "customerDepartmentFilter")}</label>
+          <p id="customer-history-department-help" className="cust-filter-help">{translate(locale, "customerDepartmentFilterHelp")}</p>
+          <select
+            id="customer-history-department"
+            value={departmentFilter ?? ""}
+            aria-describedby="customer-history-department-help"
+            onChange={(event) => onFilterChange(
+              statusFilter,
+              event.target.value === "" ? null : event.target.value as CustomerDepartmentId,
+            )}
+          >
+            <option value="">{translate(locale, "customerAllDepartments")}</option>
+            {CUSTOMER_HISTORY_DEPARTMENTS.map((department) => (
+              <option key={department} value={department}>{getDepartmentLabel(department, locale)}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          className="cust-refresh-btn cust-clear-filters"
+          onClick={() => onFilterChange(null, null)}
+          disabled={!filtersActive}
+          aria-disabled={!filtersActive}
+        >
+          {translate(locale, "customerClearFilters")}
+        </button>
+        {filtersActive && (
+          <p className="cust-filter-summary" role="status">
+            <span>{translate(locale, "customerActiveFilters")}:</span>{" "}
+            {statusFilter ? formatStatus(statusFilter, locale) : translate(locale, "customerAllStatuses")}{" · "}
+            {departmentFilter ? getDepartmentLabel(departmentFilter, locale) : translate(locale, "customerAllDepartments")}
+          </p>
+        )}
       </div>
 
       <div className="cust-scroll-area">
@@ -93,7 +164,7 @@ export function CustomerTicketHistory({
         </div>
       ) : tickets.length === 0 ? (
         <div className="cust-empty">
-          {translate(locale, "customerHistoryEmpty")}
+          {filtersActive ? translate(locale, "customerFilteredEmpty") : translate(locale, "customerHistoryEmpty")}
         </div>
       ) : (
         <div className="cust-ticket-list">

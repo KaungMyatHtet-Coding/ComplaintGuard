@@ -846,6 +846,54 @@ a {
   letter-spacing: -0.02em;
 }
 
+.cust-history-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 1rem 1.5rem 0;
+}
+
+.cust-history-filter-field {
+  min-width: 0;
+}
+
+.cust-history-filter-field label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.cust-history-filter-field select {
+  width: 100%;
+  min-height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.4rem 0.55rem;
+}
+
+.cust-filter-help {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.cust-filter-summary {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.cust-clear-filters:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .cust-refresh-btn {
   display: inline-flex;
   align-items: center;
@@ -1138,6 +1186,14 @@ a {
 }
 
 @media (max-width: 40rem) {
+  .cust-history-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .cust-filter-summary {
+    grid-column: auto;
+  }
+
   .cust-timeline {
     align-items: stretch;
     flex-direction: column;
