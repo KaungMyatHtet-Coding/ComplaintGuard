@@ -4,6 +4,7 @@ import {
   fetchCustomerTicketDetail,
   normalizeCustomerMessageText,
   parseCustomerMessageItem,
+  parseCustomerTicketDetail,
   parseCustomerTicketHistoryPage,
   sendCustomerMessage,
   submitCustomerFeedback,
@@ -143,31 +144,109 @@ describe("Customer Workflow Client Library", () => {
     })).toThrow();
   });
 
-  it("propagates AbortSignal and encodes detail references", async () => {
+  it("propagates AbortSignal and strictly parses detail references", async () => {
+    const ticketId = "ticket_" + "b".repeat(32);
     const mockFetcher = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        id: "t1",
+        id: ticketId,
         status: "in_progress",
         complaintText: "Card swallowed at ATM",
         inputLocale: "en",
-        priority: "high",
+        departmentId: "card_atm",
         timeline: [],
         createdAt: "2026-08-01T00:00:00Z",
-        updatedAt: "2026-08-01",
+        updatedAt: "2026-08-01T00:00:00Z",
+        resolvedAt: null,
         messages: [],
+        feedback: null,
       }),
     });
 
     const controller = new AbortController();
-    const detail = await fetchCustomerTicketDetail("t1/x", "test_token", mockFetcher as unknown as typeof fetch, controller.signal);
-    expect(detail.id).toBe("t1");
+    const detail = await fetchCustomerTicketDetail(ticketId, "test_token", mockFetcher as unknown as typeof fetch, controller.signal);
+    expect(detail.id).toBe(ticketId);
     expect(detail.status).toBe("in_progress");
     expect(mockFetcher).toHaveBeenCalledWith(
-      "http://localhost:8000/customer/tickets/t1%2Fx",
+      `http://localhost:8000/customer/tickets/${ticketId}`,
       expect.objectContaining({ signal: controller.signal }),
     );
+  });
+
+  it("rejects priority, extra fields, and contradictory detail state", () => {
+    const valid = {
+      id: "ticket_" + "a".repeat(32),
+      status: "submitted",
+      complaintText: "Safe complaint",
+      inputLocale: "en",
+      departmentId: null,
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+      resolvedAt: null,
+      messages: [],
+      timeline: [],
+      feedback: null,
+    };
+    expect(() => parseCustomerTicketDetail({ ...valid, priority: "high" })).toThrow();
+    expect(() => parseCustomerTicketDetail({ ...valid, privateField: "x" })).toThrow();
+    expect(() => parseCustomerTicketDetail({ ...valid, status: "closed", resolvedAt: null })).toThrow();
+  });
+
+  it("rejects noncanonical and calendar-overflow timestamps", () => {
+    const valid = {
+      id: "ticket_" + "d".repeat(32),
+      status: "submitted",
+      complaintText: "Safe complaint",
+      inputLocale: "en",
+      departmentId: null,
+      createdAt: "2026-02-30T00:00:00Z",
+      updatedAt: "2026-02-30T00:00:00Z",
+      resolvedAt: null,
+      messages: [],
+      timeline: [],
+      feedback: null,
+    };
+    expect(() => parseCustomerTicketDetail(valid)).toThrow();
+    expect(() => parseCustomerTicketDetail({
+      ...valid,
+      createdAt: "2026-02-28T00:00:00Z",
+      updatedAt: "2026-02-28T00:00:00Z",
+    })).not.toThrow();
+    expect(() => parseCustomerTicketDetail({
+      ...valid,
+      createdAt: "2026-02-28T00:00:00.1Z",
+      updatedAt: "2026-02-28T00:00:00.1Z",
+    })).toThrow();
+    expect(() => parseCustomerTicketDetail({
+      ...valid,
+      createdAt: "2026-02-28T00:00:00.000000Z",
+      updatedAt: "2026-02-28T00:00:00.000000Z",
+    })).toThrow();
+  });
+
+  it("strictly parses nested detail records and rejects hostile objects", () => {
+    const valid = {
+      id: "ticket_" + "c".repeat(32),
+      status: "submitted",
+      complaintText: "Safe complaint",
+      inputLocale: "my",
+      departmentId: null,
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-01T00:00:00Z",
+      resolvedAt: null,
+      messages: [{ senderRole: "support_team", body: "Reply", createdAt: "2026-08-01T00:01:00Z" }],
+      timeline: [{ type: "complaint_received", occurredAt: "2026-08-01T00:00:00Z", departmentId: null }],
+      feedback: null,
+    };
+    expect(parseCustomerTicketDetail(valid).messages[0].senderRole).toBe("support_team");
+    const inherited = Object.create({ complaintText: "private" }) as Record<string, unknown>;
+    Object.assign(inherited, valid);
+    expect(() => parseCustomerTicketDetail(inherited)).toThrow();
+    const accessor = { ...valid };
+    Object.defineProperty(accessor, "messages", { enumerable: true, get: () => valid.messages });
+    expect(() => parseCustomerTicketDetail(accessor)).toThrow();
+    expect(() => parseCustomerTicketDetail({ ...valid, timeline: [{ ...valid.timeline[0], type: "internal_note" }] })).toThrow();
   });
 
   it("sends customer message successfully", async () => {

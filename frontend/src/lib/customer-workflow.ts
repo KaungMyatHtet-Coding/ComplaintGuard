@@ -53,24 +53,23 @@ export type CustomerTimelineType =
 export type CustomerTimelineItem = {
   type: CustomerTimelineType;
   occurredAt: string;
-  departmentId?: string | null;
+  departmentId: CustomerDepartmentId | null;
 };
 
 export type CustomerTicketDetail = {
   id: string;
-  status: string;
+  status: CustomerTicketStatus;
   complaintText: string;
-  inputLocale: string;
-  priority: string;
-  departmentId?: string | null;
+  inputLocale: "en" | "my";
+  departmentId: CustomerDepartmentId | null;
   createdAt: string;
   updatedAt: string;
-  resolvedAt?: string | null;
+  resolvedAt: string | null;
   messages: CustomerMessageItem[];
   timeline: CustomerTimelineItem[];
-  feedback?: {
+  feedback: {
     rating: number;
-    comments?: string;
+    comments: string | null;
     submittedAt: string;
   } | null;
 };
@@ -116,6 +115,17 @@ export function parseCustomerMessageItem(value: unknown): CustomerMessageItem {
   };
 }
 
+const CUSTOMER_TIMELINE_TYPES = new Set<CustomerTimelineType>([
+  "complaint_received",
+  "assigned_to_team",
+  "review_started",
+  "information_requested",
+  "team_replied",
+  "customer_replied",
+  "complaint_resolved",
+  "complaint_closed",
+]);
+
 const TICKET_ID_PATTERN = /^ticket_[a-f0-9]{32}$/u;
 export const CUSTOMER_HISTORY_STATUSES = [
   "submitted",
@@ -157,10 +167,146 @@ function exactKeys(value: Record<string, unknown>, keys: string[]): boolean {
     && ownKeys.every((key, index) => key === keys[index]);
 }
 
+function exactKeySet(value: Record<string, unknown>, keys: string[]): boolean {
+  const ownKeys = Reflect.ownKeys(value);
+  return ownKeys.length === keys.length && keys.every((key) => ownKeys.includes(key));
+}
+
 function parseTimestamp(value: unknown): string | null {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value)) return null;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{6})?Z$/u.test(value)) return null;
+  if (value.endsWith(".000000Z")) return null;
   const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? value : null;
+  if (!Number.isFinite(parsed)) return null;
+  const canonicalSecond = new Date(parsed).toISOString().slice(0, 19);
+  return `${canonicalSecond}Z` === `${value.slice(0, 19)}Z` ? value : null;
+}
+
+function parseCustomerDetailMessage(value: unknown): CustomerMessageItem {
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, ["senderRole", "body", "createdAt"])
+    || (value.senderRole !== "customer" && value.senderRole !== "support_team")
+    || typeof value.body !== "string"
+    || value.body.length === 0
+    || value.body.length > 5_000
+    || !parseTimestamp(value.createdAt)
+  ) throw new CustomerWorkflowError("unexpected");
+  const senderRole = value.senderRole as "customer" | "support_team";
+  const body = value.body as string;
+  const createdAt = value.createdAt as string;
+  return {
+    senderRole,
+    body,
+    createdAt,
+  };
+}
+
+function parseCustomerTimelineItem(value: unknown): CustomerTimelineItem {
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, ["type", "occurredAt", "departmentId"])
+    || typeof value.type !== "string"
+    || !CUSTOMER_TIMELINE_TYPES.has(value.type as CustomerTimelineType)
+    || !parseTimestamp(value.occurredAt)
+    || (value.departmentId !== null
+      && (typeof value.departmentId !== "string"
+        || !CUSTOMER_HISTORY_DEPARTMENT_SET.has(value.departmentId as CustomerDepartmentId)))
+  ) throw new CustomerWorkflowError("unexpected");
+  const type = value.type as CustomerTimelineType;
+  const occurredAt = value.occurredAt as string;
+  return {
+    type,
+    occurredAt,
+    departmentId: value.departmentId as CustomerDepartmentId | null,
+  };
+}
+
+function parseCustomerFeedback(value: unknown): CustomerTicketDetail["feedback"] {
+  if (value === null) return null;
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, ["rating", "comments", "submittedAt"])
+    || typeof value.rating !== "number"
+    || !Number.isInteger(value.rating)
+    || value.rating < 1
+    || value.rating > 5
+    || (value.comments !== null && typeof value.comments !== "string")
+    || !parseTimestamp(value.submittedAt)
+  ) throw new CustomerWorkflowError("unexpected");
+  const rating = value.rating as number;
+  const comments = value.comments as string | null;
+  const submittedAt = value.submittedAt as string;
+  return {
+    rating,
+    comments,
+    submittedAt,
+  };
+}
+
+export function parseCustomerTicketDetail(
+  value: unknown,
+  expectedTicketId?: string,
+): CustomerTicketDetail {
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, [
+      "id", "status", "complaintText", "inputLocale", "departmentId",
+      "createdAt", "updatedAt", "resolvedAt", "messages", "timeline", "feedback",
+    ])
+    || typeof value.id !== "string"
+    || !TICKET_ID_PATTERN.test(value.id)
+    || (expectedTicketId !== undefined && value.id !== expectedTicketId)
+    || typeof value.status !== "string"
+    || !CUSTOMER_HISTORY_STATUS_SET.has(value.status as CustomerTicketStatus)
+    || typeof value.complaintText !== "string"
+    || value.complaintText.length === 0
+    || (value.inputLocale !== "en" && value.inputLocale !== "my")
+    || (value.departmentId !== null
+      && (typeof value.departmentId !== "string"
+        || !CUSTOMER_HISTORY_DEPARTMENT_SET.has(value.departmentId as CustomerDepartmentId)))
+    || !parseTimestamp(value.createdAt)
+    || !parseTimestamp(value.updatedAt)
+    || (value.resolvedAt !== null && !parseTimestamp(value.resolvedAt))
+    || !Array.isArray(value.messages)
+    || !Array.isArray(value.timeline)
+  ) throw new CustomerWorkflowError("unexpected");
+  const id = value.id as string;
+  const status = value.status as CustomerTicketStatus;
+  const complaintText = value.complaintText as string;
+  const inputLocale = value.inputLocale as "en" | "my";
+  const departmentId = value.departmentId as CustomerDepartmentId | null;
+  const createdAt = value.createdAt as string;
+  const updatedAt = value.updatedAt as string;
+  const resolvedAt = value.resolvedAt as string | null;
+  const messages = value.messages as unknown[];
+  const timeline = value.timeline as unknown[];
+  const createdMillis = Date.parse(createdAt);
+  const updatedMillis = Date.parse(updatedAt);
+  const resolvedMillis = resolvedAt === null ? null : Date.parse(resolvedAt);
+  const feedback = parseCustomerFeedback(value.feedback);
+  if (
+    updatedMillis < createdMillis
+    || (resolvedMillis !== null && resolvedMillis < createdMillis)
+    || (resolvedMillis !== null && resolvedMillis > updatedMillis)
+    || (status !== "submitted" && departmentId === null)
+    || ((status === "resolved" || status === "closed") && resolvedAt === null)
+    || ((status !== "resolved" && status !== "closed") && resolvedAt !== null)
+    || (feedback !== null && status !== "resolved" && status !== "closed")
+    || (feedback !== null && Date.parse(feedback.submittedAt) < createdMillis)
+  ) throw new CustomerWorkflowError("unexpected");
+  return {
+    id,
+    status,
+    complaintText,
+    inputLocale,
+    departmentId,
+    createdAt,
+    updatedAt,
+    resolvedAt,
+    messages: messages.map(parseCustomerDetailMessage),
+    timeline: timeline.map(parseCustomerTimelineItem),
+    feedback,
+  };
 }
 
 function decodeCursorUtf8(value: string): string | null {
@@ -319,12 +465,12 @@ export async function fetchCustomerTicketDetail(
   if (response.status === 404) throw new CustomerWorkflowError("not_found");
   if (!response.ok) throw new CustomerWorkflowError("backend");
 
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || typeof (data as { id?: unknown }).id !== "string") {
+  try {
+    return parseCustomerTicketDetail(await response.json() as unknown, ticketId);
+  } catch (error) {
+    if (error instanceof CustomerWorkflowError) throw error;
     throw new CustomerWorkflowError("unexpected");
   }
-
-  return data as CustomerTicketDetail;
 }
 
 export async function sendCustomerMessage(

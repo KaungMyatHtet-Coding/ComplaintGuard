@@ -6,21 +6,23 @@ import { AppProvider } from "./app-provider";
 import { CustomerTicketDetailView } from "./customer-ticket-detail";
 import { translate } from "@/lib/i18n";
 
-const longTicketId = "ticket_0dc5f6c2-3c20-4d14-9bba-222222222222222222222222";
+const longTicketId = "ticket_" + "0".repeat(32);
 const longMessage = "SyntheticVisualVerificationStringWithoutSpacesForResponsiveWrapping".repeat(4);
 
 describe("CustomerTicketDetailView", () => {
   it("localizes server-projected timeline labels in English and Myanmar", () => {
     const ticket = {
-      id: "ticket-localized",
-      status: "in_progress",
+      id: "ticket_" + "1".repeat(32),
+      status: "in_progress" as const,
       complaintText: "Synthetic complaint",
-      inputLocale: "en",
-      priority: "normal",
+      inputLocale: "en" as const,
+      departmentId: "card_atm" as const,
       createdAt: "2026-08-11T00:00:00Z",
       updatedAt: "2026-08-11T00:00:00Z",
-      timeline: [{ type: "team_replied" as const, occurredAt: "2026-08-11T00:01:00Z" }],
+      resolvedAt: null,
+      timeline: [{ type: "team_replied" as const, occurredAt: "2026-08-11T00:01:00Z", departmentId: null }],
       messages: [],
+      feedback: null,
     };
 
     const english = renderToStaticMarkup(
@@ -55,14 +57,16 @@ describe("CustomerTicketDetailView", () => {
           locale="en"
           ticket={{
             id: longTicketId,
-            status: "in_progress",
+            status: "in_progress" as const,
             complaintText: "Synthetic complaint text",
-            inputLocale: "en",
-            priority: "normal",
+            inputLocale: "en" as const,
+            departmentId: "card_atm" as const,
             timeline: [
-              { type: "complaint_received", occurredAt: "2026-08-11T00:00:00Z" },
-              { type: "review_started", occurredAt: "2026-08-11T00:01:00Z" },
+              { type: "complaint_received", occurredAt: "2026-08-11T00:00:00Z", departmentId: null },
+              { type: "review_started", occurredAt: "2026-08-11T00:01:00Z", departmentId: null },
             ],
+            resolvedAt: null,
+            feedback: null,
             createdAt: "2026-08-11T00:00:00Z",
             updatedAt: "2026-08-11T00:00:00Z",
             messages: [

@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -432,11 +433,21 @@ def decode_customer_history_cursor(
 
 
 def _timestamp_text(value: Any) -> str | None:
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, str) and value.strip():
-        return value
-    return None
+    try:
+        return _rfc3339(_timestamp_from_value(value))
+    except CustomerHistoryDataError:
+        return None
+
+
+def _require_canonical_timestamp(value: Any, label: str) -> str:
+    try:
+        parsed = _timestamp_from_value(value)
+    except CustomerHistoryDataError as exc:
+        raise CustomerHistoryDataError(f"{label} is invalid") from exc
+    canonical = _rfc3339(parsed)
+    if isinstance(value, str) and value != canonical:
+        raise CustomerHistoryDataError(f"{label} is not canonical")
+    return canonical
 
 
 def _timeline_sort_key(item: dict[str, Any]) -> tuple[datetime, int, str]:
@@ -449,10 +460,9 @@ def _timeline_sort_key(item: dict[str, Any]) -> tuple[datetime, int, str]:
 
 def _is_timeline_timestamp(value: str) -> bool:
     try:
-        _timeline_sort_key({"occurredAt": value, "rank": 0, "type": "_"})
-    except (TypeError, ValueError):
+        return _require_canonical_timestamp(value, "timeline timestamp") == value
+    except CustomerHistoryDataError:
         return False
-    return True
 
 
 class CustomerWorkflowError(Exception):
@@ -686,7 +696,6 @@ class InMemoryCustomerBackend(CustomerBackend):
             )
             return result
         msg_id = action_id
-        iso_str = created_at.isoformat()
         response_timestamp = _canonical_message_timestamp(created_at)
         msg_doc = {
             "id": msg_id,
@@ -694,7 +703,7 @@ class InMemoryCustomerBackend(CustomerBackend):
             "authorRole": "customer",
             "body": message_text,
             "visibility": "participants",
-            "createdAt": iso_str,
+            "createdAt": response_timestamp,
         }
         if any(item.get("id") == action_id for item in self.messages.get(ticket_id, [])):
             raise PersistenceError("customer message persistence is contradictory")
@@ -720,7 +729,7 @@ class InMemoryCustomerBackend(CustomerBackend):
         }
 
         if ticket_id in self.tickets:
-            self.tickets[ticket_id]["updatedAt"] = iso_str
+            self.tickets[ticket_id]["updatedAt"] = response_timestamp
 
         return result
 
@@ -739,7 +748,7 @@ class InMemoryCustomerBackend(CustomerBackend):
         fb_id = f"fb_{ticket_id}"
         if fb_id in self.feedbacks or self.tickets.get(ticket_id, {}).get("feedback"):
             raise FeedbackAlreadySubmitted("Feedback has already been submitted.")
-        iso_str = created_at.isoformat()
+        iso_str = _canonical_message_timestamp(created_at)
         doc = {
             "id": fb_id,
             "ticketId": ticket_id,
@@ -1114,34 +1123,269 @@ class CustomerWorkflowService:
 
     @staticmethod
     def _project_message(raw_message: dict[str, Any]) -> CustomerMessageItem:
-        canonical = normalize_message_document(raw_message)
-        occurred_at = _timestamp_text(canonical.get("createdAt"))
-        if not occurred_at or not _is_timeline_timestamp(occurred_at):
-            raise ValueError("message is missing a valid timestamp")
-        author_role = canonical.get("authorRole")
-        if author_role == "customer":
-            public_role = "customer"
-        elif author_role in {"staff", "manager"}:
-            public_role = "support_team"
-        else:
-            raise ValueError("message has an unsupported author role")
-        if canonical.get("visibility") != "participants":
-            raise ValueError("message is not participant-visible")
-        body = canonical.get("body")
-        if not isinstance(body, str):
-            raise TypeError("message has an invalid body")
-        return CustomerMessageItem(
-            senderRole=public_role,
-            body=body,
-            createdAt=occurred_at,
+        if not isinstance(raw_message, dict):
+            raise CustomerHistoryDataError("message persistence is invalid")
+        try:
+            canonical = normalize_message_document(raw_message)
+        except (TypeError, ValueError) as exc:
+            raise CustomerHistoryDataError("message persistence is invalid") from exc
+        if set(canonical) != {
+            "id", "authorId", "authorRole", "body", "visibility", "createdAt"
+        }:
+            raise CustomerHistoryDataError("message persistence is invalid")
+        if (
+            not isinstance(canonical["id"], str)
+            or not canonical["id"]
+            or not isinstance(canonical["authorId"], str)
+            or not canonical["authorId"]
+            or canonical["visibility"] != "participants"
+            or canonical["authorRole"] not in {"customer", "staff", "manager"}
+            or not isinstance(canonical["body"], str)
+            or not canonical["body"]
+        ):
+            raise CustomerHistoryDataError("message persistence is invalid")
+        occurred_at = _require_canonical_timestamp(
+            canonical["createdAt"], "message timestamp"
         )
+        public_role = (
+            "customer" if canonical["authorRole"] == "customer" else "support_team"
+        )
+        try:
+            return CustomerMessageItem(
+                senderRole=public_role,
+                body=canonical["body"],
+                createdAt=occurred_at,
+            )
+        except (TypeError, ValueError) as exc:
+            raise CustomerHistoryDataError("message projection is invalid") from exc
+
+    @staticmethod
+    def _validate_ticket_persistence(
+        raw_ticket: Any, customer_id: str, ticket_id: str
+    ) -> dict[str, Any]:
+        if not isinstance(raw_ticket, dict):
+            raise CustomerHistoryDataError("ticket persistence is invalid")
+        if (
+            raw_ticket.get("id") != ticket_id
+            or not _TICKET_ID_PATTERN.fullmatch(ticket_id)
+            or raw_ticket.get("customerId") != customer_id
+            or not isinstance(raw_ticket.get("complaintText"), str)
+            or not raw_ticket.get("complaintText")
+            or raw_ticket.get("inputLocale") not in {"en", "my"}
+            or raw_ticket.get("status") not in CUSTOMER_HISTORY_STATUSES
+            or (
+                raw_ticket.get("departmentId") is not None
+                and raw_ticket.get("departmentId") not in _PUBLIC_DEPARTMENTS
+            )
+        ):
+            raise CustomerHistoryDataError("ticket persistence is invalid")
+        required = {
+            "id", "customerId", "complaintText", "inputLocale", "departmentId",
+            "status", "createdAt", "updatedAt", "resolvedAt",
+        }
+        if not required.issubset(raw_ticket):
+            raise CustomerHistoryDataError("ticket persistence is incomplete")
+        created_at = _require_canonical_timestamp(raw_ticket["createdAt"], "createdAt")
+        updated_at = _require_canonical_timestamp(raw_ticket["updatedAt"], "updatedAt")
+        resolved_raw = raw_ticket["resolvedAt"]
+        resolved_at = (
+            _require_canonical_timestamp(resolved_raw, "resolvedAt")
+            if resolved_raw is not None
+            else None
+        )
+        created_dt = _timestamp_from_value(created_at)
+        updated_dt = _timestamp_from_value(updated_at)
+        resolved_dt = _timestamp_from_value(resolved_at) if resolved_at else None
+        status = raw_ticket["status"]
+        if updated_dt < created_dt:
+            raise CustomerHistoryDataError("ticket timestamps are contradictory")
+        if status in {"resolved", "closed"} and resolved_dt is None:
+            raise CustomerHistoryDataError("resolved ticket is missing resolvedAt")
+        if status not in {"resolved", "closed"} and resolved_dt is not None:
+            raise CustomerHistoryDataError("unresolved ticket has resolvedAt")
+        if resolved_dt is not None and (
+            resolved_dt < created_dt or resolved_dt > updated_dt
+        ):
+            raise CustomerHistoryDataError("ticket timestamps are contradictory")
+        if status != "submitted" and raw_ticket["departmentId"] is None:
+            raise CustomerHistoryDataError("routed ticket is missing departmentId")
+        internal_string_fields = {
+            "assignedStaffId", "resolutionSummary", "manualReviewReason",
+            "predictionModelVersion", "schemaVersion",
+        }
+        for field_name in internal_string_fields:
+            if field_name in raw_ticket and raw_ticket[field_name] is not None and (
+                not isinstance(raw_ticket[field_name], str) or not raw_ticket[field_name]
+            ):
+                raise CustomerHistoryDataError("ticket internal field is invalid")
+        if "priority" in raw_ticket and raw_ticket["priority"] not in {
+            "normal", "high", "urgent"
+        }:
+            raise CustomerHistoryDataError("ticket priority is invalid")
+        if "predictedDepartmentId" in raw_ticket and (
+            raw_ticket["predictedDepartmentId"] is not None
+            and raw_ticket["predictedDepartmentId"] not in _PUBLIC_DEPARTMENTS
+        ):
+            raise CustomerHistoryDataError("ticket prediction is invalid")
+        if "assignedDepartmentId" in raw_ticket and (
+            raw_ticket["assignedDepartmentId"] is not None
+            and raw_ticket["assignedDepartmentId"] not in _PUBLIC_DEPARTMENTS
+        ):
+            raise CustomerHistoryDataError("ticket assignment is invalid")
+        if "predictionConfidence" in raw_ticket:
+            confidence = raw_ticket["predictionConfidence"]
+            if confidence is not None and (
+                isinstance(confidence, bool)
+                or not isinstance(confidence, (int, float))
+                or not math.isfinite(float(confidence))
+                or not 0.0 <= float(confidence) <= 1.0
+            ):
+                raise CustomerHistoryDataError("ticket confidence is invalid")
+        if "routingSource" in raw_ticket and raw_ticket["routingSource"] not in {
+            "model", "manual_review", "manager_override", "pending"
+        }:
+            raise CustomerHistoryDataError("ticket routing source is invalid")
+        if "routingSource" in raw_ticket:
+            routing_source = raw_ticket["routingSource"]
+            department_id = raw_ticket["departmentId"]
+            if routing_source == "pending" and (
+                status != "submitted" or department_id is not None
+            ):
+                raise CustomerHistoryDataError("ticket routing state is invalid")
+            if routing_source == "manual_review" and department_id is not None:
+                raise CustomerHistoryDataError("ticket routing state is invalid")
+            if routing_source in {"model", "manager_override"} and department_id is None:
+                raise CustomerHistoryDataError("ticket routing state is invalid")
+        if "escalated" in raw_ticket and type(raw_ticket["escalated"]) is not bool:
+            raise CustomerHistoryDataError("ticket escalation state is invalid")
+        if "detectedLanguage" in raw_ticket and raw_ticket["detectedLanguage"] not in {
+            "en", "mixed", "unsupported"
+        }:
+            raise CustomerHistoryDataError("ticket language metadata is invalid")
+        return {
+            "id": ticket_id,
+            "status": status,
+            "complaintText": raw_ticket["complaintText"],
+            "inputLocale": raw_ticket["inputLocale"],
+            "departmentId": raw_ticket["departmentId"],
+            "createdAt": created_at,
+            "updatedAt": updated_at,
+            "resolvedAt": resolved_at,
+        }
+
+    @staticmethod
+    def _validate_feedback_persistence(
+        raw_feedback: Any,
+        ticket: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        if raw_feedback is None:
+            return None
+        if not isinstance(raw_feedback, dict) or set(raw_feedback) != {
+            "rating", "comments", "submittedAt"
+        }:
+            raise CustomerHistoryDataError("feedback persistence is invalid")
+        if ticket["status"] not in {"resolved", "closed"}:
+            raise CustomerHistoryDataError("feedback is not eligible for this ticket")
+        rating = raw_feedback["rating"]
+        if type(rating) is not int or not 1 <= rating <= 5:
+            raise CustomerHistoryDataError("feedback rating is invalid")
+        comments = raw_feedback["comments"]
+        if comments is not None and not isinstance(comments, str):
+            raise CustomerHistoryDataError("feedback comments are invalid")
+        submitted_at = _require_canonical_timestamp(
+            raw_feedback["submittedAt"], "feedback timestamp"
+        )
+        if _timestamp_from_value(submitted_at) < _timestamp_from_value(ticket["createdAt"]):
+            raise CustomerHistoryDataError("feedback timestamp is contradictory")
+        return {
+            "rating": rating,
+            "comments": comments,
+            "submittedAt": submitted_at,
+        }
+
+    @staticmethod
+    def _validate_event_persistence(
+        raw_event: Any, ticket_id: str
+    ) -> dict[str, Any]:
+        if not isinstance(raw_event, dict):
+            raise CustomerHistoryDataError("event persistence is invalid")
+        required = {"type", "actorId", "actorRole", "fromValue", "toValue", "createdAt"}
+        allowed = required | {
+            "eventId", "ticketId", "reason", "predictionConfidence", "routingSource",
+            "predictedDepartmentId",
+        }
+        if not required.issubset(raw_event) or set(raw_event) - allowed:
+            raise CustomerHistoryDataError("event persistence is invalid")
+        if "ticketId" in raw_event and raw_event["ticketId"] != ticket_id:
+            raise CustomerHistoryDataError("event ticket binding is invalid")
+        event_type = raw_event["type"]
+        if event_type not in {
+            "model_prediction", "manager_override", "status_transition", "staff_reply"
+        }:
+            raise CustomerHistoryDataError("event type is not customer-safe")
+        if (
+            not isinstance(raw_event["actorId"], str)
+            or not raw_event["actorId"]
+            or raw_event["actorRole"] not in {"customer", "staff", "manager", "system"}
+            or (raw_event["fromValue"] is not None and not isinstance(raw_event["fromValue"], str))
+            or (raw_event["toValue"] is not None and not isinstance(raw_event["toValue"], str))
+        ):
+            raise CustomerHistoryDataError("event persistence is invalid")
+        _require_canonical_timestamp(raw_event["createdAt"], "event timestamp")
+        if "reason" in raw_event and raw_event["reason"] is not None and not isinstance(
+            raw_event["reason"], str
+        ):
+            raise CustomerHistoryDataError("event reason is invalid")
+        if "predictionConfidence" in raw_event:
+            confidence = raw_event["predictionConfidence"]
+            if confidence is not None and (
+                isinstance(confidence, bool)
+                or not isinstance(confidence, (int, float))
+                or not math.isfinite(float(confidence))
+                or not 0.0 <= float(confidence) <= 1.0
+            ):
+                raise CustomerHistoryDataError("event confidence is invalid")
+        if "routingSource" in raw_event and raw_event["routingSource"] not in {
+            "model", "manual_review", "manager_override", "pending"
+        }:
+            raise CustomerHistoryDataError("event routing source is invalid")
+        if "predictedDepartmentId" in raw_event and (
+            raw_event["predictedDepartmentId"] is not None
+            and raw_event["predictedDepartmentId"] not in _PUBLIC_DEPARTMENTS
+        ):
+            raise CustomerHistoryDataError("event prediction is invalid")
+        if "eventId" in raw_event and (
+            not isinstance(raw_event["eventId"], str) or not raw_event["eventId"]
+        ):
+            raise CustomerHistoryDataError("event persistence is invalid")
+        if event_type == "manager_override":
+            if raw_event["actorRole"] != "manager" or raw_event["toValue"] not in _PUBLIC_DEPARTMENTS:
+                raise CustomerHistoryDataError("event department is invalid")
+            if raw_event["fromValue"] is not None and raw_event["fromValue"] not in _PUBLIC_DEPARTMENTS:
+                raise CustomerHistoryDataError("event department is invalid")
+        elif event_type == "model_prediction":
+            if raw_event["actorRole"] != "system":
+                raise CustomerHistoryDataError("event actor is invalid")
+            if raw_event["toValue"] is not None and raw_event["toValue"] not in _PUBLIC_DEPARTMENTS:
+                raise CustomerHistoryDataError("event department is invalid")
+            if raw_event["fromValue"] is not None and raw_event["fromValue"] not in _PUBLIC_DEPARTMENTS:
+                raise CustomerHistoryDataError("event department is invalid")
+        elif event_type == "status_transition":
+            if raw_event["actorRole"] not in {"staff", "manager"}:
+                raise CustomerHistoryDataError("event actor is invalid")
+            if raw_event["toValue"] not in CUSTOMER_HISTORY_STATUSES:
+                raise CustomerHistoryDataError("event status is invalid")
+            if raw_event["fromValue"] is not None and raw_event["fromValue"] not in CUSTOMER_HISTORY_STATUSES:
+                raise CustomerHistoryDataError("event status is invalid")
+        elif event_type == "staff_reply":
+            if raw_event["actorRole"] != "staff" or not isinstance(raw_event["toValue"], str) or not raw_event["toValue"]:
+                raise CustomerHistoryDataError("event persistence is invalid")
+        return raw_event
 
     @staticmethod
     def _event_timeline_item(raw_event: dict[str, Any]) -> dict[str, Any] | None:
-        event_type = raw_event.get("type")
-        occurred_at = _timestamp_text(raw_event.get("createdAt"))
-        if not occurred_at or not _is_timeline_timestamp(occurred_at):
-            return None
+        event_type = raw_event["type"]
+        occurred_at = _require_canonical_timestamp(raw_event["createdAt"], "event timestamp")
 
         public_type: str | None = None
         department_id: str | None = None
@@ -1161,7 +1405,7 @@ class CustomerWorkflowService:
             public_type = "team_replied"
             rank = 40
         else:
-            return None
+            raise CustomerHistoryDataError("event type is not customer-safe")
 
         if public_type is None:
             return None
@@ -1180,16 +1424,15 @@ class CustomerWorkflowService:
         raw_events: list[dict[str, Any]],
     ) -> list[CustomerTimelineItem]:
         candidates: list[dict[str, Any]] = []
-        created_at = _timestamp_text(raw_ticket.get("createdAt"))
-        if created_at and _is_timeline_timestamp(created_at):
-            candidates.append(
-                {
-                    "type": "complaint_received",
-                    "occurredAt": created_at,
-                    "departmentId": None,
-                    "rank": 0,
-                }
-            )
+        created_at = raw_ticket["createdAt"]
+        candidates.append(
+            {
+                "type": "complaint_received",
+                "occurredAt": created_at,
+                "departmentId": None,
+                "rank": 0,
+            }
+        )
 
         for event in raw_events:
             item = self._event_timeline_item(event)
@@ -1197,17 +1440,16 @@ class CustomerWorkflowService:
                 candidates.append(item)
 
         for message in messages:
-            if _is_timeline_timestamp(message.created_at):
-                candidates.append(
-                    {
-                        "type": "customer_replied"
-                        if message.sender_role == "customer"
-                        else "team_replied",
-                        "occurredAt": message.created_at,
-                        "departmentId": None,
-                        "rank": 40,
-                    }
-                )
+            candidates.append(
+                {
+                    "type": "customer_replied"
+                    if message.sender_role == "customer"
+                    else "team_replied",
+                    "occurredAt": message.created_at,
+                    "departmentId": None,
+                    "rank": 40,
+                }
+            )
 
         candidates.sort(key=_timeline_sort_key)
         deduplicated: list[dict[str, Any]] = []
@@ -1233,43 +1475,35 @@ class CustomerWorkflowService:
         self, customer_id: str, ticket_id: str
     ) -> CustomerTicketDetail:
         raw_ticket = self.backend.get_customer_ticket(customer_id, ticket_id)
-        if not raw_ticket:
+        if raw_ticket is None:
             raise TicketNotFound("Ticket not found.")
-
-        messages_raw = self.backend.get_ticket_messages(ticket_id)
-        messages_formatted: list[CustomerMessageItem] = []
-        for m in messages_raw:
-            messages_formatted.append(self._project_message(m))
-
-        timeline = self._project_timeline(
-            raw_ticket,
-            messages_formatted,
-            self.backend.get_ticket_events(ticket_id),
-        )
-
-        feedback_dict = raw_ticket.get("feedback")
-        if feedback_dict:
-            feedback_dict = dict(feedback_dict)
-            feedback_dict["submittedAt"] = str(feedback_dict["submittedAt"])
-
-        return CustomerTicketDetail(
-            id=raw_ticket["id"],
-            status=raw_ticket.get("status", "submitted"),
-            complaintText=raw_ticket.get(
-                "complaintText", raw_ticket.get("originalText", "")
-            ),
-            inputLocale=raw_ticket.get("inputLocale", "en"),
-            priority=raw_ticket.get("priority", "normal"),
-            departmentId=raw_ticket.get("departmentId"),
-            createdAt=str(raw_ticket.get("createdAt", "")),
-            updatedAt=str(raw_ticket.get("updatedAt", raw_ticket.get("createdAt", ""))),
-            resolvedAt=str(raw_ticket["resolvedAt"])
-            if raw_ticket.get("resolvedAt")
-            else None,
-            messages=messages_formatted,
-            timeline=timeline,
-            feedback=feedback_dict,
-        )
+        ticket = self._validate_ticket_persistence(raw_ticket, customer_id, ticket_id)
+        messages_formatted = [
+            self._project_message(message)
+            for message in self.backend.get_ticket_messages(ticket_id)
+        ]
+        raw_events = self.backend.get_ticket_events(ticket_id)
+        validated_events = [
+            self._validate_event_persistence(event, ticket_id) for event in raw_events
+        ]
+        timeline = self._project_timeline(ticket, messages_formatted, validated_events)
+        feedback = self._validate_feedback_persistence(raw_ticket.get("feedback"), ticket)
+        try:
+            return CustomerTicketDetail(
+                id=ticket["id"],
+                status=ticket["status"],
+                complaintText=ticket["complaintText"],
+                inputLocale=ticket["inputLocale"],
+                departmentId=ticket["departmentId"],
+                createdAt=ticket["createdAt"],
+                updatedAt=ticket["updatedAt"],
+                resolvedAt=ticket["resolvedAt"],
+                messages=messages_formatted,
+                timeline=timeline,
+                feedback=feedback,
+            )
+        except (TypeError, ValueError) as exc:
+            raise CustomerHistoryDataError("customer detail projection is invalid") from exc
 
     def ensure_owned_ticket(self, customer_id: str, ticket_id: str) -> None:
         if not self.backend.get_customer_ticket(customer_id, ticket_id):

@@ -1455,7 +1455,7 @@ def create_app(
                 code="ticket_not_found",
                 message="Ticket not found.",
             ) from None
-        except (PersistenceError, TypeError, ValueError):
+        except Exception:  # noqa: BLE001 -- owned persistence must fail closed
             raise ApiError(
                 status_code=503,
                 code="customer_service_unavailable",

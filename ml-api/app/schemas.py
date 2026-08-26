@@ -9,6 +9,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StrictInt,
     StrictStr,
     field_validator,
     model_validator,
@@ -591,8 +592,23 @@ class CustomerMessageItem(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     sender_role: Literal["customer", "support_team"] = Field(alias="senderRole")
-    body: str
-    created_at: str = Field(alias="createdAt")
+    body: StrictStr = Field(min_length=1, max_length=MAX_COMPLAINT_LENGTH)
+    created_at: StrictStr = Field(alias="createdAt")
+
+    @field_validator("created_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str) -> str:
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("customer message timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("customer message timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("customer message timestamp is not canonical")
+        return value
 
 
 CustomerTimelineType = Literal[
@@ -611,33 +627,101 @@ class CustomerTimelineItem(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     type: CustomerTimelineType
-    occurred_at: str = Field(alias="occurredAt")
-    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
+    occurred_at: StrictStr = Field(alias="occurredAt")
+    department_id: DepartmentId | None = Field(alias="departmentId")
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str) -> str:
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("timeline timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timeline timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("timeline timestamp is not canonical")
+        return value
 
 
 class CustomerTicketFeedback(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    rating: Annotated[int, Field(ge=1, le=5)]
-    comments: str | None = None
-    submitted_at: str = Field(alias="submittedAt")
+    rating: Annotated[StrictInt, Field(ge=1, le=5)]
+    comments: StrictStr | None = None
+    submitted_at: StrictStr = Field(alias="submittedAt")
+
+    @field_validator("submitted_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str) -> str:
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("feedback timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("feedback timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("feedback timestamp is not canonical")
+        return value
 
 
 class CustomerTicketDetail(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str
+    id: StrictStr = Field(pattern=r"^ticket_[a-f0-9]{32}$")
     status: TicketStatus
-    complaint_text: str = Field(alias="complaintText")
+    complaint_text: StrictStr = Field(alias="complaintText", min_length=1)
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
-    priority: str
-    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
-    created_at: str = Field(alias="createdAt")
-    updated_at: str = Field(alias="updatedAt")
-    resolved_at: str | None = Field(default=None, alias="resolvedAt")
-    messages: list[CustomerMessageItem] = Field(default_factory=list)
-    timeline: list[CustomerTimelineItem] = Field(default_factory=list)
-    feedback: CustomerTicketFeedback | None = None
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    created_at: StrictStr = Field(alias="createdAt")
+    updated_at: StrictStr = Field(alias="updatedAt")
+    resolved_at: StrictStr | None = Field(alias="resolvedAt")
+    messages: list[CustomerMessageItem]
+    timeline: list[CustomerTimelineItem]
+    feedback: CustomerTicketFeedback | None
+
+    @field_validator("created_at", "updated_at", "resolved_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("ticket timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("ticket timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("ticket timestamp is not canonical")
+        return value
+
+    @model_validator(mode="after")
+    def validate_ticket_state(self) -> "CustomerTicketDetail":
+        created = datetime.fromisoformat(self.created_at.replace("Z", "+00:00"))
+        updated = datetime.fromisoformat(self.updated_at.replace("Z", "+00:00"))
+        resolved = (
+            datetime.fromisoformat(self.resolved_at.replace("Z", "+00:00"))
+            if self.resolved_at is not None
+            else None
+        )
+        if updated < created:
+            raise ValueError("updatedAt must not precede createdAt")
+        if self.status in {"resolved", "closed"}:
+            if resolved is None:
+                raise ValueError("resolved tickets require resolvedAt")
+        elif resolved is not None:
+            raise ValueError("unresolved tickets must not have resolvedAt")
+        if resolved is not None and (resolved < created or resolved > updated):
+            raise ValueError("resolvedAt is outside the ticket interval")
+        if self.status != "submitted" and self.department_id is None:
+            raise ValueError("routed tickets require departmentId")
+        return self
 
 
 class CustomerMessageRequest(BaseModel):
