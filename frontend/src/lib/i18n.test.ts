@@ -6,6 +6,8 @@ describe("localization foundation", () => {
   it("supports English and Myanmar UI copy", () => {
     expect(translate("en", "loginTitle")).toBe("Sign in");
     expect(translate("en", "complaintTitle")).toBe("Submit a complaint");
+    expect(translate("en", "closeComplaintDialog")).toBe("Close complaint dialog");
+    expect(translate("my", "closeComplaintDialog")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "complaintTitle")).toContain("တိုင်ကြားချက်");
     expect(translate("en", "staffQueueTitle")).toBe("Department complaint queue");
     expect(translate("my", "staffQueueTitle")).toContain("ဌာန");

@@ -205,6 +205,7 @@ export function ComplaintForm({ sessionUid, attempt, onAttemptChange, onSuccess,
       ) : null}
       <form id="complaint-form" onSubmit={handleSubmit} noValidate className="cust-compose-form">
         <div className="cust-compose-input-wrap">
+          <label htmlFor="complaint-text" className="sr-only">{t("complaintTextLabel")}</label>
           <textarea
             id="complaint-text"
             aria-describedby={fieldError ? "complaint-safety complaint-error complaint-count" : "complaint-safety complaint-count"}

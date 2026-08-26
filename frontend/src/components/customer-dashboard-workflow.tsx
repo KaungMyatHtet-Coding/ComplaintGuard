@@ -60,7 +60,76 @@ export function CustomerDashboardWorkflow() {
   const selectedTicketRef = useRef<string | null>(null);
   const pendingFilterSelectionRef = useRef<string | null>(null);
   const confirmedComplaintRef = useRef<{ sessionUid: string; complaintId: string } | null>(null);
+  const composeOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const composeOpenerSessionRef = useRef<string | null>(null);
+  const composeDialogRef = useRef<HTMLDivElement | null>(null);
   const sessionUid = profile?.role === "customer" && profile.active ? profile.uid : null;
+
+  const closeCompose = useCallback(() => {
+    setIsComposeOpen(false);
+  }, []);
+
+  const restoreComposeFocus = useCallback(() => {
+    const opener = composeOpenerRef.current;
+    if (opener && opener.isConnected && composeOpenerSessionRef.current === sessionUid) {
+      opener.focus();
+    }
+    composeOpenerRef.current = null;
+    composeOpenerSessionRef.current = null;
+  }, [sessionUid]);
+
+  useEffect(() => {
+    if (isComposeOpen) {
+      const textarea = composeDialogRef.current?.querySelector<HTMLTextAreaElement>("textarea");
+      textarea?.focus();
+      return;
+    }
+    restoreComposeFocus();
+  }, [isComposeOpen, restoreComposeFocus]);
+
+  useEffect(() => () => {
+    composeOpenerRef.current = null;
+    composeOpenerSessionRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (isComposeOpen && composeOpenerSessionRef.current !== sessionUid) {
+      composeOpenerRef.current = null;
+      composeOpenerSessionRef.current = null;
+      setIsComposeOpen(false);
+    }
+  }, [isComposeOpen, sessionUid]);
+
+  function handleComposeKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCompose();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const dialog = composeDialogRef.current;
+    if (!dialog) return;
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.isConnected && element.getClientRects().length > 0);
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = dialog.ownerDocument.activeElement;
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   useEffect(() => {
     selectedTicketRef.current = selectedTicketId;
@@ -305,9 +374,9 @@ export function CustomerDashboardWorkflow() {
     if (!sessionUid || profile?.role !== "customer" || !profile.active || profile.uid !== sessionUid || getFirebaseServices().auth.currentUser?.uid !== sessionUid) return;
     confirmedComplaintRef.current = { sessionUid, complaintId: result.complaintId };
     setSubmissionAttempt(null);
-    setIsComposeOpen(false);
+    closeCompose();
     void loadTickets(result.complaintId);
-  }, [loadTickets, profile, sessionUid]);
+  }, [closeCompose, loadTickets, profile, sessionUid]);
 
   const handleSendMessage = async (text: string) => {
     if (!selectedTicketId || !sessionUid || messageInFlightRef.current) {
@@ -387,7 +456,15 @@ export function CustomerDashboardWorkflow() {
       {/* Top action bar and title */}
       <div id="new-complaint" className="cust-page-header-row">
         <div />
-        <button type="button" className="cust-compose-submit" onClick={() => setIsComposeOpen(true)}>
+        <button
+          type="button"
+          className="cust-compose-submit"
+          onClick={(event) => {
+            composeOpenerRef.current = event.currentTarget;
+            composeOpenerSessionRef.current = sessionUid;
+            setIsComposeOpen(true);
+          }}
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -397,13 +474,31 @@ export function CustomerDashboardWorkflow() {
       </div>
 
       {isComposeOpen && (
-        <div className="cust-modal-overlay">
-          <div className="cust-modal-content">
+        <div
+          className="cust-modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeCompose();
+          }}
+        >
+          <div
+            className="cust-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="complaint-modal-title"
+            ref={composeDialogRef}
+            tabIndex={-1}
+            onKeyDown={handleComposeKeyDown}
+          >
             <div className="cust-modal-header">
-              <h2 className="cust-compose-title" style={{ margin: 0 }}>
+              <h2 id="complaint-modal-title" className="cust-compose-title" style={{ margin: 0 }}>
                 {t("complaintTitle")}
               </h2>
-              <button className="icon-button" onClick={() => setIsComposeOpen(false)}>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={t("closeComplaintDialog")}
+                onClick={closeCompose}
+              >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>

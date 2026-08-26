@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { CustomerFeedbackPanel } from "@/components/customer-feedback-panel";
 import type { Locale, MessageKey } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
@@ -32,10 +32,30 @@ export function CustomerTicketDetailView({
   const [sendingMsg, setSendingMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const messageDialogRef = useRef<HTMLDivElement>(null);
+  const messageOpenerRef = useRef<HTMLButtonElement>(null);
+  const messageOpenerTicketIdRef = useRef<string | null>(null);
+  const messageDialogTitleId = useId();
 
   useEffect(() => () => {
     onCancelMessage();
   }, [onCancelMessage]);
+
+  useEffect(() => {
+    if (messageOpenerTicketIdRef.current && messageOpenerTicketIdRef.current !== ticket?.id) {
+      messageOpenerRef.current = null;
+      messageOpenerTicketIdRef.current = null;
+      setIsChatOpen(false);
+    }
+  }, [ticket?.id]);
+
+  useEffect(() => {
+    if (!isChatOpen) return;
+    const dialog = messageDialogRef.current;
+    const focusTarget = dialog?.querySelector<HTMLElement>("#customer-message-input")
+      ?? dialog?.querySelector<HTMLElement>("button:not([disabled])");
+    focusTarget?.focus();
+  }, [isChatOpen]);
 
   if (loading) {
     return (
@@ -83,6 +103,48 @@ export function CustomerTicketDetailView({
     void submitMessage();
   };
 
+  const closeMessages = () => {
+    const opener = messageOpenerRef.current;
+    const canRestoreFocus = Boolean(
+      opener
+      && messageOpenerTicketIdRef.current === ticket.id
+      && opener.isConnected
+      && document.contains(opener),
+    );
+    onCancelMessage();
+    setIsChatOpen(false);
+    messageOpenerRef.current = null;
+    messageOpenerTicketIdRef.current = null;
+    if (canRestoreFocus) opener?.focus();
+  };
+
+  const handleMessageDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMessages();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const dialog = messageDialogRef.current;
+    if (!dialog) return;
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   const timelineLabels: Record<CustomerTimelineType, MessageKey> = {
     complaint_received: "customerTimelineComplaintReceived",
     assigned_to_team: "customerTimelineAssignedToTeam",
@@ -119,10 +181,10 @@ export function CustomerTicketDetailView({
 
   return (
     <>
-      <div className="cust-detail">
+      <article className="cust-detail" aria-labelledby="customer-ticket-detail-title">
         <div className="cust-detail-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2>
+          <h2 id="customer-ticket-detail-title">
             {translate(locale, "staffDetailTitle")}
           </h2>
         </div>
@@ -203,7 +265,16 @@ export function CustomerTicketDetailView({
           </div>
         
           <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="cust-refresh-btn" onClick={() => setIsChatOpen(true)} style={{ background: 'var(--ink)', color: 'white', border: 'none' }}>
+            <button
+              ref={messageOpenerRef}
+              className="cust-refresh-btn"
+              onClick={(event) => {
+                messageOpenerTicketIdRef.current = ticket.id;
+                setIsChatOpen(true);
+                messageOpenerRef.current = event.currentTarget;
+              }}
+              style={{ background: 'var(--ink)', color: 'white', border: 'none' }}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
@@ -212,18 +283,25 @@ export function CustomerTicketDetailView({
           </div>
         </div>
         </div>
-      </div>
+      </article>
 
       {isChatOpen && (
-        <div className="cust-modal-overlay">
-          <div className="cust-modal-content">
+        <div className="cust-modal-overlay" onClick={(event) => { if (event.target === event.currentTarget) closeMessages(); }}>
+          <div
+            ref={messageDialogRef}
+            className="cust-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={messageDialogTitleId}
+            onKeyDown={handleMessageDialogKeyDown}
+          >
             <div className="cust-modal-header">
-              <h2 className="cust-compose-title" style={{ margin: 0 }}>{translate(locale, "staffMessages")}</h2>
+              <h2 id={messageDialogTitleId} className="cust-compose-title" style={{ margin: 0 }}>{translate(locale, "staffMessages")}</h2>
               <button
                 type="button"
                 className="icon-button"
                 aria-label={translate(locale, "customerCloseMessages")}
-                onClick={() => { onCancelMessage(); setIsChatOpen(false); }}
+                onClick={closeMessages}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>

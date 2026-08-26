@@ -60,6 +60,22 @@ describe("CustomerTicketDetailView", () => {
     expect(renderToStaticMarkup(<CustomerTicketDetailView {...props} loading={false} />)).not.toContain("customer-status-guidance-title");
   });
 
+  it("exposes loaded detail as a localized named article only", () => {
+    const ticket = {
+      id: "ticket_" + "6".repeat(32), status: "triaged" as const,
+      complaintText: "Synthetic complaint", inputLocale: "en" as const, departmentId: "card_atm" as const,
+      createdAt: "2026-08-11T00:00:00Z", updatedAt: "2026-08-11T00:00:00Z", resolvedAt: null,
+      timeline: [], messages: [], feedback: null,
+    };
+    const english = renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={ticket} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+    const myanmar = renderToStaticMarkup(<CustomerTicketDetailView locale="my" ticket={ticket} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+    expect(english).toContain('<article class="cust-detail" aria-labelledby="customer-ticket-detail-title">');
+    expect(english).toContain('<h2 id="customer-ticket-detail-title">Complaint details</h2>');
+    expect(myanmar).toContain(translate("my", "staffDetailTitle"));
+    expect(renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={null} loading={true} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />)).not.toContain("customer-ticket-detail-title");
+    expect(renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={null} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />)).not.toContain("customer-ticket-detail-title");
+  });
+
   it("does not expose a fallback for an out-of-contract status", () => {
     const ticket = {
       id: "ticket_" + "5".repeat(32), status: "unknown_status" as never,
@@ -178,5 +194,27 @@ describe("CustomerTicketDetailView", () => {
     expect(markup).not.toContain("Privacy-safe model evidence");
     expect(markup).not.toContain("TF-IDF");
     expect(markup).not.toContain("Dataset evidence");
+  });
+});
+
+describe("Customer message dialog accessibility", () => {
+  const source = readFileSync(new URL("./customer-ticket-detail.tsx", import.meta.url), "utf8");
+
+  it("keeps the named dialog, focus management, and public message controls accessible", () => {
+    expect(source).toContain('role="dialog"');
+    expect(source).toContain('aria-modal="true"');
+    expect(source).toContain("aria-labelledby={messageDialogTitleId}");
+    expect(source).toContain("id={messageDialogTitleId}");
+    expect(source).toContain('event.key === "Escape"');
+    expect(source).toContain('event.key !== "Tab"');
+    expect(source).toContain("event.shiftKey");
+    expect(source).toContain("messageDialogRef");
+    expect(source).toContain("messageOpenerRef");
+    expect(source).toContain("opener.isConnected");
+    expect(source).toContain("event.target === event.currentTarget");
+    expect(source).toContain('aria-label={translate(locale, "customerCloseMessages")}');
+    expect(source).toContain('aria-label={translate(locale, "customerSendMessage")}');
+    expect(source).toContain("ticket.messages.map");
+    expect(source).toContain("!isResolvedOrClosed");
   });
 });

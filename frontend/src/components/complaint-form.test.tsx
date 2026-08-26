@@ -10,9 +10,40 @@ afterEach(() => vi.unstubAllEnvs());
 describe("ComplaintForm success callback", () => {
   it("keeps the customer safety reminder associated with the complaint field", () => {
     const source = readFileSync(new URL("./complaint-form.tsx", import.meta.url), "utf8");
+    expect(source).toContain('htmlFor="complaint-text"');
+    expect(source).toContain('className="sr-only"');
+    expect(source).toContain('complaintTextLabel');
     expect(source).toContain('id="complaint-safety"');
     expect(source).toContain('complaint-safety complaint-count');
     expect(source).toContain("complaintSafetyReminder");
+  });
+
+  it("exposes the customer complaint modal as a named dialog", () => {
+    const source = readFileSync(
+      new URL("./customer-dashboard-workflow.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain('role="dialog"');
+    expect(source).toContain('aria-modal="true"');
+    expect(source).toContain('aria-labelledby="complaint-modal-title"');
+    expect(source).toContain('id="complaint-modal-title"');
+    expect(source).toContain('aria-label={t("closeComplaintDialog")}');
+    expect(source).toContain('t("complaintTitle")');
+  });
+
+  it("keeps complaint dialog focus contained and session-owned", () => {
+    const source = readFileSync(
+      new URL("./customer-dashboard-workflow.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("textarea?.focus()");
+    expect(source).toContain('event.key !== "Tab"');
+    expect(source).toContain("event.shiftKey");
+    expect(source).toContain('event.key === "Escape"');
+    expect(source).toContain("event.target === event.currentTarget");
+    expect(source).toContain("composeOpenerSessionRef.current === sessionUid");
+    expect(source).toContain("opener.isConnected");
+    expect(source).toContain("composeOpenerRef.current = null");
   });
 
   it("wires the actual form success path to the returned complaint ID", () => {
