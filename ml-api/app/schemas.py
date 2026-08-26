@@ -1,5 +1,6 @@
 """Typed API request, response, and error schemas."""
 
+import re
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
@@ -7,6 +8,8 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    StrictBool,
+    StrictInt,
     StrictStr,
     field_validator,
     model_validator,
@@ -24,6 +27,327 @@ DepartmentId = Literal[
     "loan_credit",
     "general_support",
 ]
+
+AdminProvisioningRole = Literal["staff", "manager"]
+AdminDirectoryRole = Literal["customer", "staff", "manager", "admin"]
+AdminProvisioningStatus = Literal["pending_setup"]
+AdminDirectoryAccountState = Literal["active", "pending_setup", "disabled", "inactive_unverified"]
+LifecycleProfileState = Literal["active", "inactive"]
+LifecycleRecoveryState = Literal["none", "recoverable", "completed", "operator_required"]
+LifecycleRecoveryOperation = Literal["disable", "reactivate", "reassign_department"]
+LifecycleEligibilityReason = Literal[
+    "already_active",
+    "already_inactive",
+    "self_target_forbidden",
+    "last_active_admin",
+    "role_not_reassignable",
+    "assigned_unresolved_work",
+    "pending_setup_activation_forbidden",
+    "lifecycle_conflict",
+]
+
+
+class AdminDisableRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    idempotency_key: Annotated[
+        StrictStr,
+        Field(alias="idempotencyKey", min_length=8, max_length=64),
+    ]
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def normalize_disable_idempotency_key(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized or not re.fullmatch(r"[A-Za-z0-9_-]+", normalized):
+            raise ValueError("idempotency key must be safe")
+        return normalized
+
+
+class AdminDisableResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    operation: Literal["disable"]
+    status: Literal["completed"]
+    profile_state: Literal["inactive"] = Field(alias="profileState")
+
+
+class AdminReactivateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    idempotency_key: Annotated[
+        StrictStr,
+        Field(alias="idempotencyKey", min_length=8, max_length=64),
+    ]
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def normalize_reactivate_idempotency_key(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized or not re.fullmatch(r"[A-Za-z0-9_-]+", normalized):
+            raise ValueError("idempotency key must be safe")
+        return normalized
+
+
+class AdminReactivateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    operation: Literal["reactivate"]
+    status: Literal["completed"]
+    profile_state: Literal["active"] = Field(alias="profileState")
+
+
+class AdminReassignDepartmentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    idempotency_key: Annotated[
+        StrictStr,
+        Field(alias="idempotencyKey", min_length=8, max_length=64),
+    ]
+    department_id: DepartmentId = Field(alias="departmentId")
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def normalize_reassignment_idempotency_key(cls, value: str) -> str:
+        if not value.isascii() or not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", value):
+            raise ValueError("idempotency key must be safe")
+        return value
+
+
+class AdminReassignDepartmentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    operation: Literal["reassign_department"]
+    status: Literal["completed"]
+    department_id: DepartmentId = Field(alias="departmentId")
+
+
+class AdminDisableRecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["disable"]
+
+
+class AdminReactivateRecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["reactivate"]
+
+
+class AdminReassignRecoveryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    operation: Literal["reassign_department"]
+    department_id: DepartmentId = Field(alias="departmentId")
+
+
+AdminLifecycleRecoveryRequest = Annotated[
+    AdminDisableRecoveryRequest | AdminReactivateRecoveryRequest | AdminReassignRecoveryRequest,
+    Field(discriminator="operation"),
+]
+
+AdminLifecycleRecoveryResponse = AdminDisableResponse | AdminReactivateResponse | AdminReassignDepartmentResponse
+
+
+class AdminProvisioningRequest(BaseModel):
+    """Strict future Admin input; it deliberately has no credential fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: Annotated[StrictStr, Field(min_length=3, max_length=254)]
+    display_name: Annotated[
+        StrictStr, Field(alias="displayName", min_length=1, max_length=100)
+    ]
+    locale: Literal["en", "my"]
+    role: AdminProvisioningRole
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
+    idempotency_key: Annotated[
+        StrictStr,
+        Field(alias="idempotencyKey", min_length=8, max_length=64),
+    ]
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", normalized):
+            raise ValueError("email must be valid")
+        return normalized
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized:
+            raise ValueError("display name must not be empty")
+        return normalized
+
+    @field_validator("idempotency_key")
+    @classmethod
+    def normalize_idempotency_key(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized or not re.fullmatch(r"[A-Za-z0-9_-]+", normalized):
+            raise ValueError("idempotency key must be safe")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_role_department(self) -> "AdminProvisioningRequest":
+        if self.role == "staff" and self.department_id is None:
+            raise ValueError("staff requires a department")
+        if self.role == "manager" and self.department_id is not None:
+            raise ValueError("manager cannot have a department")
+        return self
+
+
+class AdminProvisioningResponse(BaseModel):
+    """Safe future result; credentials, tokens, claims, and timestamps are absent."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    status: AdminProvisioningStatus
+    uid: str | None = None
+    email: str
+    display_name: str = Field(alias="displayName")
+    locale: Literal["en", "my"]
+    role: AdminProvisioningRole
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    active: bool
+    setup_required: bool = Field(alias="setupRequired")
+
+
+class AdminDirectoryRequest(BaseModel):
+    """Strict bounded filters for the read-only Admin directory."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    role: AdminDirectoryRole | None = None
+    department_id: DepartmentId | None = Field(default=None, alias="departmentId")
+    active: bool | None = None
+    search: Annotated[StrictStr, Field(min_length=1, max_length=80)] | None = None
+    page_size: Annotated[int, Field(ge=1, le=50)] = Field(default=25, alias="pageSize")
+    cursor: Annotated[StrictStr, Field(max_length=128)] | None = None
+
+    @field_validator("search")
+    @classmethod
+    def normalize_search(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = normalize_input(value)
+        return normalized or None
+
+
+class AdminDirectoryRow(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    email: str
+    display_name: str = Field(alias="displayName")
+    locale: Literal["en", "my"]
+    role: AdminDirectoryRole
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    active: StrictBool
+    account_state: AdminDirectoryAccountState = Field(alias="accountState")
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+
+
+class AdminDirectoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    rows: list[AdminDirectoryRow]
+    next_cursor: str | None = Field(alias="nextCursor")
+    has_more: StrictBool = Field(alias="hasMore")
+
+
+class LifecycleEligibilityOperation(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    eligible: StrictBool
+    reason: LifecycleEligibilityReason | None = None
+
+
+class LifecycleEligibilityOperations(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    disable: LifecycleEligibilityOperation
+    reactivate: LifecycleEligibilityOperation
+    reassign_department: LifecycleEligibilityOperation = Field(alias="reassignDepartment")
+
+
+class AdminLifecycleEligibilityResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    profile_state: LifecycleProfileState = Field(alias="profileState")
+    operations: LifecycleEligibilityOperations
+
+
+class AdminLifecycleRecoveryStatusResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    account_ref: Annotated[StrictStr, Field(pattern=r"^acct_v1_[0-9a-f]{64}$")] = Field(alias="accountRef")
+    recovery_state: LifecycleRecoveryState = Field(alias="recoveryState")
+    operation: LifecycleRecoveryOperation | None
+    department_id: DepartmentId | None = Field(alias="departmentId")
+
+    @model_validator(mode="after")
+    def validate_projection(self) -> "AdminLifecycleRecoveryStatusResponse":
+        if self.recovery_state in {"none", "operator_required"}:
+            if self.operation is not None or self.department_id is not None:
+                raise ValueError("recovery details are not valid for this state")
+        elif self.operation is None:
+            raise ValueError("recoverable or completed state requires an operation")
+        elif self.operation == "reassign_department":
+            if self.department_id is None:
+                raise ValueError("reassignment state requires a department")
+        elif self.department_id is not None:
+            raise ValueError("department is only valid for reassignment")
+        return self
+
+
+class CustomerProfileRequest(BaseModel):
+    """Public profile-completion fields; credentials and authority stay elsewhere."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: Annotated[
+        StrictStr, Field(alias="displayName", min_length=1, max_length=100)
+    ]
+    locale: Literal["en", "my"]
+    terms_accepted: StrictBool | None = Field(
+        default=None,
+        alias="termsAccepted",
+        description="Validated for this request only; not persisted in this slice.",
+    )
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str) -> str:
+        normalized = normalize_input(value)
+        if not normalized:
+            raise ValueError("display name must not be empty")
+        return normalized
+
+
+class CustomerProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    uid: str
+    email: str
+    display_name: str = Field(alias="displayName")
+    locale: Literal["en", "my"]
+    role: Literal["customer"]
+    department_id: None = Field(default=None, alias="departmentId")
+    active: Literal[True]
+
+
+class CustomerProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    status: Literal["created", "existing"]
+    profile: CustomerProfile
+
 
 ActionId = Annotated[
     StrictStr, Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
@@ -207,113 +531,276 @@ class StaffMutationResponse(BaseModel):
 
 
 class CustomerTicketSummary(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str
+    complaint_id: str = Field(alias="complaintId", pattern=r"^ticket_[a-f0-9]{32}$")
     status: TicketStatus
-    complaint_text: str = Field(default="", alias="complaintText")
-    summary_text: str = Field(default="", alias="summaryText")
-    predicted_department_id: str | None = Field(
-        default=None, alias="predictedDepartmentId"
-    )
-    prediction_confidence: float | None = Field(
-        default=None, alias="predictionConfidence", ge=0.0, le=1.0
-    )
-    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
-        Field(default="pending", alias="routingSource")
-    )
-    assigned_department_id: str | None = Field(
-        default=None, alias="assignedDepartmentId"
-    )
-    created_at: str = Field(alias="createdAt")
-    updated_at: str = Field(alias="updatedAt")
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")
+    resolved_at: datetime | None = Field(default=None, alias="resolvedAt")
+
+    @property
+    def id(self) -> str:
+        """Compatibility accessor for trusted internal callers only."""
+        return self.complaint_id
+
+    @field_validator("created_at", "updated_at", "resolved_at")
+    @classmethod
+    def require_timezone(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None or (
+            value is not None and value.utcoffset() is None
+        ):
+            raise ValueError("customer ticket timestamps must include a UTC offset")
+        return value
+
+    @model_validator(mode="after")
+    def validate_ordering_and_state(self) -> "CustomerTicketSummary":
+        if self.updated_at < self.created_at:
+            raise ValueError("updatedAt must not precede createdAt")
+        if self.status in {"resolved", "closed"}:
+            if self.resolved_at is None:
+                raise ValueError("resolved tickets require resolvedAt")
+        elif self.resolved_at is not None:
+            raise ValueError("unresolved tickets must not expose resolvedAt")
+        if self.resolved_at is not None and (
+            self.resolved_at < self.created_at or self.resolved_at > self.updated_at
+        ):
+            raise ValueError("resolvedAt must be between createdAt and updatedAt")
+        if self.status != "submitted" and self.department_id is None:
+            raise ValueError("routed tickets require departmentId")
+        return self
 
 
 class CustomerTicketListResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     tickets: list[CustomerTicketSummary]
+    next_cursor: StrictStr | None = Field(alias="nextCursor")
+    has_more: StrictBool = Field(alias="hasMore")
+
+    @model_validator(mode="after")
+    def validate_page_contract(self) -> "CustomerTicketListResponse":
+        if self.has_more and not self.next_cursor:
+            raise ValueError("hasMore pages require nextCursor")
+        if not self.has_more and self.next_cursor is not None:
+            raise ValueError("final pages must not expose nextCursor")
+        return self
 
 
 class CustomerMessageItem(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str | None = None
-    message_id: str = Field(default="", alias="messageId")
-    sender_id: str = Field(alias="senderId")
-    sender_role: Literal["customer", "staff"] = Field(alias="senderRole")
-    text: str
-    created_at: str = Field(alias="createdAt")
+    sender_role: Literal["customer", "support_team"] = Field(alias="senderRole")
+    body: StrictStr = Field(min_length=1, max_length=MAX_COMPLAINT_LENGTH)
+    created_at: StrictStr = Field(alias="createdAt")
 
-    @model_validator(mode="before")
+    @field_validator("created_at")
     @classmethod
-    def set_msg_id(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            msg_id = data.get("messageId") or data.get("id") or ""
-            data["messageId"] = msg_id
-            data["id"] = msg_id
-        return data
+    def require_canonical_utc_timestamp(cls, value: str) -> str:
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("customer message timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("customer message timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("customer message timestamp is not canonical")
+        return value
+
+
+CustomerTimelineType = Literal[
+    "complaint_received",
+    "assigned_to_team",
+    "review_started",
+    "information_requested",
+    "team_replied",
+    "customer_replied",
+    "complaint_resolved",
+    "complaint_closed",
+]
+
+
+class CustomerTimelineItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    type: CustomerTimelineType
+    occurred_at: StrictStr = Field(alias="occurredAt")
+    department_id: DepartmentId | None = Field(alias="departmentId")
+
+    @field_validator("occurred_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str) -> str:
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("timeline timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("timeline timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("timeline timestamp is not canonical")
+        return value
 
 
 class CustomerTicketFeedback(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    rating: Annotated[int, Field(ge=1, le=5)]
-    comments: str | None = None
-    submitted_at: str = Field(alias="submittedAt")
+    rating: Annotated[StrictInt, Field(ge=1, le=5)]
+    comments: StrictStr | None = None
+    submitted_at: StrictStr = Field(alias="submittedAt")
+
+    @field_validator("submitted_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str) -> str:
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("feedback timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("feedback timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("feedback timestamp is not canonical")
+        return value
 
 
 class CustomerTicketDetail(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    id: str
+    id: StrictStr = Field(pattern=r"^ticket_[a-f0-9]{32}$")
     status: TicketStatus
-    complaint_text: str = Field(alias="complaintText")
+    complaint_text: StrictStr = Field(alias="complaintText", min_length=1)
     input_locale: Literal["en", "my"] = Field(alias="inputLocale")
-    predicted_department_id: DepartmentId | None = Field(
-        default=None, alias="predictedDepartmentId"
-    )
-    prediction_confidence: float | None = Field(
-        default=None, alias="predictionConfidence", ge=0.0, le=1.0
-    )
-    routing_source: Literal["model", "manual_review", "manager_override", "pending"] = (
-        Field(default="pending", alias="routingSource")
-    )
-    assigned_department_id: DepartmentId | None = Field(
-        default=None, alias="assignedDepartmentId"
-    )
-    priority: str
-    created_at: str = Field(alias="createdAt")
-    updated_at: str = Field(alias="updatedAt")
-    resolved_at: str | None = Field(default=None, alias="resolvedAt")
-    messages: list[CustomerMessageItem] = Field(default_factory=list)
-    feedback: CustomerTicketFeedback | None = None
+    department_id: DepartmentId | None = Field(alias="departmentId")
+    created_at: StrictStr = Field(alias="createdAt")
+    updated_at: StrictStr = Field(alias="updatedAt")
+    resolved_at: StrictStr | None = Field(alias="resolvedAt")
+    messages: list[CustomerMessageItem]
+    timeline: list[CustomerTimelineItem]
+    feedback: CustomerTicketFeedback | None
+
+    @field_validator("created_at", "updated_at", "resolved_at")
+    @classmethod
+    def require_canonical_utc_timestamp(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if not re.fullmatch(
+            r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z", value
+        ):
+            raise ValueError("ticket timestamp must be canonical UTC RFC3339")
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("ticket timestamp is invalid") from exc
+        if parsed.isoformat().replace("+00:00", "Z") != value:
+            raise ValueError("ticket timestamp is not canonical")
+        return value
+
+    @model_validator(mode="after")
+    def validate_ticket_state(self) -> "CustomerTicketDetail":
+        created = datetime.fromisoformat(self.created_at.replace("Z", "+00:00"))
+        updated = datetime.fromisoformat(self.updated_at.replace("Z", "+00:00"))
+        resolved = (
+            datetime.fromisoformat(self.resolved_at.replace("Z", "+00:00"))
+            if self.resolved_at is not None
+            else None
+        )
+        if updated < created:
+            raise ValueError("updatedAt must not precede createdAt")
+        if self.status in {"resolved", "closed"}:
+            if resolved is None:
+                raise ValueError("resolved tickets require resolvedAt")
+        elif resolved is not None:
+            raise ValueError("unresolved tickets must not have resolvedAt")
+        if resolved is not None and (resolved < created or resolved > updated):
+            raise ValueError("resolvedAt is outside the ticket interval")
+        if self.status != "submitted" and self.department_id is None:
+            raise ValueError("routed tickets require departmentId")
+        return self
 
 
 class CustomerMessageRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    model_config = ConfigDict(extra="forbid")
 
-    text: Annotated[StrictStr, Field(default="", max_length=MAX_COMPLAINT_LENGTH)]
+    message_text: Annotated[
+        StrictStr, Field(alias="messageText", max_length=MAX_COMPLAINT_LENGTH)
+    ]
     action_id: ActionId = Field(alias="actionId")
 
-    @model_validator(mode="before")
-    @classmethod
-    def pre_normalize(cls, values: Any) -> Any:
-        if (
-            isinstance(values, dict)
-            and "messageText" in values
-            and ("text" not in values or not values["text"])
-        ):
-            values["text"] = values.pop("messageText")
-        return values
-
-    @field_validator("text")
+    @field_validator("message_text")
     @classmethod
     def normalize_message_text(cls, value: str) -> str:
         normalized = normalize_input(value)
         if not normalized:
             raise ValueError("message text must not be empty")
         return normalized
+
+
+NotificationType = Literal[
+    "complaint_received", "department_assigned", "staff_reply", "information_requested",
+    "status_changed", "complaint_resolved", "response_target_approaching", "response_target_overdue",
+    "department_complaint_available", "ticket_assigned", "customer_reply", "high_priority_ticket",
+    "manager_reassigned", "escalation_updated", "manual_review_required", "unassigned_ticket",
+    "overdue_ticket", "escalation_requested", "workload_imbalance_observed", "pending_account_setup",
+    "account_operation_issue", "department_workload_observation", "system_operational_alert",
+]
+NotificationSeverity = Literal["info", "attention", "urgent"]
+NotificationCategory = Literal[
+    "complaint", "assignment", "response", "sla", "account", "workload", "system"
+]
+NotificationNavigationTarget = Literal[
+    "notifications", "customer_ticket", "staff_queue", "staff_ticket",
+    "manager_operations", "manager_manual_review", "admin_accounts", "admin_overview",
+]
+
+
+class NotificationItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    notification_ref: str = Field(alias="notificationRef", pattern=r"^[0-9a-f]{64}$")
+    type: NotificationType
+    severity: NotificationSeverity
+    category: NotificationCategory
+    related_ticket_ref: str | None = Field(default=None, alias="relatedTicketRef")
+    title_key: str = Field(alias="titleKey")
+    body_key: str = Field(alias="bodyKey")
+    params: dict[str, str | int | bool] = Field(default_factory=dict)
+    navigation_target: NotificationNavigationTarget = Field(alias="navigationTarget")
+    created_at: datetime = Field(alias="createdAt")
+    read_at: datetime | None = Field(default=None, alias="readAt")
+    unread: StrictBool
+
+
+class NotificationListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    notifications: list[NotificationItem]
+    next_cursor: str | None = Field(default=None, alias="nextCursor")
+
+
+class NotificationUnreadCountResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    unread_count: Annotated[int, Field(ge=0)] = Field(alias="unreadCount")
+
+
+class NotificationReadResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    notification_ref: str = Field(alias="notificationRef", pattern=r"^[0-9a-f]{64}$")
+    read_at: datetime = Field(alias="readAt")
+    unread: Literal[False] = False
+
+
+class NotificationReadAllResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    updated_count: Annotated[int, Field(ge=0, le=150)] = Field(alias="updatedCount")
 
 
 class CustomerFeedbackRequest(BaseModel):

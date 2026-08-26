@@ -51,24 +51,21 @@ service cloud.firestore {
     }
 
     match /tickets/{ticketId} {
-      allow read: if ownsTicket(resource)
-        || staffForTicket(resource)
-        || isManager();
+      // Ticket reads use the trusted Customer/Staff/Manager API projections.
+      // Raw client reads remain denied for every role.
+      allow read: if false;
 
       // Creation and controlled changes pass through trusted server code for
       // ownership binding, PII redaction, lifecycle checks, and audit writes.
       allow create, update, delete: if false;
 
       match /messages/{messageId} {
-        allow read: if ownsTicket(parentTicket(ticketId))
-          || staffForTicket(parentTicket(ticketId))
-          || isManager();
+        allow read: if false;
         allow create, update, delete: if false;
       }
 
       match /events/{eventId} {
-        allow read: if staffForTicket(parentTicket(ticketId))
-          || isManager();
+        allow read: if false;
         allow create, update, delete: if false;
       }
     }

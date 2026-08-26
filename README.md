@@ -97,7 +97,7 @@ npm.cmd ci
 
 Copy `frontend/.env.example` to the ignored `frontend/.env.local` and use only
 local configuration. For emulator operation set
-`NEXT_PUBLIC_APP_ENV=development`,
+`NEXT_PUBLIC_APP_ENV=local-emulator`,
 `NEXT_PUBLIC_USE_FIREBASE_EMULATORS=true`, and
 `NEXT_PUBLIC_ML_API_URL=http://127.0.0.1:8000`. Never put service-account JSON,
 private keys, passwords, or ID tokens in `NEXT_PUBLIC_*` variables.
@@ -107,10 +107,31 @@ private keys, passwords, or ID tokens in `NEXT_PUBLIC_*` variables.
 Use four PowerShell terminals in this exact order:
 
 1. Start Firebase Auth and Firestore emulators.
-2. Run `node.exe firebase\seed-emulator.mjs` with the documented emulator
-   variables; this creates synthetic roles and an ignored random-password file.
+2. In a PowerShell terminal where Cloud credentials are not present, establish
+   the complete local-emulator contract and run the seed:
+
+   ```powershell
+   Remove-Item Env:GOOGLE_APPLICATION_CREDENTIALS, Env:GOOGLE_APPLICATION_CREDENTIALS_JSON, Env:FIREBASE_ADMIN_CREDENTIALS, Env:FIREBASE_SERVICE_ACCOUNT_JSON -ErrorAction SilentlyContinue
+   $env:APP_ENV = "local-emulator"
+   $env:GCLOUD_PROJECT = "demo-complaintguard"
+   $env:GOOGLE_CLOUD_PROJECT = "demo-complaintguard"
+   $env:FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099"
+   $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8185"
+   node.exe firebase\seed-emulator.mjs
+   ```
+
+   This creates synthetic roles and an ignored random-password file.
 3. Start FastAPI with the emulator variables and frozen model.
 4. Run `npm.cmd run dev` in `frontend` with local emulator configuration.
+
+> **Local-emulator-only warning:** These commands must never target the Cloud
+> candidate project `complaintguard`. The scripts fail closed unless the mode
+> is exactly `local-emulator`, the project is exactly `demo-complaintguard`, and
+> both emulator hosts are loopback. `--reset-firestore` deletes local emulator
+> Firestore state; do not use it against valued emulator history unless loss is
+> intended. Reset does not restore previous complaints, messages, or feedback.
+> Remove Cloud credentials from the shell before local mutation. Never paste
+> service-account credentials into commands or documentation.
 
 The exact copyable commands and cleanup process are in
 [local setup](docs/local_setup.md) and the [detailed demo guide](docs/demo_guide.md).

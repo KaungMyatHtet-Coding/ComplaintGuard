@@ -31,6 +31,7 @@ title Database Seeder
 cd /d C:\dam\ComplaintGuard
 set FIRESTORE_EMULATOR_HOST=127.0.0.1:8185
 set FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+set APP_ENV=local-emulator
 set GCLOUD_PROJECT=demo-complaintguard
 echo Waiting 15 seconds to ensure the emulators have started...
 timeout /t 15

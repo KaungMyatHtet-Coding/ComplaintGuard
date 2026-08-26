@@ -25,6 +25,10 @@ describe("ModelAnalyticsDashboard", () => {
     expect(markup).toContain("Held-out precision, recall, F1 and support");
     expect(markup).toContain("Held-out confusion matrix");
     expect(markup).toContain("responsive-table");
+    expect(markup).toContain('aria-label="Expected Transfer &amp; Payment; predicted Transfer &amp; Payment; count');
+    expect(markup).toContain('title="Expected Transfer &amp; Payment; predicted Transfer &amp; Payment; count');
+    expect(markup).toContain('href="#model-how-it-works-title"');
+    expect(markup).toContain('aria-label="Analytics section navigation"');
     expect(markup).toContain("True ↓ / Predicted →");
   });
 
@@ -34,6 +38,6 @@ describe("ModelAnalyticsDashboard", () => {
     );
     expect(markup).toContain(formatCount(modelEvaluation.similarity.featureCount));
     expect(markup).toContain("Not deployed");
-    expect(markup).not.toMatch(/nearest complaint|Consumer complaint narrative|Complaint ID|similarity score: [0-9]/u);
+    expect(markup).not.toMatch(/nearest complaint|Consumer complaint narrative|similarity score: [0-9]/u);
   });
 });

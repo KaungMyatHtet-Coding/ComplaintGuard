@@ -3,10 +3,34 @@
 from __future__ import annotations
 
 import argparse
+import os
 
-import firebase_admin
+from app.firebase_environment import (
+    LocalEmulatorEnvironment,
+    validate_local_emulator_environment,
+)
 from app.synthetic_fixture import build_synthetic_triaged_ticket
-from firebase_admin import firestore
+
+
+def validate_seed_environment() -> LocalEmulatorEnvironment:
+    return validate_local_emulator_environment(os.environ)
+
+
+def initialize_local_firestore(environment: LocalEmulatorEnvironment):
+    import firebase_admin
+    from firebase_admin import firestore
+    from google.auth.credentials import AnonymousCredentials
+
+    try:
+        app = firebase_admin.get_app()
+    except ValueError:
+        app = firebase_admin.initialize_app(
+            credential=AnonymousCredentials(),
+            options={"projectId": environment.project_id},
+        )
+    if app.project_id != environment.project_id:
+        raise RuntimeError("firebase_app_project_id_mismatch")
+    return firestore, firestore.client()
 
 
 def main() -> int:
@@ -23,10 +47,11 @@ def main() -> int:
         parser.error("--confirm-synthetic-only is required")
 
     try:
-        firebase_admin.get_app()
-    except ValueError:
-        firebase_admin.initialize_app()
-    db = firestore.client()
+        environment = validate_seed_environment()
+    except ValueError as error:
+        parser.error(str(error))
+
+    firestore, db = initialize_local_firestore(environment)
     ticket = build_synthetic_triaged_ticket(firestore.SERVER_TIMESTAMP)
     reference = db.collection("tickets").document()
     reference.set(ticket)

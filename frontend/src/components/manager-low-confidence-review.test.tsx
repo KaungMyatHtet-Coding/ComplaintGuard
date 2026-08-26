@@ -29,7 +29,7 @@ describe("ManagerLowConfidenceReview", () => {
 
     expect(markup).toContain("Card &amp; ATM");
     expect(markup).not.toContain(">card_atm<");
-    expect(markup).toContain("manager-review-table");
+    expect(markup).toContain('class="mng-table"');
     expect(markup).toContain("ticket-reference");
     expect(markup).toContain('tabindex="0"');
   });

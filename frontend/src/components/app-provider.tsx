@@ -1,6 +1,5 @@
 "use client";
 
-import { doc, getDoc } from "firebase/firestore";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -12,19 +11,31 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
-import { parseUserProfile, validateCredentials, type UserProfile } from "@/lib/auth-policy";
+import { validateCredentials, type UserProfile } from "@/lib/auth-policy";
+import {
+  completeCustomerProfile as completeCustomerProfileRequest,
+  CustomerProfileError,
+  type CustomerProfileCompletionInput,
+} from "@/lib/customer-profile";
+import { loadAuthenticatedProfile } from "@/lib/auth-profile";
 import { getFirebaseServices, hasFirebaseConfig } from "@/lib/firebase";
 import { normalizeLocale, translate, type Locale, type MessageKey } from "@/lib/i18n";
 
-type AuthStatus =
+export type AuthStatus =
   | "loading"
   | "unauthenticated"
   | "authenticated"
   | "configuration_missing"
-  | "error";
+  | "error"
+  | "profile_incomplete"
+  | "profile_inactive"
+  | "profile_malformed"
+  | "profile_unavailable"
+  | "profile_completion_pending";
 
 type AppContextValue = {
   locale: Locale;
@@ -34,6 +45,8 @@ type AppContextValue = {
   profile: UserProfile | null;
   errorCode: string | null;
   signIn: (email: string, password: string) => Promise<void>;
+  completeCustomerProfile: (input: CustomerProfileCompletionInput) => Promise<void>;
+  profileCompletionPending: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -53,6 +66,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [profileCompletionPending, setProfileCompletionPending] = useState(false);
+  const activeUidRef = useRef<string | null>(null);
+  const authStatusRef = useRef<AuthStatus>("loading");
+  const authErrorCodeRef = useRef<string | null>(null);
+  const authGenerationRef = useRef(0);
+  const completionRef = useRef<Promise<void> | null>(null);
+  authStatusRef.current = status;
+  authErrorCodeRef.current = errorCode;
 
   useEffect(() => {
     const storedLocale = normalizeLocale(
@@ -63,30 +84,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       queueMicrotask(() => setStatus("configuration_missing"));
       return;
     }
-    const { auth, db } = getFirebaseServices();
+    let services: ReturnType<typeof getFirebaseServices>;
+    try {
+      services = getFirebaseServices();
+    } catch (error) {
+      queueMicrotask(() => {
+        setErrorCode(safeErrorCode(error));
+        setStatus("configuration_missing");
+      });
+      return;
+    }
+    const { auth, db } = services;
     return onAuthStateChanged(auth, async (user) => {
+      const generation = ++authGenerationRef.current;
+      activeUidRef.current = user?.uid ?? null;
+      setProfile(null);
+      setErrorCode(null);
+      setProfileCompletionPending(false);
       if (!user) {
-        setProfile(null);
         setStatus("unauthenticated");
         return;
       }
-      try {
-        const snapshot = await getDoc(doc(db, "users", user.uid));
-        const nextProfile = parseUserProfile(
-          user.uid,
-          user.email ?? "",
-          snapshot.exists() ? snapshot.data() : null,
-        );
-        setProfile(nextProfile);
-        setLocaleState(nextProfile.locale);
-        setErrorCode(null);
+      const resolution = await loadAuthenticatedProfile(user, db);
+      if (generation !== authGenerationRef.current) return;
+      if (resolution.kind === "valid") {
+        setProfile(resolution.profile);
+        setLocaleState(resolution.profile.locale);
         setStatus("authenticated");
-      } catch (error) {
-        setProfile(null);
-        const nextErrorCode = safeErrorCode(error);
-        await firebaseSignOut(auth);
-        setErrorCode(nextErrorCode);
-        setStatus("error");
+      } else if (resolution.kind === "missing") {
+        setErrorCode("profile_incomplete");
+        setStatus("profile_incomplete");
+      } else if (resolution.kind === "unavailable") {
+        setErrorCode("profile_lookup_unavailable");
+        setStatus("profile_unavailable");
+      } else if (resolution.kind === "inactive") {
+        setErrorCode("profile_inactive");
+        setStatus("profile_inactive");
+      } else {
+        setErrorCode("profile_malformed");
+        setStatus("profile_malformed");
       }
     });
   }, []);
@@ -119,10 +155,112 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const completeCustomerProfile = useCallback(
+    async (input: CustomerProfileCompletionInput) => {
+      if (completionRef.current) return completionRef.current;
+      const operation = (async () => {
+        if (!hasFirebaseConfig()) {
+          setErrorCode("firebase_configuration_missing");
+          setStatus("configuration_missing");
+          return;
+        }
+        let auth: ReturnType<typeof getFirebaseServices>["auth"];
+        let db: ReturnType<typeof getFirebaseServices>["db"];
+        try {
+          ({ auth, db } = getFirebaseServices());
+        } catch (error) {
+          setErrorCode(safeErrorCode(error));
+          setStatus("configuration_missing");
+          return;
+        }
+        const user = auth.currentUser;
+        if (!user || activeUidRef.current !== user.uid) {
+          setProfile(null);
+          setErrorCode("authentication_required");
+          setStatus("unauthenticated");
+          return;
+        }
+        const canCompleteProfile =
+          authStatusRef.current === "profile_incomplete" ||
+          (authStatusRef.current === "profile_unavailable" &&
+            authErrorCodeRef.current === "profile_completion_unavailable");
+        if (!canCompleteProfile) return;
+        setProfileCompletionPending(true);
+        setStatus("profile_completion_pending");
+        try {
+          await completeCustomerProfileRequest(user, input);
+        } catch (error) {
+          if (error instanceof CustomerProfileError) {
+            if (error.code === "auth") {
+              await firebaseSignOut(auth);
+              setProfile(null);
+              setErrorCode("authentication_required");
+              setStatus("unauthenticated");
+            } else if (error.code === "conflict") {
+              setErrorCode("profile_conflict");
+              setStatus("profile_malformed");
+            } else if (error.code === "invalid_input" || error.code === "validation") {
+              setErrorCode("profile_completion_invalid");
+              setStatus("profile_incomplete");
+            } else {
+              setErrorCode("profile_completion_unavailable");
+              setStatus("profile_unavailable");
+            }
+          } else {
+            setErrorCode("profile_completion_unavailable");
+            setStatus("profile_unavailable");
+          }
+          return;
+        }
+        if (activeUidRef.current !== user.uid || auth.currentUser?.uid !== user.uid) {
+          return;
+        }
+        try {
+          const resolution = await loadAuthenticatedProfile(user, db);
+          if (resolution.kind === "valid") {
+            setProfile(resolution.profile);
+            setLocaleState(resolution.profile.locale);
+            setErrorCode(null);
+            setStatus("authenticated");
+          } else if (resolution.kind === "missing") {
+            setErrorCode("profile_incomplete");
+            setStatus("profile_incomplete");
+          } else if (resolution.kind === "unavailable") {
+            setErrorCode("profile_lookup_unavailable");
+            setStatus("profile_unavailable");
+          } else if (resolution.kind === "inactive") {
+            setErrorCode("profile_inactive");
+            setStatus("profile_inactive");
+          } else {
+            setErrorCode("profile_malformed");
+            setStatus("profile_malformed");
+          }
+        } catch {
+          setErrorCode("profile_lookup_unavailable");
+          setStatus("profile_unavailable");
+        }
+      })();
+      completionRef.current = operation;
+      try {
+        await operation;
+      } finally {
+        if (completionRef.current === operation) {
+          completionRef.current = null;
+          setProfileCompletionPending(false);
+        }
+      }
+    },
+    [],
+  );
+
   const signOut = useCallback(async () => {
-    if (!hasFirebaseConfig()) return;
-    await firebaseSignOut(getFirebaseServices().auth);
+    if (hasFirebaseConfig()) {
+      await firebaseSignOut(getFirebaseServices().auth);
+    }
+    activeUidRef.current = null;
     setProfile(null);
+    setErrorCode(null);
+    setProfileCompletionPending(false);
     setStatus("unauthenticated");
   }, []);
 
@@ -135,9 +273,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       profile,
       errorCode,
       signIn,
+      completeCustomerProfile,
+      profileCompletionPending,
       signOut,
     }),
-    [errorCode, locale, profile, setLocale, signIn, signOut, status],
+    [
+      completeCustomerProfile,
+      errorCode,
+      locale,
+      profile,
+      profileCompletionPending,
+      setLocale,
+      signIn,
+      signOut,
+      status,
+    ],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

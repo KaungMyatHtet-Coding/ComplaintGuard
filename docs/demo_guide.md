@@ -7,8 +7,24 @@ synthetic identities and synthetic complaints. Never expose the ignored seeded
 password file, Firebase ID tokens, `.env.local`, terminal environment values,
 service-account material, real complaint narratives, or raw CFPB Complaint IDs.
 
-Do not present public deployment, live historical neighbors, admin operations,
-production security, or automatic Myanmar routing as implemented.
+Do not present public deployment, live historical neighbors, production
+security, or automatic Myanmar routing as implemented. The Admin provisioning
+dashboard, trusted pending-account workflow, and read-only Staff/Manager
+directory are implemented but remain runtime-unverified; do not execute the
+owner-only bootstrap or activation scripts during the ordinary demo. The
+directory is Admin-only, exposes only safe operational profile fields, supports
+bounded filters/pagination, and has no account mutation controls. Pending/Active
+labels describe Firestore profile state only, not independently verified
+Firebase Auth state.
+
+R0.1 documentation approval does not add all-role Admin listing, account detail,
+account lifecycle mutations, Customer History, durable notifications, Staff
+claim/assignment enforcement, response-target calculations, escalation alerts,
+or a redesigned shell. The current Customer API still requires a future
+data-minimization projection, the current Staff workflow remains
+department-level, proactive notification delivery is unavailable, and no
+off-browser delivery should be claimed. `cloud_staging_not_adopted` and the
+no-budget Cloud deferral remain enforced.
 
 ## Prerequisites
 
@@ -56,11 +72,22 @@ Wait for Auth on `127.0.0.1:9099` and Firestore on `127.0.0.1:8185`.
 
 ### Terminal 2 — deterministic-role seed
 
+> **Local-emulator-only warning:** Deliberately start the Auth and Firestore
+> emulators first. The following command must never target the Cloud candidate
+> project `complaintguard`; the seeder fails closed unless the mode is exactly
+> `local-emulator`, the project is exactly `demo-complaintguard`, and both
+> emulator hosts are loopback. Remove Cloud credentials from this PowerShell
+> session before local mutation. Never paste service-account credentials into
+> commands or documentation.
+
 ```powershell
 Set-Location D:\ComplaintGuard
+Remove-Item Env:GOOGLE_APPLICATION_CREDENTIALS, Env:GOOGLE_APPLICATION_CREDENTIALS_JSON, Env:FIREBASE_ADMIN_CREDENTIALS, Env:FIREBASE_SERVICE_ACCOUNT_JSON -ErrorAction SilentlyContinue
+$env:APP_ENV = "local-emulator"
 $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:8185"
 $env:FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099"
 $env:GCLOUD_PROJECT = "demo-complaintguard"
+$env:GOOGLE_CLOUD_PROJECT = "demo-complaintguard"
 node.exe firebase\seed-emulator.mjs
 ```
 
@@ -75,8 +102,11 @@ account. Open the credential file only locally. Never project, record,
 screenshot, print, paste, or commit it.
 
 The automated emulator test harness uses the explicit `--reset-firestore` flag
-between isolated test phases. Do not use that flag for an ordinary demo reseed;
-the default command above preserves existing emulator tickets.
+between isolated test phases. That flag deletes local emulator Firestore state;
+do not use it against valued emulator history unless loss is intended. Reset
+does not restore previous complaints, messages, or feedback. The default
+command above preserves existing emulator tickets. Cloud credentials must be
+removed or unset before any local mutation.
 
 ## Local demo accounts
 
@@ -127,6 +157,8 @@ Set-Location D:\ComplaintGuard\frontend
 $env:NEXT_PUBLIC_FIREBASE_API_KEY = "emulator-only"
 $env:NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "demo-complaintguard.firebaseapp.com"
 $env:NEXT_PUBLIC_FIREBASE_PROJECT_ID = "demo-complaintguard"
+$env:NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "demo-complaintguard.firebasestorage.app"
+$env:NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "000000000000"
 $env:NEXT_PUBLIC_FIREBASE_APP_ID = "1:000:web:emulator"
 $env:NEXT_PUBLIC_APP_ENV = "local-emulator"
 $env:NEXT_PUBLIC_USE_FIREBASE_EMULATORS = "true"
@@ -135,7 +167,10 @@ npm.cmd run dev -- -H 127.0.0.1 -p 3000
 ```
 
 Visit `http://127.0.0.1:3000/login`. All roles use `/dashboard` after profile
-resolution. Admin is intentionally not seeded and has no operational workflow.
+resolution. Admin is intentionally not seeded. The Admin dashboard can prepare
+pending Staff/Manager accounts only when an active Admin profile exists, but the
+bootstrap, provisioning, activation, and browser-to-backend flows are not
+runtime verified.
 
 ## Approved synthetic examples
 
@@ -171,8 +206,44 @@ committed Day 10 evidence rather than claiming a live translation result.
 | 4:00–4:30 | Customer submits feedback. | Persisted feedback success. |
 | 4:30–5:15 | Customer submits ambiguous example. | Unassigned manual-review state. |
 | 5:15–6:05 | Manager reviews and overrides to `card_atm`. | Review row disappears; routing source becomes manager override. |
-| 6:05–7:20 | Manager shows operational and model/dataset analytics. | Real artifact metrics, pipeline, class distribution, confidence bins, matrix. |
+| 6:05–7:20 | Manager shows operational and Model & Dataset Analytics. | Real frozen metrics, equations, pipeline, class distribution, confidence bins, matrix, and separate controlled V1/V2 evidence. |
 | 7:20–8:00 | State limitations and optional warmed Myanmar evidence. | Manual-review-only wording; similarity shown as local/not deployed. |
+
+### Planned teacher-facing evidence sequence
+
+The following is a planned explanation sequence for a teacher demonstration,
+not completed browser or Emulator runtime evidence. Use only the committed
+aggregate-safe artifacts and do not expose complaint text, case rationale,
+private identifiers, credentials, or raw dataset narratives.
+
+1. Open the Manager-only **Model & Dataset Analytics** workspace.
+2. Explain the TF, IDF, TF-IDF, vector normalization, and MultinomialNB
+   equations, including `alpha=0.5` and the `0.60` operational threshold.
+3. Show the **Frozen offline evaluation** separately, including its official
+   82.7934% held-out accuracy and macro-F1 limitation.
+4. Show **Controlled V1 — Short-English Challenge** and explain its `2/6`
+   classifier matches, `1/6` automatic coverage, `0/1` correct automatic
+   routes, and `5/6` manual review.
+5. Show **Controlled V2 — Long-English Supported-Use Demonstration** and
+   explain that `2/2 (100%)` is correctness among automatically routed cases,
+   while only `2/6` cases received automatic routing.
+6. Explain manual review as a safety policy: low-confidence or unsupported
+   language cases are not automatic-routing failures when no automatic route
+   occurred, and final routes remain unset when no Manager assignment was
+   simulated.
+
+Keep V1 and V2 separate, do not call either result model accuracy, and do not
+suggest that complaint length alone caused their difference. Confidence values
+are uncalibrated; the demonstrations are synthetic, small-sample, not official
+evaluation, not production evidence, and not live-user performance.
+
+The Customer, Staff, Login/Register, and Manager UI/UX refinements described in
+Slices A-D are implemented and automated-test verified. They have not received
+browser-based visual verification in this environment. Do not present mobile
+layout, autofill, hover behavior, focus appearance, or document-level overflow
+as passed evidence. Registration, Admin provisioning, bootstrap, activation,
+and the Admin directory remain Emulator-unverified; the local Firebase CLI
+startup blocker remains documented above.
 
 ## Failure and recovery
 
@@ -269,6 +340,13 @@ non-overwrite contract remains in force.
 
 ### Preserve emulator data across a restart
 
+> **Reset/import warning:** This procedure is local-emulator-only and must never
+> target `complaintguard`. `--reset-firestore` deletes local emulator Firestore
+> state and must not be used with valued history unless loss is intended. It
+> does not restore previous complaints, messages, or feedback. Remove Cloud
+> credentials from the shell first, and never paste service-account credentials
+> into commands or documentation.
+
 Normal `emulators:start` without `--import` starts an empty Auth/Firestore
 session. The normal seed recreates synthetic identities and matching profiles,
 but it does not restore tickets, messages, events, actions, or feedback.
@@ -329,7 +407,16 @@ after import. Keep the export local and ignored. Never:
 
 - Historical-neighbor results or similarity percentages
 - Coverage over all mapped/raw complaints
-- Admin operations
+- Runtime Admin provisioning, Staff/Manager directory, bootstrap, and
+  activation (implemented locally but not runtime verified)
+- All-role Admin directory and read-only account detail drawer (implemented
+  locally but not runtime verified); account lifecycle mutations, Customer
+  History, durable notifications, Staff claim/assignment enforcement,
+  response-target calculations, escalation alerts, and redesigned navigation
+  remain approved design only and must not be demonstrated as live
+- R2C0 Admin disable/reactivate, Staff department reassignment, opaque account
+  targeting, and Firebase Auth/Firestore lifecycle recovery (approved contract
+  only; not implemented or runtime verified)
 - Production Firebase or public deployment
 - QR code
 - Automatic Myanmar routing

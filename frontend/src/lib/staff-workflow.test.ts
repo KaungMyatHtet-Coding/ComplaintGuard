@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createSubmissionGuard } from "./complaint-submission";
 import {
@@ -16,6 +16,10 @@ function response(body: unknown, status = 200) {
 }
 
 describe("staff workflow API client", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
+  });
+
   it("serializes filters without adding a department selector", async () => {
     vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://localhost:8000");
     const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -42,6 +46,13 @@ describe("staff workflow API client", () => {
       return response({ ticketId: "ticket/synthetic" });
     });
     await expect(loadStaffTicket("token", "ticket/synthetic", fetcher)).resolves.toMatchObject({ ticketId: "ticket/synthetic" });
+  });
+
+  it("does not fetch for a non-loopback local API URL", async () => {
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "https://api.example.test");
+    const fetcher = vi.fn();
+    await expect(loadStaffTickets("token", {}, fetcher)).rejects.toMatchObject({ code: "backend" });
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("sends only reply text and idempotency action ID", async () => {

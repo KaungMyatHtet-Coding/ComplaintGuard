@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from google.auth.credentials import AnonymousCredentials
+from google.cloud import firestore
+
 from app.config import MODEL_SHA256
 from app.customer_workflow import (
+    CustomerHistoryDataError,
     CustomerWorkflowService,
     FeedbackAlreadySubmitted,
     FirebaseAdminCustomerBackend,
@@ -22,6 +28,10 @@ from app.manager_workflow import (
     TicketNotFound as ManagerTicketNotFound,
 )
 from app.model import FrozenDepartmentClassifier
+from app.notifications import (
+    build_customer_notification_request,
+    notification_reference,
+)
 from app.routing import RoutingPrediction, TrustedRoutingInference
 from app.schemas import (
     CustomerFeedbackRequest,
@@ -41,34 +51,160 @@ from app.ticketing import (
     FirebaseAdminTicketBackend,
     PersistenceError,
 )
-from google.auth.credentials import AnonymousCredentials
-from google.cloud import firestore
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("FIRESTORE_EMULATOR_HOST"),
     reason="requires the local Firestore Emulator",
 )
 
+EMULATOR_CUSTOMER_PROFILE_KEYS = (
+    "customerA",
+    "customerB",
+    "customerMessages",
+    "customerRouting",
+    "customerRoutingE2E",
+)
+RUN_OWNED_NOTIFICATION_REFS: set[str] = set()
+RUN_OWNED_PROFILE_IDS: dict[str, str] = {}
+RUN_OWNED_PATHS: set[str] = set()
+RUN_OWNED_NAMESPACE = ""
+OWNED_TICKET_CHILD_IDS = {
+    "messages": {
+        "cross-role-staff-reply",
+        "cross-role-customer-reply",
+        "legacy-customer-reply",
+        "reply_staff-reply-action",
+        "customer-message-action",
+        "staff-reply-action",
+    },
+    "events": {
+        "reply_staff-reply-action",
+        "staff-transition-action",
+        "staff-request-action",
+        "manager-override-action",
+        "manager-routing-approval",
+        "model_v1_routing",
+    },
+    "actions": {
+        "customer-message-action",
+        "feedback_customer-feedback-action",
+        "cross-role-staff-reply",
+        "cross-role-customer-reply",
+        "staff-reply-action",
+        "staff-transition-action",
+        "staff-request-action",
+        "foreign-reply-action",
+        "invalid-transition-action",
+        "manager-override-action",
+        "manager-routing-approval",
+        "model_v1_routing",
+        "emulator-submission-001",
+        "emulator-submission-002",
+    },
+}
+
+
+def profile_id(key: str) -> str:
+    return RUN_OWNED_PROFILE_IDS[key]
+
+
+def track_ticket(ticket_id_value: str) -> str:
+    RUN_OWNED_PATHS.add(f"tickets/{ticket_id_value}")
+    RUN_OWNED_PATHS.add(f"feedback/fb_{ticket_id_value}")
+    for collection, document_ids in OWNED_TICKET_CHILD_IDS.items():
+        for document_id in document_ids:
+            RUN_OWNED_PATHS.add(f"tickets/{ticket_id_value}/{collection}/{document_id}")
+    return ticket_id_value
+
 
 @pytest.fixture(scope="session")
 def emulator_db():
+    global RUN_OWNED_NAMESPACE
+
     client = firestore.Client(
         project=os.getenv("GCLOUD_PROJECT", "demo-complaintguard"),
         credentials=AnonymousCredentials(),
     )
+    created_profile_ids: list[str] = []
+    RUN_OWNED_NOTIFICATION_REFS.clear()
+    RUN_OWNED_PROFILE_IDS.clear()
+    RUN_OWNED_PATHS.clear()
+    run_namespace = f"adapter-{uuid4().hex}"
+    RUN_OWNED_NAMESPACE = run_namespace
+    RUN_OWNED_PROFILE_IDS.update(
+        {key: f"{run_namespace}-{key}" for key in EMULATOR_CUSTOMER_PROFILE_KEYS}
+    )
     try:
+        profile_time = datetime.now(timezone.utc)
+        for uid in RUN_OWNED_PROFILE_IDS.values():
+            profile_ref = client.collection("users").document(uid)
+            if profile_ref.get().exists:
+                raise AssertionError("synthetic emulator customer profile collision")
+            profile_ref.set(
+                {
+                    "email": f"{uid}@complaintguard.test",
+                    "displayName": "Synthetic Emulator Customer",
+                    "locale": "en",
+                    "role": "customer",
+                    "departmentId": None,
+                    "active": True,
+                    "accountState": "active",
+                    "createdAt": profile_time,
+                    "updatedAt": profile_time,
+                }
+            )
+            created_profile_ids.append(uid)
         yield client
     finally:
+        cleanup_errors: list[Exception] = []
+        for notification_ref in sorted(RUN_OWNED_NOTIFICATION_REFS):
+            try:
+                client.collection("notifications").document(notification_ref).delete()
+            except Exception as exc:  # pragma: no cover - exercised only on cleanup failure  # noqa: BLE001
+                cleanup_errors.append(exc)
+        for path in sorted(RUN_OWNED_PATHS, key=lambda value: value.count("/"), reverse=True):
+            collection, document_id = path.split("/", 1)
+            try:
+                client.collection(collection).document(document_id).delete()
+            except Exception as exc:  # pragma: no cover - exercised only on cleanup failure  # noqa: BLE001
+                cleanup_errors.append(exc)
+        for uid in created_profile_ids:
+            try:
+                client.collection("users").document(uid).delete()
+            except Exception as exc:  # pragma: no cover - exercised only on cleanup failure  # noqa: BLE001
+                cleanup_errors.append(exc)
+        RUN_OWNED_NOTIFICATION_REFS.clear()
+        RUN_OWNED_PROFILE_IDS.clear()
+        RUN_OWNED_PATHS.clear()
+        RUN_OWNED_NAMESPACE = ""
         client.close()
+        if cleanup_errors:
+            raise AssertionError("synthetic emulator cleanup failed") from cleanup_errors[0]
 
 
-def ticket_id(prefix: str) -> str:
-    return f"{prefix}-{uuid4().hex}"
+def _ticket_id_for_namespace(namespace: str, logical_key: str) -> str:
+    if not namespace or not logical_key:
+        raise ValueError("ticket fixture namespace and logical key are required")
+    digest = hashlib.sha256(f"{namespace}:{logical_key}".encode()).hexdigest()[:32]
+    return f"ticket_{digest}"
+
+
+def ticket_id(logical_key: str) -> str:
+    return track_ticket(_ticket_id_for_namespace(RUN_OWNED_NAMESPACE, logical_key))
+
+
+def test_ticket_id_fixture_contract() -> None:
+    first = _ticket_id_for_namespace("adapter-session-one", "customer-resolved")
+    assert first == _ticket_id_for_namespace("adapter-session-one", "customer-resolved")
+    assert re.fullmatch(r"ticket_[a-f0-9]{32}", first)
+    assert first != _ticket_id_for_namespace("adapter-session-one", "customer-message-case")
+    assert first != _ticket_id_for_namespace("adapter-session-two", "customer-resolved")
 
 
 def base_ticket(*, customer_id: str, department_id: str | None, status: str) -> dict:
     now = datetime.now(timezone.utc)
-    return {
+    is_routed = department_id is not None
+    ticket = {
         "customerId": customer_id,
         "complaintText": "Synthetic emulator complaint",
         "inputLocale": "en",
@@ -78,13 +214,59 @@ def base_ticket(*, customer_id: str, department_id: str | None, status: str) -> 
         "priority": "normal",
         "predictedDepartmentId": None,
         "predictionConfidence": None,
-        "routingSource": "pending" if department_id is None else "manual_review",
+        "routingSource": "pending",
         "escalated": False,
         "resolutionSummary": None,
         "createdAt": now,
         "updatedAt": now,
         "resolvedAt": now if status == "resolved" else None,
     }
+    if is_routed:
+        ticket.update(
+            {
+                "predictedDepartmentId": department_id,
+                "predictionConfidence": 0.94,
+                "assignedDepartmentId": department_id,
+                "predictionModelVersion": "v1",
+                "routingSource": "model",
+            }
+        )
+    return ticket
+
+
+def test_base_ticket_routing_fixture_contract() -> None:
+    customer_id = "synthetic-customer"
+
+    submitted_id = _ticket_id_for_namespace("adapter-routing-contract", "submitted")
+    submitted = base_ticket(customer_id=customer_id, department_id=None, status="submitted")
+    submitted["id"] = submitted_id
+    CustomerWorkflowService._validate_ticket_persistence(submitted, customer_id, submitted_id)
+    assert submitted["routingSource"] == "pending"
+    assert submitted["predictedDepartmentId"] is None
+    assert submitted["predictionConfidence"] is None
+    assert "assignedDepartmentId" not in submitted
+
+    routed_id = _ticket_id_for_namespace("adapter-routing-contract", "in-progress")
+    routed = base_ticket(customer_id=customer_id, department_id="card_atm", status="in_progress")
+    routed["id"] = routed_id
+    CustomerWorkflowService._validate_ticket_persistence(routed, customer_id, routed_id)
+    assert routed["routingSource"] == "model"
+    assert routed["predictedDepartmentId"] == routed["departmentId"]
+    assert routed["assignedDepartmentId"] == routed["departmentId"]
+    assert routed["predictionConfidence"] == 0.94
+
+    resolved_id = _ticket_id_for_namespace("adapter-routing-contract", "resolved")
+    resolved = base_ticket(customer_id=customer_id, department_id="card_atm", status="resolved")
+    resolved["id"] = resolved_id
+    CustomerWorkflowService._validate_ticket_persistence(resolved, customer_id, resolved_id)
+    assert resolved["createdAt"] <= resolved["resolvedAt"] <= resolved["updatedAt"]
+
+    contradictory = dict(routed)
+    contradictory["routingSource"] = "manual_review"
+    with pytest.raises(CustomerHistoryDataError, match="routing state is invalid"):
+        CustomerWorkflowService._validate_ticket_persistence(
+            contradictory, customer_id, routed_id
+        )
 
 
 def test_customer_ownership_and_message_transaction_are_emulator_backed(emulator_db):
@@ -92,25 +274,25 @@ def test_customer_ownership_and_message_transaction_are_emulator_backed(emulator
     foreign_id = ticket_id("customer-foreign")
     emulator_db.collection("tickets").document(owned_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="in_progress"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="in_progress"
         )
     )
     emulator_db.collection("tickets").document(foreign_id).set(
-        base_ticket(customer_id="customer-b", department_id=None, status="submitted")
+        base_ticket(customer_id=profile_id("customerB"), department_id=None, status="submitted")
     )
     backend = FirebaseAdminCustomerBackend(db=emulator_db)
     service = CustomerWorkflowService(backend)
 
-    assert {item.id for item in service.list_tickets("customer-a")} == {owned_id}
+    assert {item.id for item in service.list_tickets(profile_id("customerA"))} == {owned_id}
     with pytest.raises(TicketNotFound):
-        service.get_ticket_detail("customer-a", foreign_id)
+        service.get_ticket_detail(profile_id("customerA"), foreign_id)
 
     request = CustomerMessageRequest(
         messageText="Synthetic follow-up",
         actionId="customer-message-action",
     )
-    first = service.send_message("customer-a", owned_id, request)
-    second = service.send_message("customer-a", owned_id, request)
+    first = service.send_message(profile_id("customerA"), owned_id, request)
+    second = service.send_message(profile_id("customerA"), owned_id, request)
     assert first == second
     messages = list(
         emulator_db.collection("tickets")
@@ -119,16 +301,14 @@ def test_customer_ownership_and_message_transaction_are_emulator_backed(emulator
         .stream()
     )
     actions = list(
-        emulator_db.collection("tickets")
-        .document(owned_id)
-        .collection("actions")
+        emulator_db.collection("customerMessageActions")
         .stream()
     )
     assert [item.id for item in messages] == ["customer-message-action"]
-    assert [item.id for item in actions] == ["message_customer-message-action"]
+    assert [item.id for item in actions] == ["customer-message-action"]
 
     with pytest.raises(TicketNotFound):
-        service.send_message("customer-b", owned_id, request)
+        service.send_message(profile_id("customerB"), owned_id, request)
     assert (
         len(
             list(
@@ -146,7 +326,7 @@ def test_customer_feedback_transaction_and_retry_are_emulator_backed(emulator_db
     resolved_id = ticket_id("customer-resolved")
     emulator_db.collection("tickets").document(resolved_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="resolved"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="resolved"
         )
     )
     service = CustomerWorkflowService(FirebaseAdminCustomerBackend(db=emulator_db))
@@ -156,12 +336,12 @@ def test_customer_feedback_transaction_and_retry_are_emulator_backed(emulator_db
         actionId="customer-feedback-action",
     )
 
-    first = service.submit_feedback("customer-a", resolved_id, request)
-    second = service.submit_feedback("customer-a", resolved_id, request)
+    first = service.submit_feedback(profile_id("customerA"), resolved_id, request)
+    second = service.submit_feedback(profile_id("customerA"), resolved_id, request)
     assert first == second
     with pytest.raises(FeedbackAlreadySubmitted):
         service.submit_feedback(
-            "customer-a",
+            profile_id("customerA"),
             resolved_id,
             CustomerFeedbackRequest(
                 rating=1,
@@ -184,7 +364,7 @@ def test_cross_role_message_schema_and_retry_are_emulator_backed(emulator_db):
     ticket_ref = emulator_db.collection("tickets").document(current_id)
     ticket_ref.set(
         base_ticket(
-            customer_id="customer-messages",
+            customer_id=profile_id("customerMessages"),
             department_id="card_atm",
             status="in_progress",
         )
@@ -209,11 +389,16 @@ def test_cross_role_message_schema_and_retry_are_emulator_backed(emulator_db):
         FirebaseAdminCustomerBackend(db=emulator_db)
     )
     customer_detail = customer_service.get_ticket_detail(
-        "customer-messages", current_id
+        profile_id("customerMessages"), current_id
     )
-    assert [message.text for message in customer_detail.messages] == [
+    assert [message.body for message in customer_detail.messages] == [
         "Complete staff reply."
     ]
+    assert all(
+        set(message.model_dump(by_alias=True)) == {"senderRole", "body", "createdAt"}
+        and not hasattr(message, "text")
+        for message in customer_detail.messages
+    )
 
     customer_time = datetime.now(timezone.utc) + timedelta(seconds=1)
     customer_request = CustomerMessageRequest(
@@ -221,10 +406,10 @@ def test_cross_role_message_schema_and_retry_are_emulator_backed(emulator_db):
         actionId="cross-role-customer-reply",
     )
     first_customer = customer_service.send_message(
-        "customer-messages", current_id, customer_request, now=customer_time
+        profile_id("customerMessages"), current_id, customer_request, now=customer_time
     )
     duplicate_customer = customer_service.send_message(
-        "customer-messages", current_id, customer_request, now=customer_time
+        profile_id("customerMessages"), current_id, customer_request, now=customer_time
     )
     assert first_customer == duplicate_customer
 
@@ -257,7 +442,7 @@ def test_cross_role_message_schema_and_retry_are_emulator_backed(emulator_db):
 
     ticket_ref.collection("messages").document("legacy-customer-reply").set(
         {
-            "senderId": "customer-messages",
+            "senderId": profile_id("customerMessages"),
             "senderRole": "customer",
             "text": "Existing legacy customer reply.",
             "createdAt": customer_time + timedelta(seconds=1),
@@ -281,22 +466,22 @@ def test_staff_mutations_audit_retry_and_rollback_are_emulator_backed(emulator_d
     tickets = emulator_db.collection("tickets")
     tickets.document(reply_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="in_progress"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="in_progress"
         )
     )
     tickets.document(transition_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="triaged"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="triaged"
         )
     )
     tickets.document(request_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="in_progress"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="in_progress"
         )
     )
     tickets.document(foreign_id).set(
         base_ticket(
-            customer_id="customer-b", department_id="loan_credit", status="in_progress"
+            customer_id=profile_id("customerB"), department_id="loan_credit", status="in_progress"
         )
     )
     backend = FirebaseAdminStaffBackend(db=emulator_db)
@@ -381,7 +566,7 @@ def test_staff_mutations_audit_retry_and_rollback_are_emulator_backed(emulator_d
     invalid_id = ticket_id("staff-invalid-transition")
     tickets.document(invalid_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="triaged"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="triaged"
         )
     )
     with pytest.raises(InvalidTransition):
@@ -409,7 +594,7 @@ def test_manager_override_audit_retry_and_missing_ticket_rollback_are_emulator_b
     tickets = emulator_db.collection("tickets")
     tickets.document(managed_id).set(
         base_ticket(
-            customer_id="customer-a", department_id="card_atm", status="triaged"
+            customer_id=profile_id("customerA"), department_id="card_atm", status="triaged"
         )
     )
     backend = FirebaseAdminManagerBackend(db=emulator_db)
@@ -463,7 +648,7 @@ def test_prediction_routing_transaction_and_staff_visibility_are_emulator_backed
     for current_id in (high_id, low_id, failed_id):
         tickets.document(current_id).set(
             base_ticket(
-                customer_id="customer-routing", department_id=None, status="submitted"
+                customer_id=profile_id("customerRouting"), department_id=None, status="submitted"
             )
         )
 
@@ -558,11 +743,11 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
     class EmulatorSubmissionBackend(FirebaseAdminTicketBackend):
         def verify_id_token(self, token: str) -> str:
             assert token == "emulator-token"
-            return "customer-routing-e2e"
+            return profile_id("customerRoutingE2E")
 
         def get_user_profile(self, uid: str) -> dict:
-            assert uid == "customer-routing-e2e"
-            return {"active": True, "role": "customer"}
+            assert uid == profile_id("customerRoutingE2E")
+            return {"active": True, "accountState": "active", "role": "customer"}
 
     classifier = FrozenDepartmentClassifier.load(artifact, expected_sha256=MODEL_SHA256)
     service = ComplaintSubmissionService(
@@ -577,6 +762,16 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
             actionId="emulator-submission-001",
         ),
     )
+    track_ticket(result.complaint_id)
+    first_notification_ref = notification_reference(
+        build_customer_notification_request(
+            notification_type="complaint_received",
+            recipient_uid=profile_id("customerRoutingE2E"),
+            ticket_ref=result.complaint_id,
+            source_key=f"ticket:{result.complaint_id}:complaint_received",
+        )
+    )
+    RUN_OWNED_NOTIFICATION_REFS.add(first_notification_ref)
     retry = service.submit(
         authorization="Bearer emulator-token",
         payload=SubmitComplaintRequest(
@@ -593,18 +788,30 @@ def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db
             actionId="emulator-submission-002",
         ),
     )
+    track_ticket(separate.complaint_id)
+    second_notification_ref = notification_reference(
+        build_customer_notification_request(
+            notification_type="complaint_received",
+            recipient_uid=profile_id("customerRoutingE2E"),
+            ticket_ref=separate.complaint_id,
+            source_key=f"ticket:{separate.complaint_id}:complaint_received",
+        )
+    )
+    RUN_OWNED_NOTIFICATION_REFS.add(second_notification_ref)
     assert retry.complaint_id == result.complaint_id
     assert separate.complaint_id != result.complaint_id
     ticket = emulator_db.collection("tickets").document(result.complaint_id).get()
-    assert ticket.get("customerId") == "customer-routing-e2e"
+    assert ticket.get("customerId") == profile_id("customerRoutingE2E")
     assert ticket.get("predictedDepartmentId") == "fraud_security"
     assert ticket.get("predictionConfidence") > 0.60
     assert ticket.get("departmentId") == "fraud_security"
     assert ticket.get("routingSource") == "model"
     assert ticket.get("status") == "triaged"
+    assert emulator_db.collection("notifications").document(first_notification_ref).get().exists
+    assert emulator_db.collection("notifications").document(second_notification_ref).get().exists
     owned = list(
         emulator_db.collection("tickets")
-        .where("customerId", "==", "customer-routing-e2e")
+        .where("customerId", "==", profile_id("customerRoutingE2E"))
         .stream()
     )
     assert {item.id for item in owned} == {

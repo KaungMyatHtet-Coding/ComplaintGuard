@@ -9,6 +9,16 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
+from app.account_state import (
+    AccountStateValidationError,
+    validate_profile_account_state,
+)
+from app.firebase_environment import (
+    CloudStagingEnvironment,
+    FirebaseEnvironmentSafetyError,
+    LocalEmulatorEnvironment,
+    validate_firebase_environment,
+)
 from app.schemas import DepartmentId, SubmitComplaintRequest
 
 if TYPE_CHECKING:
@@ -59,42 +69,31 @@ class TicketBackend(Protocol):
 
 
 def firebase_admin_clients() -> tuple[Any, Any, object]:
-    """Create production clients or an explicitly isolated local-emulator pair."""
+    """Create only an explicitly validated local-emulator client pair."""
+
+    try:
+        environment = validate_firebase_environment(os.environ)
+    except FirebaseEnvironmentSafetyError as exc:
+        raise PersistenceError(f"firebase_environment_blocked:{exc}") from exc
+    if isinstance(environment, CloudStagingEnvironment):
+        raise PersistenceError("cloud_staging_not_adopted")
+    if not isinstance(environment, LocalEmulatorEnvironment):
+        raise PersistenceError("firebase_environment_blocked:unsupported_environment")
 
     import firebase_admin
     from firebase_admin import auth, firestore
-
-    firestore_emulator = os.getenv("FIRESTORE_EMULATOR_HOST")
-    auth_emulator = os.getenv("FIREBASE_AUTH_EMULATOR_HOST")
-    project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCLOUD_PROJECT")
-    if firestore_emulator or auth_emulator:
-        if not firestore_emulator or not auth_emulator:
-            raise PersistenceError("both Firebase emulators must be configured")
-        if project_id != "demo-complaintguard":
-            raise PersistenceError("emulators require the isolated demo project")
-        try:
-            firebase_admin.get_app()
-        except ValueError:
-            try:
-                firebase_admin.initialize_app(options={"projectId": project_id})
-            except ValueError:
-                firebase_admin.get_app()
-        from google.auth.credentials import AnonymousCredentials
-        from google.cloud import firestore as google_firestore
-
-        db = google_firestore.Client(
-            project=project_id, credentials=AnonymousCredentials()
-        )
-        return auth, db, firestore.SERVER_TIMESTAMP
-
     try:
-        firebase_admin.get_app()
+        app = firebase_admin.get_app()
     except ValueError:
-        try:
-            firebase_admin.initialize_app()
-        except ValueError:
-            firebase_admin.get_app()
-    return auth, firestore.client(), firestore.SERVER_TIMESTAMP
+        from google.auth.credentials import AnonymousCredentials
+
+        app = firebase_admin.initialize_app(
+            credential=AnonymousCredentials(),
+            options={"projectId": environment.project_id},
+        )
+    if app.project_id != environment.project_id:
+        raise PersistenceError("firebase_app_project_id_mismatch")
+    return auth.Client(app=app), firestore.client(app=app), firestore.SERVER_TIMESTAMP
 
 
 def run_firestore_transaction(db: Any, operation: Any) -> Any:
@@ -187,6 +186,10 @@ class ComplaintSubmissionService:
             raise PermissionError("active customer profile required")
         if profile.get("role") != "customer":
             raise PermissionError("customer role required")
+        try:
+            validate_profile_account_state(profile)
+        except AccountStateValidationError:
+            raise PermissionError("customer profile state is invalid") from None
 
         document = build_initial_ticket(
             customer_id=customer_id,
@@ -240,13 +243,20 @@ def _bearer_token(authorization: str | None) -> str:
 class FirebaseAdminTicketBackend:
     """Firebase Admin adapter initialized from Application Default Credentials."""
 
-    def __init__(self, db: Any = None) -> None:
+    def __init__(self, db: Any = None, notification_writer: Any = None) -> None:
         if db is not None:
             self._db = db
             from firebase_admin import firestore
 
             self.server_timestamp = firestore.SERVER_TIMESTAMP
             self._auth = None
+            if notification_writer is None:
+                from app.notifications import FirebaseAdminNotificationBackend
+
+                notification_writer = FirebaseAdminNotificationBackend(
+                    db=self._db, server_timestamp=self.server_timestamp
+                )
+            self._notification_writer = notification_writer
             return
         try:
             self._auth, self._db, self.server_timestamp = firebase_admin_clients()
@@ -256,6 +266,13 @@ class FirebaseAdminTicketBackend:
                 type(exc).__name__,
             )
             raise PersistenceError("Firebase Admin is not configured") from exc
+        if notification_writer is None:
+            from app.notifications import FirebaseAdminNotificationBackend
+
+            notification_writer = FirebaseAdminNotificationBackend(
+                db=self._db, server_timestamp=self.server_timestamp
+            )
+        self._notification_writer = notification_writer
 
     def verify_id_token(self, token: str) -> str:
         decoded = self._auth.verify_id_token(token)
@@ -274,6 +291,10 @@ class FirebaseAdminTicketBackend:
         ).hexdigest()[:32]
         ticket_id = f"ticket_{digest}"
         reference = self._db.collection("tickets").document(ticket_id)
+        from app.notifications import (
+            build_customer_notification_request,
+            stage_customer_notification,
+        )
 
         def operation(transaction: Any) -> str:
             snapshot = next(transaction.get(reference))
@@ -281,7 +302,31 @@ class FirebaseAdminTicketBackend:
                 existing = snapshot.to_dict()
                 if existing.get("customerId") != document["customerId"]:
                     raise PersistenceError("submission ownership conflict")
+                stage_customer_notification(
+                    transaction=transaction,
+                    db=self._db,
+                    writer=self._notification_writer,
+                    require_active_profile=True,
+                    request=build_customer_notification_request(
+                        notification_type="complaint_received",
+                        recipient_uid=existing["customerId"],
+                        ticket_ref=ticket_id,
+                        source_key=f"ticket:{ticket_id}:complaint_received",
+                    ),
+                )
                 return ticket_id
+            stage_customer_notification(
+                transaction=transaction,
+                db=self._db,
+                writer=self._notification_writer,
+                require_active_profile=True,
+                request=build_customer_notification_request(
+                    notification_type="complaint_received",
+                    recipient_uid=document["customerId"],
+                    ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:complaint_received",
+                ),
+            )
             transaction.set(reference, document)
             return ticket_id
 
@@ -330,6 +375,24 @@ class FirebaseAdminTicketBackend:
                 status=status,
                 routing_source=routing_source,
             )
+            if department_id is not None:
+                from app.notifications import (
+                    build_customer_notification_request,
+                    stage_customer_notification,
+                )
+
+                stage_customer_notification(
+                    transaction=transaction,
+                    db=self._db,
+                    writer=self._notification_writer,
+                    request=build_customer_notification_request(
+                        notification_type="department_assigned",
+                        recipient_uid=ticket["customerId"],
+                        ticket_ref=ticket_id,
+                        source_key=f"ticket:{ticket_id}:department:{department_id}:model_v1_routing",
+                        department_key=department_id,
+                    ),
+                )
             transaction.update(reference, updates)
             transaction.set(
                 event_reference,

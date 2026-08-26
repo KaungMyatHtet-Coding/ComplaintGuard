@@ -84,7 +84,7 @@ export function StaffTicketQueue() {
   }, [reload]);
 
   return (
-    <section className="unified-workspace" aria-labelledby="staff-queue-title">
+    <section id="staff-queue" className="unified-workspace" aria-labelledby="staff-queue-title">
       <div className="staff-queue-panel">
         <h2 id="staff-queue-title">{t("staffQueueTitle")}</h2>
         <div className="staff-filters" aria-label={t("staffFiltersLabel")}>
@@ -125,7 +125,7 @@ export function StaffTicketQueue() {
           ))}
         </div>
       </div>
-      {selectedId ? <StaffTicketDetail ticketId={selectedId} getToken={currentToken} onChanged={reload} /> : <div className="staff-detail-panel empty-state">{t("staffSelectTicket")}</div>}
+      {selectedId ? <StaffTicketDetail key={selectedId} ticketId={selectedId} getToken={currentToken} onChanged={reload} /> : <div className="staff-detail-panel empty-state">{t("staffSelectTicket")}</div>}
     </section>
   );
 }

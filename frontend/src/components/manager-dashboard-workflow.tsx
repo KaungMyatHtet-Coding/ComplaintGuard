@@ -54,6 +54,19 @@ export function ManagerDashboardWorkflow() {
     });
   }, [loadData]);
 
+  useEffect(() => {
+    const updateTabFromHash = () => {
+      const hash = window.location.hash;
+      if (hash === "#manager-review") setActiveTab("review");
+      else if (hash === "#manager-analytics") setActiveTab("overview");
+      else if (hash === "#manager-model-evidence") setActiveTab("model");
+      else if (hash === "#manager-operations") setActiveTab("overview");
+    };
+    updateTabFromHash();
+    window.addEventListener("hashchange", updateTabFromHash);
+    return () => window.removeEventListener("hashchange", updateTabFromHash);
+  }, []);
+
   const handleOverride = async (
     ticketId: string,
     newDeptId: string,
@@ -81,7 +94,8 @@ export function ManagerDashboardWorkflow() {
   }
 
   return (
-    <div className="cust-layout" style={{ maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+    <div id="manager-workspace" className="cust-layout manager-dashboard-workspace">
+      <span id="manager-analytics" className="dashboard-anchor-target" aria-hidden="true" />
       {error && (
         <div className="cust-error" role="alert">
           {error}
@@ -97,6 +111,7 @@ export function ManagerDashboardWorkflow() {
       <div className="cust-tabs">
         <button
           type="button"
+          id="manager-operations"
           className={`cust-tab ${activeTab === "overview" ? "active" : ""}`}
           onClick={() => setActiveTab("overview")}
         >
@@ -104,6 +119,7 @@ export function ManagerDashboardWorkflow() {
         </button>
         <button
           type="button"
+          id="manager-review"
           className={`cust-tab ${activeTab === "review" ? "active" : ""}`}
           onClick={() => setActiveTab("review")}
         >
@@ -111,6 +127,7 @@ export function ManagerDashboardWorkflow() {
         </button>
         <button
           type="button"
+          id="manager-model-evidence"
           className={`cust-tab ${activeTab === "model" ? "active" : ""}`}
           onClick={() => setActiveTab("model")}
         >

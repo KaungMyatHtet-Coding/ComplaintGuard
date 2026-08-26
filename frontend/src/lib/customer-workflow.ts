@@ -1,41 +1,75 @@
 export type CustomerTicketSummary = {
-  id: string;
-  status: string;
-  predictedDepartmentId?: string | null;
-  predictionConfidence?: number | null;
-  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
-  assignedDepartmentId?: string | null;
+  complaintId: string;
+  status: CustomerTicketStatus;
+  departmentId: CustomerDepartmentId | null;
   createdAt: string;
   updatedAt: string;
-  summaryText: string;
+  resolvedAt: string | null;
+};
+
+export type CustomerTicketStatus =
+  | "submitted"
+  | "triaged"
+  | "in_progress"
+  | "awaiting_customer"
+  | "resolved"
+  | "closed";
+
+export type CustomerDepartmentId =
+  | "transfer_payment"
+  | "account_support"
+  | "card_atm"
+  | "fraud_security"
+  | "loan_credit"
+  | "general_support";
+
+export type CustomerTicketHistoryPage = {
+  tickets: CustomerTicketSummary[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
+export type CustomerHistoryFilters = {
+  status: CustomerTicketStatus | null;
+  departmentId: CustomerDepartmentId | null;
 };
 
 export type CustomerMessageItem = {
-  id: string;
-  senderId: string;
-  senderRole: "customer" | "staff" | "manager" | "system";
-  text: string;
+  senderRole: "customer" | "support_team";
+  body: string;
   createdAt: string;
+};
+
+export type CustomerTimelineType =
+  | "complaint_received"
+  | "assigned_to_team"
+  | "review_started"
+  | "information_requested"
+  | "team_replied"
+  | "customer_replied"
+  | "complaint_resolved"
+  | "complaint_closed";
+
+export type CustomerTimelineItem = {
+  type: CustomerTimelineType;
+  occurredAt: string;
+  departmentId: CustomerDepartmentId | null;
 };
 
 export type CustomerTicketDetail = {
   id: string;
-  customerId: string;
-  status: string;
+  status: CustomerTicketStatus;
   complaintText: string;
-  inputLocale: string;
-  predictedDepartmentId?: string | null;
-  predictionConfidence?: number | null;
-  routingSource?: "model" | "manual_review" | "manager_override" | "pending";
-  assignedDepartmentId?: string | null;
-  priority: string;
+  inputLocale: "en" | "my";
+  departmentId: CustomerDepartmentId | null;
   createdAt: string;
   updatedAt: string;
-  resolvedAt?: string | null;
+  resolvedAt: string | null;
   messages: CustomerMessageItem[];
-  feedback?: {
+  timeline: CustomerTimelineItem[];
+  feedback: {
     rating: number;
-    comments?: string;
+    comments: string | null;
     submittedAt: string;
   } | null;
 };
@@ -46,6 +80,10 @@ export type CustomerWorkflowErrorCode =
   | "not_found"
   | "conflict"
   | "validation"
+  | "closed_ticket"
+  | "idempotency_conflict"
+  | "unknown"
+  | "aborted"
   | "backend"
   | "unexpected";
 
@@ -55,22 +93,343 @@ export class CustomerWorkflowError extends Error {
   }
 }
 
+export function normalizeCustomerMessageText(value: string): string {
+  return value.normalize("NFC").trim().split(/\s+/u).join(" ");
+}
+
+export function parseCustomerMessageItem(value: unknown): CustomerMessageItem {
+  if (
+    !isPlainObject(value)
+    || !exactKeys(value, ["senderRole", "body", "createdAt"])
+    || value.senderRole !== "customer"
+    || typeof value.body !== "string"
+    || value.body.length > 5_000
+    || typeof value.createdAt !== "string"
+    || !parseTimestamp(value.createdAt)
+    || !value.createdAt.endsWith("Z")
+  ) throw new CustomerWorkflowError("unexpected");
+  return {
+    senderRole: "customer",
+    body: value.body,
+    createdAt: value.createdAt,
+  };
+}
+
+const CUSTOMER_TIMELINE_TYPES = new Set<CustomerTimelineType>([
+  "complaint_received",
+  "assigned_to_team",
+  "review_started",
+  "information_requested",
+  "team_replied",
+  "customer_replied",
+  "complaint_resolved",
+  "complaint_closed",
+]);
+
+const TICKET_ID_PATTERN = /^ticket_[a-f0-9]{32}$/u;
+export const CUSTOMER_HISTORY_STATUSES = [
+  "submitted",
+  "triaged",
+  "in_progress",
+  "awaiting_customer",
+  "resolved",
+  "closed",
+ ] as const satisfies readonly CustomerTicketStatus[];
+export const CUSTOMER_HISTORY_DEPARTMENTS = [
+  "transfer_payment",
+  "account_support",
+  "card_atm",
+  "fraud_security",
+  "loan_credit",
+  "general_support",
+] as const satisfies readonly CustomerDepartmentId[];
+const CUSTOMER_HISTORY_STATUS_SET = new Set<CustomerTicketStatus>(CUSTOMER_HISTORY_STATUSES);
+const CUSTOMER_HISTORY_DEPARTMENT_SET = new Set<CustomerDepartmentId>(CUSTOMER_HISTORY_DEPARTMENTS);
+const CURSOR_HASH_PATTERN = /^[0-9a-f]{64}$/u;
+const CURSOR_ID_PATTERN = /^ticket_[a-f0-9]{32}$/u;
+const CURSOR_MAX_LENGTH = 512;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  const keys = Reflect.ownKeys(value);
+  if (keys.some((key) => typeof key !== "string")) return false;
+  return keys.every((key) => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return Boolean(descriptor?.enumerable && "value" in descriptor);
+  });
+}
+
+function exactKeys(value: Record<string, unknown>, keys: string[]): boolean {
+  const ownKeys = Reflect.ownKeys(value);
+  return ownKeys.length === keys.length
+    && ownKeys.every((key, index) => key === keys[index]);
+}
+
+function exactKeySet(value: Record<string, unknown>, keys: string[]): boolean {
+  const ownKeys = Reflect.ownKeys(value);
+  return ownKeys.length === keys.length && keys.every((key) => ownKeys.includes(key));
+}
+
+function parseTimestamp(value: unknown): string | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{6})?Z$/u.test(value)) return null;
+  if (value.endsWith(".000000Z")) return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  const canonicalSecond = new Date(parsed).toISOString().slice(0, 19);
+  return `${canonicalSecond}Z` === `${value.slice(0, 19)}Z` ? value : null;
+}
+
+function parseCustomerDetailMessage(value: unknown): CustomerMessageItem {
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, ["senderRole", "body", "createdAt"])
+    || (value.senderRole !== "customer" && value.senderRole !== "support_team")
+    || typeof value.body !== "string"
+    || value.body.length === 0
+    || value.body.length > 5_000
+    || !parseTimestamp(value.createdAt)
+  ) throw new CustomerWorkflowError("unexpected");
+  const senderRole = value.senderRole as "customer" | "support_team";
+  const body = value.body as string;
+  const createdAt = value.createdAt as string;
+  return {
+    senderRole,
+    body,
+    createdAt,
+  };
+}
+
+function parseCustomerTimelineItem(value: unknown): CustomerTimelineItem {
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, ["type", "occurredAt", "departmentId"])
+    || typeof value.type !== "string"
+    || !CUSTOMER_TIMELINE_TYPES.has(value.type as CustomerTimelineType)
+    || !parseTimestamp(value.occurredAt)
+    || (value.departmentId !== null
+      && (typeof value.departmentId !== "string"
+        || !CUSTOMER_HISTORY_DEPARTMENT_SET.has(value.departmentId as CustomerDepartmentId)))
+  ) throw new CustomerWorkflowError("unexpected");
+  const type = value.type as CustomerTimelineType;
+  const occurredAt = value.occurredAt as string;
+  return {
+    type,
+    occurredAt,
+    departmentId: value.departmentId as CustomerDepartmentId | null,
+  };
+}
+
+function parseCustomerFeedback(value: unknown): CustomerTicketDetail["feedback"] {
+  if (value === null) return null;
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, ["rating", "comments", "submittedAt"])
+    || typeof value.rating !== "number"
+    || !Number.isInteger(value.rating)
+    || value.rating < 1
+    || value.rating > 5
+    || (value.comments !== null && typeof value.comments !== "string")
+    || !parseTimestamp(value.submittedAt)
+  ) throw new CustomerWorkflowError("unexpected");
+  const rating = value.rating as number;
+  const comments = value.comments as string | null;
+  const submittedAt = value.submittedAt as string;
+  return {
+    rating,
+    comments,
+    submittedAt,
+  };
+}
+
+export function parseCustomerTicketDetail(
+  value: unknown,
+  expectedTicketId?: string,
+): CustomerTicketDetail {
+  if (
+    !isPlainObject(value)
+    || !exactKeySet(value, [
+      "id", "status", "complaintText", "inputLocale", "departmentId",
+      "createdAt", "updatedAt", "resolvedAt", "messages", "timeline", "feedback",
+    ])
+    || typeof value.id !== "string"
+    || !TICKET_ID_PATTERN.test(value.id)
+    || (expectedTicketId !== undefined && value.id !== expectedTicketId)
+    || typeof value.status !== "string"
+    || !CUSTOMER_HISTORY_STATUS_SET.has(value.status as CustomerTicketStatus)
+    || typeof value.complaintText !== "string"
+    || value.complaintText.length === 0
+    || (value.inputLocale !== "en" && value.inputLocale !== "my")
+    || (value.departmentId !== null
+      && (typeof value.departmentId !== "string"
+        || !CUSTOMER_HISTORY_DEPARTMENT_SET.has(value.departmentId as CustomerDepartmentId)))
+    || !parseTimestamp(value.createdAt)
+    || !parseTimestamp(value.updatedAt)
+    || (value.resolvedAt !== null && !parseTimestamp(value.resolvedAt))
+    || !Array.isArray(value.messages)
+    || !Array.isArray(value.timeline)
+  ) throw new CustomerWorkflowError("unexpected");
+  const id = value.id as string;
+  const status = value.status as CustomerTicketStatus;
+  const complaintText = value.complaintText as string;
+  const inputLocale = value.inputLocale as "en" | "my";
+  const departmentId = value.departmentId as CustomerDepartmentId | null;
+  const createdAt = value.createdAt as string;
+  const updatedAt = value.updatedAt as string;
+  const resolvedAt = value.resolvedAt as string | null;
+  const messages = value.messages as unknown[];
+  const timeline = value.timeline as unknown[];
+  const createdMillis = Date.parse(createdAt);
+  const updatedMillis = Date.parse(updatedAt);
+  const resolvedMillis = resolvedAt === null ? null : Date.parse(resolvedAt);
+  const feedback = parseCustomerFeedback(value.feedback);
+  if (
+    updatedMillis < createdMillis
+    || (resolvedMillis !== null && resolvedMillis < createdMillis)
+    || (resolvedMillis !== null && resolvedMillis > updatedMillis)
+    || (status !== "submitted" && departmentId === null)
+    || ((status === "resolved" || status === "closed") && resolvedAt === null)
+    || ((status !== "resolved" && status !== "closed") && resolvedAt !== null)
+    || (feedback !== null && status !== "resolved" && status !== "closed")
+    || (feedback !== null && Date.parse(feedback.submittedAt) < createdMillis)
+  ) throw new CustomerWorkflowError("unexpected");
+  return {
+    id,
+    status,
+    complaintText,
+    inputLocale,
+    departmentId,
+    createdAt,
+    updatedAt,
+    resolvedAt,
+    messages: messages.map(parseCustomerDetailMessage),
+    timeline: timeline.map(parseCustomerTimelineItem),
+    feedback,
+  };
+}
+
+function decodeCursorUtf8(value: string): string | null {
+  try {
+    const padding = "=".repeat((4 - (value.length % 4)) % 4);
+    const binary = atob(value.replace(/-/gu, "+").replace(/_/gu, "/") + padding);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function encodeCursorUtf8(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/gu, "-").replace(/\//gu, "_").replace(/=+$/u, "");
+}
+
+function validateCursor(value: unknown): string | null {
+  if (
+    typeof value !== "string"
+    || !value
+    || value.length > CURSOR_MAX_LENGTH
+    || !/^[A-Za-z0-9_-]+$/u.test(value)
+    || value.length % 4 === 1
+  ) return null;
+  const decoded = decodeCursorUtf8(value);
+  if (!decoded) return null;
+  let payload: unknown;
+  try { payload = JSON.parse(decoded) as unknown; } catch { return null; }
+  if (!isPlainObject(payload) || !exactKeys(payload, ["v", "customerBinding", "contract", "createdAt", "complaintId"])) return null;
+  if (
+    payload.v !== 2
+    || typeof payload.customerBinding !== "string" || !CURSOR_HASH_PATTERN.test(payload.customerBinding)
+    || typeof payload.contract !== "string" || !CURSOR_HASH_PATTERN.test(payload.contract)
+    || typeof payload.createdAt !== "string" || !parseTimestamp(payload.createdAt) || !payload.createdAt.endsWith("Z")
+    || typeof payload.complaintId !== "string" || !CURSOR_ID_PATTERN.test(payload.complaintId)
+  ) return null;
+  return encodeCursorUtf8(JSON.stringify(payload)) === value ? value : null;
+}
+
+function parseCustomerTicketRow(value: unknown): CustomerTicketSummary {
+  if (!isPlainObject(value) || !exactKeys(value, ["complaintId", "status", "departmentId", "createdAt", "updatedAt", "resolvedAt"])) {
+    throw new CustomerWorkflowError("unexpected");
+  }
+  const createdAt = parseTimestamp(value.createdAt);
+  const updatedAt = parseTimestamp(value.updatedAt);
+  const resolvedAt = value.resolvedAt === null ? null : parseTimestamp(value.resolvedAt);
+  if (
+    typeof value.complaintId !== "string" || !TICKET_ID_PATTERN.test(value.complaintId)
+    || typeof value.status !== "string" || !CUSTOMER_HISTORY_STATUS_SET.has(value.status as CustomerTicketStatus)
+    || (value.departmentId !== null && (typeof value.departmentId !== "string" || !CUSTOMER_HISTORY_DEPARTMENT_SET.has(value.departmentId as CustomerDepartmentId)))
+    || !createdAt || !updatedAt || (value.resolvedAt !== null && !resolvedAt)
+  ) throw new CustomerWorkflowError("unexpected");
+  if (value.status !== "submitted" && value.departmentId === null) throw new CustomerWorkflowError("unexpected");
+  if ((value.status === "resolved" || value.status === "closed") && !resolvedAt) throw new CustomerWorkflowError("unexpected");
+  if (value.status !== "resolved" && value.status !== "closed" && resolvedAt) throw new CustomerWorkflowError("unexpected");
+  const createdMillis = Date.parse(createdAt);
+  const updatedMillis = Date.parse(updatedAt);
+  const resolvedMillis = resolvedAt ? Date.parse(resolvedAt) : null;
+  if (updatedMillis < createdMillis || (resolvedMillis !== null && resolvedMillis > updatedMillis)) throw new CustomerWorkflowError("unexpected");
+  return {
+    complaintId: value.complaintId,
+    status: value.status as CustomerTicketStatus,
+    departmentId: value.departmentId as CustomerDepartmentId | null,
+    createdAt,
+    updatedAt,
+    resolvedAt,
+  };
+}
+
+export function parseCustomerTicketHistoryPage(value: unknown): CustomerTicketHistoryPage {
+  if (!isPlainObject(value) || !exactKeys(value, ["tickets", "nextCursor", "hasMore"]) || !Array.isArray(value.tickets) || typeof value.hasMore !== "boolean") {
+    throw new CustomerWorkflowError("unexpected");
+  }
+  if (value.nextCursor !== null && validateCursor(value.nextCursor) === null) throw new CustomerWorkflowError("unexpected");
+  if (value.hasMore !== (value.nextCursor !== null)) throw new CustomerWorkflowError("unexpected");
+  const tickets = value.tickets.map(parseCustomerTicketRow);
+  const ids = tickets.map((ticket) => ticket.complaintId);
+  if (new Set(ids).size !== ids.length) throw new CustomerWorkflowError("unexpected");
+  return { tickets, nextCursor: value.nextCursor as string | null, hasMore: value.hasMore };
+}
+
+import { resolveLocalMlApiBaseUrl } from "./runtime-environment";
+
 type Fetcher = typeof fetch;
 
 function getApiUrl(): string {
-  const apiUrl = process.env.NEXT_PUBLIC_ML_API_URL || "http://localhost:8000";
-  return apiUrl.replace(/\/$/u, "");
+  try {
+    return resolveLocalMlApiBaseUrl();
+  } catch {
+    throw new CustomerWorkflowError("backend");
+  }
 }
 
 export async function fetchCustomerTickets(
   idToken: string,
-  fetcher: Fetcher = fetch
-): Promise<CustomerTicketSummary[]> {
+  options: {
+    pageSize?: number;
+    cursor?: string | null;
+    status?: CustomerTicketStatus | null;
+    departmentId?: CustomerDepartmentId | null;
+    signal?: AbortSignal;
+    fetcher?: Fetcher;
+  } = {},
+): Promise<CustomerTicketHistoryPage> {
+  const pageSize = options.pageSize ?? 25;
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) throw new CustomerWorkflowError("validation");
+  if (options.cursor !== undefined && options.cursor !== null && validateCursor(options.cursor) === null) throw new CustomerWorkflowError("validation");
+  if (options.status !== undefined && options.status !== null && !CUSTOMER_HISTORY_STATUS_SET.has(options.status)) throw new CustomerWorkflowError("validation");
+  if (options.departmentId !== undefined && options.departmentId !== null && !CUSTOMER_HISTORY_DEPARTMENT_SET.has(options.departmentId)) throw new CustomerWorkflowError("validation");
   const baseUrl = getApiUrl();
+  const params = new URLSearchParams({ pageSize: String(pageSize) });
+  if (options.cursor) params.set("cursor", options.cursor);
+  if (options.status !== undefined && options.status !== null) params.set("status", options.status);
+  if (options.departmentId !== undefined && options.departmentId !== null) params.set("departmentId", options.departmentId);
   let response: Response;
   try {
-    response = await fetcher(`${baseUrl}/customer/tickets`, {
+    response = await (options.fetcher ?? fetch)(`${baseUrl}/customer/tickets?${params.toString()}`, {
       headers: { Authorization: `Bearer ${idToken}` },
+      signal: options.signal,
     });
   } catch {
     throw new CustomerWorkflowError("backend");
@@ -78,26 +437,24 @@ export async function fetchCustomerTickets(
 
   if (response.status === 401) throw new CustomerWorkflowError("auth");
   if (response.status === 403) throw new CustomerWorkflowError("permission");
+  if (response.status === 422) throw new CustomerWorkflowError("validation");
   if (!response.ok) throw new CustomerWorkflowError("backend");
-
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || !Array.isArray((data as { tickets?: unknown }).tickets)) {
-    throw new CustomerWorkflowError("unexpected");
-  }
-
-  return (data as { tickets: CustomerTicketSummary[] }).tickets;
+  try { return parseCustomerTicketHistoryPage(await response.json() as unknown); }
+  catch (error) { if (error instanceof CustomerWorkflowError) throw error; throw new CustomerWorkflowError("unexpected"); }
 }
 
 export async function fetchCustomerTicketDetail(
   ticketId: string,
   idToken: string,
-  fetcher: Fetcher = fetch
+  fetcher: Fetcher = fetch,
+  signal?: AbortSignal,
 ): Promise<CustomerTicketDetail> {
   const baseUrl = getApiUrl();
   let response: Response;
   try {
-    response = await fetcher(`${baseUrl}/customer/tickets/${ticketId}`, {
+    response = await fetcher(`${baseUrl}/customer/tickets/${encodeURIComponent(ticketId)}`, {
       headers: { Authorization: `Bearer ${idToken}` },
+      signal,
     });
   } catch {
     throw new CustomerWorkflowError("backend");
@@ -108,12 +465,12 @@ export async function fetchCustomerTicketDetail(
   if (response.status === 404) throw new CustomerWorkflowError("not_found");
   if (!response.ok) throw new CustomerWorkflowError("backend");
 
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || typeof (data as { id?: unknown }).id !== "string") {
+  try {
+    return parseCustomerTicketDetail(await response.json() as unknown, ticketId);
+  } catch (error) {
+    if (error instanceof CustomerWorkflowError) throw error;
     throw new CustomerWorkflowError("unexpected");
   }
-
-  return data as CustomerTicketDetail;
 }
 
 export async function sendCustomerMessage(
@@ -121,36 +478,61 @@ export async function sendCustomerMessage(
   messageText: string,
   idToken: string,
   fetcher: Fetcher = fetch,
-  actionId: string = crypto.randomUUID()
+  actionId: string = crypto.randomUUID(),
+  signal?: AbortSignal,
 ): Promise<CustomerMessageItem> {
-  const baseUrl = getApiUrl();
+  const normalizedMessage = typeof messageText === "string"
+    ? normalizeCustomerMessageText(messageText)
+    : "";
+  if (
+    typeof messageText !== "string"
+    || messageText.length > 5_000
+    || !normalizedMessage
+    || normalizedMessage.length > 5_000
+    || !/^[A-Za-z0-9_-]{8,64}$/u.test(actionId)
+  ) throw new CustomerWorkflowError("validation");
+  if (signal?.aborted) throw new CustomerWorkflowError("aborted");
+  let baseUrl: string;
+  try { baseUrl = getApiUrl(); } catch { throw new CustomerWorkflowError("backend"); }
   let response: Response;
+  let dispatched = false;
   try {
-    response = await fetcher(`${baseUrl}/customer/tickets/${ticketId}/messages`, {
+    dispatched = true;
+    response = await fetcher(`${baseUrl}/customer/tickets/${encodeURIComponent(ticketId)}/messages`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${idToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ messageText, actionId }),
+      body: JSON.stringify({ messageText: normalizedMessage, actionId }),
+      signal,
     });
   } catch {
-    throw new CustomerWorkflowError("backend");
+    throw new CustomerWorkflowError(dispatched ? "unknown" : "backend");
   }
+
+  if (signal?.aborted) throw new CustomerWorkflowError("unknown");
 
   if (response.status === 401) throw new CustomerWorkflowError("auth");
   if (response.status === 403) throw new CustomerWorkflowError("permission");
   if (response.status === 404) throw new CustomerWorkflowError("not_found");
-  if (response.status === 409) throw new CustomerWorkflowError("conflict");
-  if (response.status === 422) throw new CustomerWorkflowError("validation");
-  if (!response.ok) throw new CustomerWorkflowError("backend");
-
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object" || typeof (data as { text?: unknown }).text !== "string") {
-    throw new CustomerWorkflowError("unexpected");
+  if (response.status === 409) {
+    let code: unknown = null;
+    try {
+      const errorBody = await response.json() as unknown;
+      if (isPlainObject(errorBody) && isPlainObject(errorBody.error)) code = errorBody.error.code;
+    } catch { /* safe generic conflict */ }
+    if (code === "idempotency_conflict") throw new CustomerWorkflowError("idempotency_conflict");
+    if (code === "closed_ticket") throw new CustomerWorkflowError("closed_ticket");
+    throw new CustomerWorkflowError("conflict");
   }
+  if (response.status === 422) throw new CustomerWorkflowError("validation");
+  if (!response.ok) throw new CustomerWorkflowError(response.status >= 500 ? "unknown" : "backend");
 
-  return data as CustomerMessageItem;
+  try { return parseCustomerMessageItem(await response.json() as unknown); }
+  catch {
+    throw new CustomerWorkflowError("unknown");
+  }
 }
 
 export async function submitCustomerFeedback(

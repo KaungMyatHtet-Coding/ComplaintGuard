@@ -1,17 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { CustomerFeedbackPanel } from "@/components/customer-feedback-panel";
-import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
-import type { Locale } from "@/lib/i18n";
+import type { Locale, MessageKey } from "@/lib/i18n";
 import { translate } from "@/lib/i18n";
-import type { CustomerTicketDetail } from "@/lib/customer-workflow";
+import {
+  CustomerWorkflowError,
+  type CustomerTicketDetail,
+  type CustomerTicketStatus,
+  type CustomerTimelineType,
+} from "@/lib/customer-workflow";
 
 type CustomerTicketDetailProps = {
   locale: Locale;
   ticket: CustomerTicketDetail | null;
   loading: boolean;
   onSendMessage: (text: string) => Promise<void>;
+  onCancelMessage: () => void;
   onSubmitFeedback: (rating: number, comments: string) => Promise<void>;
 };
 
@@ -20,12 +25,37 @@ export function CustomerTicketDetailView({
   ticket,
   loading,
   onSendMessage,
+  onCancelMessage,
   onSubmitFeedback,
 }: CustomerTicketDetailProps) {
   const [messageText, setMessageText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const messageDialogRef = useRef<HTMLDivElement>(null);
+  const messageOpenerRef = useRef<HTMLButtonElement>(null);
+  const messageOpenerTicketIdRef = useRef<string | null>(null);
+  const messageDialogTitleId = useId();
+
+  useEffect(() => () => {
+    onCancelMessage();
+  }, [onCancelMessage]);
+
+  useEffect(() => {
+    if (messageOpenerTicketIdRef.current && messageOpenerTicketIdRef.current !== ticket?.id) {
+      messageOpenerRef.current = null;
+      messageOpenerTicketIdRef.current = null;
+      setIsChatOpen(false);
+    }
+  }, [ticket?.id]);
+
+  useEffect(() => {
+    if (!isChatOpen) return;
+    const dialog = messageDialogRef.current;
+    const focusTarget = dialog?.querySelector<HTMLElement>("#customer-message-input")
+      ?? dialog?.querySelector<HTMLElement>("button:not([disabled])");
+    focusTarget?.focus();
+  }, [isChatOpen]);
 
   if (loading) {
     return (
@@ -46,45 +76,115 @@ export function CustomerTicketDetailView({
     );
   }
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitMessage = async () => {
     if (!messageText.trim() || sendingMsg) return;
     setErrorMsg(null);
     setSendingMsg(true);
     try {
       await onSendMessage(messageText.trim());
       setMessageText("");
-    } catch {
-      setErrorMsg(translate(locale, "customerMessageSendError"));
+    } catch (error) {
+      const code = error instanceof CustomerWorkflowError ? error.code : "backend";
+      if (code === "unknown") setErrorMsg(translate(locale, "customerMessageUnknownOutcome"));
+      else if (code === "idempotency_conflict") setErrorMsg(translate(locale, "customerMessageIdempotencyConflict"));
+      else if (code === "closed_ticket") setErrorMsg(translate(locale, "customerMessageClosedConflict"));
+      else if (code !== "aborted") setErrorMsg(translate(locale, "customerMessageSafeFailure"));
     } finally {
       setSendingMsg(false);
     }
   };
 
-  // Timeline steps
-  const steps = [
-    { key: "submitted", label: translate(locale, "customerTimelineSubmitted") },
-    { key: "triaged", label: translate(locale, "customerTimelineTriaged") },
-    { key: "in_progress", label: translate(locale, "customerTimelineInProgress") },
-    { key: "awaiting_customer", label: translate(locale, "customerTimelineAwaitingCustomer") },
-    { key: "resolved", label: translate(locale, "customerTimelineResolved") },
-  ];
-
-  const getStepStatus = (stepKey: string) => {
-    const order = ["submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"];
-    const currentIdx = order.indexOf(ticket.status);
-    const stepIdx = order.indexOf(stepKey);
-    return currentIdx >= stepIdx ? "completed" : "pending";
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    void submitMessage();
   };
+
+  const handleRetry = () => {
+    void submitMessage();
+  };
+
+  const closeMessages = () => {
+    const opener = messageOpenerRef.current;
+    const canRestoreFocus = Boolean(
+      opener
+      && messageOpenerTicketIdRef.current === ticket.id
+      && opener.isConnected
+      && document.contains(opener),
+    );
+    onCancelMessage();
+    setIsChatOpen(false);
+    messageOpenerRef.current = null;
+    messageOpenerTicketIdRef.current = null;
+    if (canRestoreFocus) opener?.focus();
+  };
+
+  const handleMessageDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMessages();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const dialog = messageDialogRef.current;
+    if (!dialog) return;
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true");
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  const timelineLabels: Record<CustomerTimelineType, MessageKey> = {
+    complaint_received: "customerTimelineComplaintReceived",
+    assigned_to_team: "customerTimelineAssignedToTeam",
+    review_started: "customerTimelineReviewStarted",
+    information_requested: "customerTimelineInformationRequested",
+    team_replied: "customerTimelineTeamReplied",
+    customer_replied: "customerTimelineCustomerReplied",
+    complaint_resolved: "customerTimelineResolved",
+    complaint_closed: "customerTimelineClosed",
+  };
+
+  const statusLabels: Record<CustomerTicketStatus, MessageKey> = {
+    submitted: "statusSubmitted",
+    triaged: "statusTriaged",
+    in_progress: "statusInProgress",
+    awaiting_customer: "statusAwaitingCustomer",
+    resolved: "statusResolved",
+    closed: "statusClosed",
+  };
+
+  const statusGuidance: Record<CustomerTicketStatus, MessageKey> = {
+    submitted: "customerStatusGuidanceSubmitted",
+    triaged: "customerStatusGuidanceTriaged",
+    in_progress: "customerStatusGuidanceInProgress",
+    awaiting_customer: "customerStatusGuidanceAwaitingCustomer",
+    resolved: "customerStatusGuidanceResolved",
+    closed: "customerStatusGuidanceClosed",
+  };
+
+  const currentStatusLabel = statusLabels[ticket.status];
+  const currentStatusGuidance = statusGuidance[ticket.status];
 
   const isResolvedOrClosed = ticket.status === "resolved" || ticket.status === "closed";
 
   return (
     <>
-      <div className="cust-detail">
+      <article className="cust-detail" aria-labelledby="customer-ticket-detail-title">
         <div className="cust-detail-header">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2>
+          <h2 id="customer-ticket-detail-title">
             {translate(locale, "staffDetailTitle")}
           </h2>
         </div>
@@ -103,8 +203,30 @@ export function CustomerTicketDetailView({
 
         <div className="cust-scroll-area">
           {errorMsg && (
-            <div className="cust-error" role="alert" style={{ marginBottom: '1rem' }}>{errorMsg}</div>
+            <div
+              id="customer-message-error"
+              className="cust-error"
+              role="alert"
+              style={{ marginBottom: '1rem' }}
+            >
+              {errorMsg}
+            </div>
           )}
+
+        {currentStatusLabel && currentStatusGuidance ? (
+        <section className="cust-status-guidance" aria-labelledby="customer-status-guidance-title">
+          <h3 id="customer-status-guidance-title">{translate(locale, "customerCurrentStatus")}</h3>
+          <p className="cust-status-guidance-status">
+            <strong>{translate(locale, currentStatusLabel)}</strong>
+          </p>
+          <div>
+            <h4>{translate(locale, "customerWhatHappensNext")}</h4>
+            <p className="cust-status-guidance-copy">
+              {translate(locale, currentStatusGuidance)}
+            </p>
+          </div>
+        </section>
+        ) : null}
 
         {/* Visual Timeline */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -112,32 +234,26 @@ export function CustomerTicketDetailView({
             {translate(locale, "customerTimelineTitle")}
           </span>
           <div className="cust-timeline">
-            {steps.map((step, idx) => {
-              const status = getStepStatus(step.key);
-              const isLast = idx === steps.length - 1;
+            {ticket.timeline.map((item, idx) => {
+              const isLast = idx === ticket.timeline.length - 1;
               return (
-                <React.Fragment key={step.key}>
+                <React.Fragment key={`${item.type}-${item.occurredAt}-${idx}`}>
                   <div className="cust-step">
-                    <div className={`cust-step-dot ${status === "completed" ? "done" : "pending"}`}>
+                    <div className="cust-step-dot done">
                       {idx + 1}
                     </div>
-                    <span className="cust-step-label">{step.label}</span>
+                    <span className="cust-step-label">
+                      {translate(locale, timelineLabels[item.type])}
+                    </span>
                   </div>
                   {!isLast && (
-                    <div className={`cust-step-connector ${status === "completed" ? "done" : "pending"}`} />
+                    <div className="cust-step-connector done" />
                   )}
                 </React.Fragment>
               );
             })}
           </div>
         </div>
-
-        <DatasetEvidencePanel
-          predictedDepartmentId={ticket.predictedDepartmentId}
-          predictionConfidence={ticket.predictionConfidence}
-          routingSource={ticket.routingSource}
-          assignedDepartmentId={ticket.assignedDepartmentId}
-        />
 
         {/* Complaint Body */}
         <div style={{ marginTop: '1.5rem' }}>
@@ -149,7 +265,16 @@ export function CustomerTicketDetailView({
           </div>
         
           <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="cust-refresh-btn" onClick={() => setIsChatOpen(true)} style={{ background: 'var(--ink)', color: 'white', border: 'none' }}>
+            <button
+              ref={messageOpenerRef}
+              className="cust-refresh-btn"
+              onClick={(event) => {
+                messageOpenerTicketIdRef.current = ticket.id;
+                setIsChatOpen(true);
+                messageOpenerRef.current = event.currentTarget;
+              }}
+              style={{ background: 'var(--ink)', color: 'white', border: 'none' }}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
@@ -158,14 +283,26 @@ export function CustomerTicketDetailView({
           </div>
         </div>
         </div>
-      </div>
+      </article>
 
       {isChatOpen && (
-        <div className="cust-modal-overlay">
-          <div className="cust-modal-content">
+        <div className="cust-modal-overlay" onClick={(event) => { if (event.target === event.currentTarget) closeMessages(); }}>
+          <div
+            ref={messageDialogRef}
+            className="cust-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={messageDialogTitleId}
+            onKeyDown={handleMessageDialogKeyDown}
+          >
             <div className="cust-modal-header">
-              <h2 className="cust-compose-title" style={{ margin: 0 }}>{translate(locale, "staffMessages")}</h2>
-              <button className="icon-button" onClick={() => setIsChatOpen(false)}>
+              <h2 id={messageDialogTitleId} className="cust-compose-title" style={{ margin: 0 }}>{translate(locale, "staffMessages")}</h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={translate(locale, "customerCloseMessages")}
+                onClick={closeMessages}
+              >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -183,17 +320,17 @@ export function CustomerTicketDetailView({
             </p>
           ) : (
             <div style={{ display: 'grid', gap: '0.75rem', maxHeight: '20rem', overflowY: 'auto' }}>
-              {ticket.messages.map((m) => {
+              {ticket.messages.map((m, index) => {
                 const isMe = m.senderRole === "customer";
                 return (
-                  <div key={m.id} className={`cust-msg ${isMe ? "is-mine" : "is-theirs"}`}>
+                  <div key={`${m.createdAt}-${index}`} className={`cust-msg ${isMe ? "is-mine" : "is-theirs"}`}>
                     <div className="cust-msg-bubble">
                       <div className="cust-msg-sender">
                         {isMe
                           ? translate(locale, "customerMessageYou")
                           : translate(locale, "customerMessageStaff")}
                       </div>
-                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.text}</p>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.body}</p>
                     </div>
                     <span className="cust-msg-time">
                       {new Date(m.createdAt).toLocaleTimeString([], {
@@ -212,11 +349,15 @@ export function CustomerTicketDetailView({
             <form onSubmit={handleSend} className="cust-msg-composer">
               <input
                 type="text"
+                id="customer-message-input"
                 value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
+                onChange={(e) => { setMessageText(e.target.value); setErrorMsg(null); }}
                 placeholder={translate(locale, "customerSendMessage")}
                 disabled={sendingMsg}
                 className="cust-msg-input"
+                aria-label={translate(locale, "customerSendMessage")}
+                aria-describedby={errorMsg ? "customer-message-error" : undefined}
+                aria-invalid={errorMsg ? true : undefined}
               />
               <button
                 type="submit"
@@ -233,6 +374,11 @@ export function CustomerTicketDetailView({
               </button>
             </form>
           )}
+          {errorMsg && errorMsg === translate(locale, "customerMessageUnknownOutcome") ? (
+            <button type="button" className="cust-refresh-btn" onClick={handleRetry} disabled={sendingMsg}>
+              {translate(locale, "customerMessageRetry")}
+            </button>
+          ) : null}
         </div>
         </div>
         </div>

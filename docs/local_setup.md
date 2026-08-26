@@ -75,9 +75,20 @@ Set-Location D:\ComplaintGuard\firebase
 npm.cmd test
 ```
 
-`firebase/run-emulator-tests.ps1` starts an isolated demo project, seeds random
-local credentials, runs rules/adapters/browser tests, and stops only the child
-processes it launched. Its generated identity file is ignored and sensitive.
+`firebase/run-emulator-tests.ps1` starts the explicitly local
+`demo-complaintguard` project, runs the standard seed once, then verifies the
+seeded Auth/profile binding before running the rules, Firestore adapter, and
+Admin lifecycle Emulator tests. The rules and adapter modules own only their
+exact documents: rules tests do not clear shared Firestore, and adapter profile
+IDs are unique per run. The lifecycle Emulator tests are a required phase;
+frontend/browser tests run only afterward. No broad reset is needed between
+properly isolated modules. The runner stops only the child processes it
+launched. Its generated identity file is ignored and sensitive.
+
+The authoritative seeded-identity test is
+`firebase/auth-emulator.test.js`. Each test module must delete only the exact
+documents it created. Cloud Firebase remains unadopted and is not a fallback
+for local verification.
 
 ## Troubleshooting
 
@@ -94,6 +105,19 @@ processes it launched. Its generated identity file is ignored and sensitive.
 
 ## Supported boundary
 
-The supported and verified mode is local emulator-based demonstration. There is
-no verified Vercel URL, Hugging Face Space, production Firebase rules deployment,
-QR code, retention/deletion job, or admin operations UI.
+The supported application mode is the local emulator-based prototype. Customer
+registration/recovery, active-Admin authorization, pending Staff/Manager
+provisioning, and the Admin provisioning UI are implemented and pure-tested but
+not runtime verified. The owner-only scripts
+`ml-api/scripts/bootstrap_local_admin.py` and
+`ml-api/scripts/activate_pending_user.py` are committed and must remain
+unexecuted until an approved isolated Emulator session is available. There is
+no verified Vercel URL, Hugging Face Space, production Firebase rules
+deployment, QR code, retention/deletion job, account status-management UI, or
+production administration workflow. The Admin-only `GET /admin/users` endpoint
+and bilingual read-only Staff/Manager directory are implemented and
+pure-tested, but remain runtime-unverified. They expose only safe operational
+profile fields, use bounded filtering/pagination, and provide no edit,
+activation, reassignment, disable/reactivate, or deletion controls. Pending and
+Active describe Firestore profile state only, not independently verified
+Firebase Auth state.

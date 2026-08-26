@@ -2,6 +2,10 @@
 
 This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` remains the schedule and source of truth.
 
+Day-specific sections are historical checkpoint records. The Post-Day-32
+Controlled Staging Upgrade section is the current authoritative task status.
+Older unchecked items are not automatically the current next tasks.
+
 ## Backlog
 
 - Confirm which official team members, if any, will review or present later.
@@ -339,6 +343,347 @@ This lightweight board is optimized for one active developer. `PROJECT_PLAN.md` 
   regression, offline/free, and no-replacement entry criteria. Model Hunting is
   the next planned phase and has not started.
 
+This statement was accurate at the historical Pre-Model-Hunting checkpoint.
+Model Hunting is now paused and approval-gated under the Post-Day-32 roadmap;
+research documentation remains isolated on `research/model-hunting` and is not
+copied into this branch.
+
+---
+
+## Post-Day-32 Controlled Staging Upgrade
+
+This section tracks the approved roadmap after the verified local-emulator
+baseline. It does not replace historical Day 1–32 records. Planned work is not
+implemented until a corresponding evidence-backed completion entry is added.
+
+### Completed — Phase 0: repository reconciliation and baseline freeze
+
+- [x] Preserve the model-hunting spot-check artifact on
+  `research/model-hunting`.
+- [x] Record preservation commit
+  `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
+- [x] Verify the `main` baseline and frozen model/evaluation hashes.
+- [x] Create local annotated tag `post-day32-local-baseline`.
+- [x] Create local `upgrade/cloud-firebase-staging` from commit
+  `96b7bdc0c12c317a6d9d74eafe59b480345fee53`.
+- [x] Confirm no tag or branch was pushed.
+- [x] Confirm no Cloud Firebase connection was performed.
+- Phase 0 status: Completed locally, not pushed.
+
+### Completed — Phase 1: master plan and architecture documentation
+
+- [x] Commit the post-Day-32 master-plan checkpoint.
+- [x] Reconcile and commit active `AGENTS.md` phase guidance.
+- [x] Complete the five-file factual reconciliation.
+- [x] Clarify historical/current task status and sequencing.
+- [x] Clarify the architecture current/future deployment boundary.
+- [x] Clarify access-matrix implemented versus designed permissions.
+- [x] Clarify Firestore lifecycle implemented versus designed behavior.
+- [x] Review terminology for local emulator, Cloud staging, paused research,
+  and future production.
+- [x] Review historical evidence links and avoid rewriting historical records.
+- [x] Complete final documentation review.
+- [x] Run safe documentation checks.
+- Phase 1 status: Completed with the reconciliation commit. Phase 2 safety,
+  audit, adoption, and local index-preparation checkpoints are complete; Cloud
+  runtime and application connection are deferred under the no-budget/no-
+  billing decision.
+
+### Completed - Phase 2A-2D documentation/adoption checkpoints
+
+- [x] Complete Phase 2A, 2B, and 2C staging preparation checkpoints.
+- [x] Complete the private Console audit for owner-controlled staging data.
+- [x] Record owner approval to adopt dedicated Cloud project `complaintguard`.
+- [x] Record Spark/no-cost posture, no billing link, default Firestore in
+  `asia-southeast1`, Auth providers/domains, identity roles, and empty
+  operational collections without private identifiers.
+- [x] Record that project adoption is distinct from application connection.
+- [x] Prepare the query/index matrix, future index proposal, rules comparison
+  limitation, read-only credential strategy, and guard-removal gates in
+  `docs/cloud_firebase_staging_adoption.md`.
+- Phase 2D status: Private Console audit and owner adoption completed; local
+  index preparation completed but was not deployed. No Cloud runtime or
+  workflow is verified, and `cloud_staging_not_adopted` stays enforced.
+
+### Deferred - Cloud staging runtime and technical verification
+
+- [ ] Resume read-only verification only after separate approval for budget,
+  billing, hosting, keyless identity, and operation scope.
+- [ ] Connect the application only after every guard-removal gate passes; no
+  Cloud complaint workflow has been tested.
+- [ ] Keep Spark/no billing, App Check unconfigured, and the local index
+  manifest undeployed.
+
+### Completed - R0.1 dashboard and workflow contract approval
+
+- [x] Consolidate the dashboard/account audit and focused workflow audit in
+  `docs/dashboard_account_audit.md`.
+- [x] Record the approved Customer-safe History, durable notification,
+  assignment, response-target, escalation, and evidence-boundary contracts in
+  `docs/workflow_notification_contract.md`.
+- [x] Record all-role Admin visibility and future trusted lifecycle safeguards.
+- [x] Record that no application code, API, schema, rule, index, notification,
+  assignment, SLA, UI, worker, or runtime behavior was implemented by R0.1.
+- [x] Preserve Customer ownership, Staff department isolation, Manager-only
+  technical evidence, frozen artifacts and hashes, and
+  `cloud_staging_not_adopted`.
+- R0.1 status: Complete as documentation/contract approval only; implementation
+  remains pending later local-only slices and verification.
+
+### Completed - R2C0 Admin account lifecycle contract approval
+
+- [x] Define future trusted disable/reactivate behavior for Customer, Staff,
+  Manager, and carefully governed Admin profiles.
+- [x] Define self-target and last-valid-active-Admin safeguards.
+- [x] Define Staff-only six-department reassignment without role change or
+  retroactive complaint movement, including the approved block only for
+  unresolved complaints explicitly assigned to the target Staff member;
+  unassigned unresolved complaints remain in their department queue.
+- [x] Define opaque account references, idempotency, action records,
+  concurrency, safe responses/errors, and Auth/Firestore recovery states.
+- [x] Preserve Customer-only registration, Staff/Manager-only provisioning,
+  owner-only activation, notification delivery boundaries, frozen evidence,
+  and the deferred Cloud boundary.
+- R2C0 status: Complete as documentation and contract approval only. No
+  lifecycle implementation or runtime verification exists.
+
+### Completed - R2C10B0 Customer History contract approval (historical)
+
+- [x] Approve the future API-only Customer ticket/detail/participant-message
+  read boundary. At this historical checkpoint, implementation status was not
+  claimed; the later R2C10B-A implementation now has API-only reads and rules
+  denying direct raw ticket/message/event reads.
+- [x] Approve R2C10B-A bounded unfiltered history pagination, exact minimal
+  projection, deterministic `createdAt DESC` plus document-ID `DESC` ordering,
+  page-size bounds, and unsigned Customer/filter-bound cursors.
+- [x] Approve R2C10B-A strict frontend parsing, AbortSignal use, request
+  generations, Customer-session binding, stale-response rejection, exact-row
+  deduplication, Load More, and preservation of R2C10A confirmed selection.
+- [x] Preserve the implemented and verified R2C10A submission confirmation,
+  same-action unknown-outcome recovery, and exact Customer complaint selection.
+- [x] Defer R2C10B-B status/department filters and reviewed composite indexes
+  to a separate implementation slice.
+- [x] Defer R2C10B-C date ranges and exact-reference list lookup to separate
+  index and cost review.
+- R2C10B0 status: Complete as documentation and contract approval only. No
+  B-B filter route, frontend controls, B-B backend behavior, B-B indexes, or
+  B-B runtime behavior is implemented by this checkpoint. R2C10B-A is tracked
+  separately as implemented and locally verified.
+
+### Completed - R2C10B-B0 exact filter/cursor/index contract approval
+
+- [x] Reconcile the implemented local R2C10B-A state: bounded history
+  pagination, page size `1`-`50` with default `25`, strict six-field
+  projection, `createdAt DESC` plus document-ID `DESC`, Customer-bound version-1
+  cursors, API-only Customer ticket/detail/message reads, denied raw ticket
+  reads/writes in repository rules, the approved unfiltered local index,
+  frontend pagination safeguards, session isolation, and R2C10A submission
+  reconciliation.
+- [x] Approve exact future B-B query parameters: `pageSize`, `cursor`, `status`,
+  and `departmentId`; omission means All; exact six-status and six-department
+  allowlists; logical AND; strict empty/repeated/extra/whitespace/case/coercion
+  rejection with `422`; server-side ownership-bound filtering; and the required
+  authorization ordering.
+- [x] Approve version-2 cursors, rejection of all A version-1 cursors after
+  authorization, canonical URL-safe Base64 encoding, exact five-key payload,
+  Customer/project binding, four filter-shape fingerprints, exact filter-value
+  binding, and safe cross-Customer/cross-filter rejection.
+- [x] Approve exactly three future ticket indexes: status-only,
+  department-only, and status-plus-department, each retaining Customer
+  ownership equality and `createdAt DESC` plus `__name__ DESC` ordering.
+- [x] Explicitly defer date ranges, exact-reference list lookup, full-text
+  search, counts, charts, exports, bulk actions, saved filters, and Staff/Admin
+  controls. No Cloud rule/index deployment or Cloud staging adoption is implied.
+- [x] Record the future frontend filter, selection, stale-response,
+  submission-reconciliation, accessibility, bilingual Closed-status, and
+  mobile requirements without modifying frontend code.
+- R2C10B-B0 status: Complete as documentation and exact contract approval only.
+  No status/department filter, filter cursor, filter index, frontend control,
+  rule, deployment, or runtime behavior is implemented or verified.
+
+### Current local-only implementation order
+
+The local Firebase Emulator using `demo-complaintguard` remains the source of
+truth for development and demonstration. Detailed objectives, dependencies,
+scope, exclusions, security constraints, tests, acceptance criteria, rollback,
+and approvals are in the matching `PROJECT_PLAN.md` local-slice sections.
+
+1. [x] Customer registration and recoverable profile lifecycle; public
+   registration creates Customer accounts only.
+2. [x] Trusted active-Admin authorization and pending Staff/Manager
+   provisioning design and backend contract.
+3. [x] Admin-only pending-account dashboard with bilingual confirmation UX.
+4. [x] Commit owner-only local Admin bootstrap and pending-user activation
+   helpers; both remain unexecuted.
+5. [x] Read-only Admin `GET /admin/users` endpoint and pure/fake tests. The
+   current implementation returns the safe Customer, Staff, Manager, and Admin
+   projection, with role/department/status/search filters, a bounded
+   200-profile scan, page sizes from 1 to 50, and opaque cursor pagination.
+6. [x] Bilingual read-only Admin all-role directory and R2B account-detail
+   drawer without
+   activation, editing, reassignment, disable/reactivate, or deletion
+   controls. Pending/Active labels represent Firestore profile state only;
+   Firebase Auth state is not independently verified by the directory.
+7. [ ] Status lifecycle implementation: activation, disable, reactivation,
+   display-name/locale editing, and Staff department reassignment remain
+   future trusted-backend work. R0.1 approves the policy safeguards and keeps
+   permanent deletion deferred.
+8. [x] UI/UX Slices A-D implemented locally without changing authorization:
+   Customer/landing safety and containment, accessible Staff tabs, semantic
+   auth theme/form polish, and Manager analytics readability. Automated
+   frontend tests, TypeScript, and ESLint pass; browser/device visual
+   verification remains incomplete.
+9. [x] Manager-only model/data-analysis presentation from frozen evidence:
+   frozen TF-IDF/MultinomialNB equations plus separate aggregate-safe V1 and V2
+   controlled-testing evidence in the Model & Dataset Analytics workspace.
+   Official frozen evaluation remains separate; V1/V2 are synthetic,
+   small-sample, uncalibrated, and not live-user or production evidence.
+   Customer, Staff, and Admin access was not added.
+10. [ ] Controlled multi-user evaluation and final local packaging.
+11. [ ] Cloud deployment: deferred, not cancelled; separate budget/billing/
+    hosting/keyless-identity approval required.
+12. [ ] Model hunting: paused and approval-gated on `research/model-hunting`.
+
+Current verification boundary: the implementation slices above are statically,
+pure-, and automated-frontend-tested, but no browser-based visual verification
+was performed for UI/UX Slices A-D. Registration E2E, live Emulator provisioning, bootstrap,
+activation, browser-to-backend Admin provisioning, and the Admin directory
+workflow, and browser verification of the Manager equations/controlled-evidence
+presentation remain unverified. Firebase CLI Configstore permission was safely
+isolated with a temporary configuration; startup still stopped at
+network-dependent MOTD/auto-download behavior. No product defect was proven
+and no runtime pass may be claimed.
+
+The controlled presentation keeps the official held-out accuracy (`82.7934%`)
+separate from V1 and V2. V1 shows classifier match `2/6`, automatic coverage
+`1/6`, correct automatic routes `0/1`, and manual review `5/6`. V2 shows
+classifier match `2/6`, automatic coverage `2/6`, correctness among automatic
+routes `2/2`, and manual review `4/6`; its `100%` is routed-case correctness,
+not overall accuracy, and is always shown with the `2/6` coverage denominator.
+The two demonstrations are not combined. Operational aggregate Slice 2 remains
+deferred pending a bounded, scalable aggregation and completeness contract.
+
+### Deferred backlog — not current execution order
+
+#### Phase 2: Cloud Firebase staging migration (deferred)
+
+- [ ] Create a separate staging Firebase project under a cost-controlled plan,
+  initially targeting the no-cost tier.
+- [ ] Separate emulator and staging configuration and secrets.
+- [ ] Make emulator seed scripts fail closed against Cloud project IDs.
+- [ ] Review and evidence Firestore rules and indexes in staging.
+- [ ] Verify synthetic-only data, quotas, logging, rollback, and emulator
+  fallback.
+
+#### Phase 3: registration, login, and account lifecycle
+
+- [ ] Add customer-only public registration.
+- [ ] Add email/password login, logout, verification, and password reset.
+- [ ] Define duplicate-email, disabled-account, profile-recovery, and
+  loading/error behavior.
+- [ ] Reject role and department fields from public clients.
+- [ ] Keep privileged accounts under trusted provisioning.
+
+#### Phase 4: roles and System Admin functionality
+
+- [ ] Provision six Department Staff accounts, one Manager, and one System
+  Administrator through trusted processes.
+- [ ] Define and test exact least-privilege permissions.
+- [ ] Add safe staff creation, disable/reactivate, department assignment, and
+  role/status audit operations.
+- [ ] Add reviewed department metadata, system-health, service-failure, and
+  platform-usage views.
+- [ ] Preserve original model prediction and evaluation evidence from Admin
+  mutation.
+- [ ] Do not add six Department Lead/Admin accounts unless distinct
+  operational permissions are justified and approved.
+
+#### Phase 5: Secure & Approachable UI/UX upgrade
+
+- [ ] Stabilize Cloud, authentication, and role contracts first.
+- [ ] Define semantic design tokens using Deep Forest `#064E3B`, Emerald
+  accent `#10B981`, and Warm White `#FAFAF9`.
+- [ ] Perform WCAG contrast checks and use a darker accessible emerald for
+  white-text buttons if needed.
+- [ ] Simplify customer-facing routing and status language.
+- [ ] Refactor staff detail into accessible Overview, Messages, Workflow, and
+  Model & Audit sections.
+- [ ] Improve manager analytics, confusion matrix, charts, tooltips, and
+  accessible text/table alternatives.
+- [ ] Improve login/landing autofill, focus, error, overlay, contrast, and
+  mobile behavior.
+
+#### Phase 6: model, dataset, equations, and analytics presentation
+
+- [ ] Separate Frozen Model Evaluation, Current Operational Analytics, and
+  Controlled User-Test Analytics.
+- [ ] Provide role-scoped manager simplified analysis and System Admin complete
+  technical analysis.
+- [ ] Explain dataset partitions, class imbalance, TF, IDF, TF-IDF,
+  Multinomial Naive Bayes, `alpha=0.5`, threshold `0.60`, metrics, matrix,
+  confidence, and limitations.
+- [ ] Keep historical metrics sourced from committed artifacts, never live
+  ticket recalculation.
+
+#### Phase 7: controlled six-department user testing
+
+- [ ] Approve at least one synthetic labelled complaint for every department.
+- [ ] Record expected/predicted/final departments, confidence, routing mode,
+  override, correctness, model version, language, and text-length category.
+- [ ] Calculate small-test accuracy, auto/manual rates, override rate,
+  per-department correctness, high-confidence errors, and confidence
+  distribution.
+- [ ] State clearly that six-complaint demonstration results are small-sample
+  user-test evidence, not formal model accuracy.
+
+### Paused — Phase 8: controlled model-hunting resumption
+
+- [x] Keep `research/model-hunting` isolated.
+- [x] Keep the frozen runtime model unchanged.
+- [x] Keep candidate promotion disabled.
+- [ ] Resume only after Cloud staging, authentication, roles, UI/UX, analysis,
+  and Phase 7 testing gates pass and the owner explicitly approves.
+- Phase 8 status: Paused and approval-gated.
+
+### Future — Phase 9: production readiness
+
+- [ ] Public frontend/backend deployment.
+- [ ] Production Firebase and environment separation.
+- [ ] Monitoring and alerting.
+- [ ] Rate limiting.
+- [ ] Retention and deletion.
+- [ ] Backup and disaster recovery.
+- [ ] Security review.
+- [ ] Browser, device, screen-reader, and accessibility coverage.
+- [ ] Cost monitoring.
+- [ ] Incident response.
+- Phase 9 status: Future work, not implemented.
+
+### Open decisions
+
+- Staging Firebase project ID.
+- Email verification enforcement policy.
+- Account disable/delete and retention policy.
+- System Administrator ownership and bootstrap process.
+- Whether staff should see ticket-level model evidence.
+- Exact staging quota and budget limits.
+- Whether controlled-test analytics are visible to Manager and System Admin or
+  System Admin only.
+- Production hosting choices, deferred to Phase 9.
+
+### Frozen assets and approval gates
+
+- Do not change the frozen model, model hash, version, algorithm, alpha,
+  threshold, labels/order, held-out partition, prediction/audit fields, or
+  Day 18 source/generated evaluation artifacts.
+- Preserve customer ownership, staff department isolation, manager override
+  evidence, emulator identity/seed behavior, and Day 31/Day 32 evidence.
+- Do not alter `research/model-hunting` or preservation commit
+  `c4205d96bf3577c60c53fd7e49dd9e950e416045`.
+- Require explicit approval before Cloud resources, rules/indexes,
+  dependencies, privileged Cloud accounts, schema/authorization changes,
+  pushes/deployments, real data, model hunting, or frozen-model changes.
+
 ## Day 2 completion rule
 
 Move verification to Done only after `npm run lint` and `npm run build` pass and the repository audit confirms that secrets and generated/local files will not be committed. Account availability is confirmed, but credentials and service integration remain deferred to their scheduled project days.
@@ -350,3 +695,43 @@ Move Day 3 work to Done only after archive validation, extracted-size verificati
 ## Day 5 completion rule
 
 Day 5 started early with owner approval on 23 July 2026. Move Day 5 work to Done only after the reusable cleaner and synthetic tests pass, the complete raw CSV is processed successfully in bounded chunks, all input rows reconcile to retained plus mutually exclusive rejection counts, the aggregate report is reviewed, the full cleaned CSV and processing artifacts are confirmed ignored, raw-file integrity is unchanged, and tracked outputs are scanned to confirm that they contain no complaint IDs, narratives, row-level records, or personal identifiers. A bounded smoke test alone does not complete Day 5. Mapping, EDA, translation, feature engineering, sampling, model training, frontend work, and Firebase implementation remain deferred.
+
+### Approved - R2C10C-0 Customer detail and message-safety contract
+
+- [x] Approve the documentation-only Customer detail projection with no
+  priority, ownership/actor IDs, assignment, model/routing metadata, raw event,
+  message, action, or idempotency references, private notes, unknown fields, or
+  extra fields.
+- [x] Approve safe `404` for missing/cross-Customer tickets and safe `503` for
+  malformed or contradictory owned persistence without partial detail.
+- [x] Approve authorization before request-body parsing and persistence access
+  for Customer detail, message, and feedback routes.
+- [x] Approve the exact `messageText`/`actionId` request, request-fingerprint
+  conflict behavior, same-action lost-response retry, and memory-only frontend
+  attempt isolation.
+- [x] Approve the V1 cap of 100 participant-visible messages, at most 101
+  ordered reads using `createdAt ASC` plus document-ID `ASC`, safe `503` on a
+  101st message or malformed data, and no new composite index.
+- [x] Record trusted ticket status as current-status authority and approve
+  bounded English/Myanmar guidance for all six statuses without deadline,
+  outcome, assignment, reopening, or automatic-response promises.
+- [x] Preserve resolved/closed feedback behavior, existing notifications,
+  API-only Firestore access, denied direct raw writes, and the Cloud-deferred
+  no-budget boundary.
+
+### Completed - R2C10C implementation slices
+
+- [x] **R2C10C-1:** message fingerprint idempotency, stable frontend attempts,
+  abort/session/ticket isolation, strict message parsing, and deterministic
+  bounded message reads.
+- [x] **R2C10C-2:** remove priority; implement strict backend/frontend detail
+  projection, safe persistence errors, authenticated body-validation ordering,
+  and strict nested message/timeline/feedback parsing.
+- [x] **R2C10C-3:** implement accessible current-status and next-action UI in
+  English and Myanmar; static verification is complete. Final Emulator/browser
+  runtime smoke testing remains pending.
+- [ ] Defer message pagination, unread counts, SLA/response targets, proactive
+  notifications, automatic status transitions, reopen/close controls,
+  Staff/Admin detail changes, full-text search, date/reference filtering,
+  charts, exports, bulk actions, Myanmar complaint classification, and Cloud
+  deployment.

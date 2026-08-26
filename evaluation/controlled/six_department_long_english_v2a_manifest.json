@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "controlled-case-manifest-v2a",
+  "benchmarkProfile": "long_english_supported_use_v2a",
+  "evidenceType": "controlled case-definition manifest",
+  "disclosures": [
+    "Intended supported-use benchmark.",
+    "Six predefined long-English synthetic cases, one case per department.",
+    "Not official held-out evaluation.",
+    "Not live-user performance.",
+    "No inference executed."
+  ],
+  "cases": [
+    {
+      "caseId": "v2a-transfer-payment-001",
+      "benchmarkProfile": "long_english_supported_use_v2a",
+      "inputLocale": "en",
+      "textLengthCategory": "long",
+      "wordCount": 59,
+      "expectedDepartmentId": "transfer_payment",
+      "expectedDepartmentLabel": "Transfer & Payment",
+      "complaintText": "During a synthetic evening payment exercise, a scheduled transfer from a fictional household wallet shows as completed in the activity history, yet the recipient balance has not changed. The sender has checked the destination details and waited through the stated processing window. They want the transfer traced, the timing explained, and the funds delivered without opening a new payment.",
+      "expectedLabelRationale": "The single coherent issue is a completed transfer whose recipient has not received the funds, so it belongs to Transfer & Payment.",
+      "synthetic": true,
+      "predefinedBeforeInference": true
+    },
+    {
+      "caseId": "v2a-account-support-001",
+      "benchmarkProfile": "long_english_supported_use_v2a",
+      "inputLocale": "en",
+      "textLengthCategory": "long",
+      "wordCount": 54,
+      "expectedDepartmentId": "account_support",
+      "expectedDepartmentLabel": "Account Support",
+      "complaintText": "During a synthetic account-maintenance exercise, a fictional customer can read recent notices but cannot update the mailing preference or change the sign-in security question. The account is otherwise familiar, and no transaction is being disputed. The customer wants help restoring ordinary account access and completing the requested profile changes through the normal support process.",
+      "expectedLabelRationale": "The complaint concerns ordinary account access and profile maintenance, without a transaction dispute, so it belongs to Account Support.",
+      "synthetic": true,
+      "predefinedBeforeInference": true
+    },
+    {
+      "caseId": "v2a-card-atm-001",
+      "benchmarkProfile": "long_english_supported_use_v2a",
+      "inputLocale": "en",
+      "textLengthCategory": "long",
+      "wordCount": 57,
+      "expectedDepartmentId": "card_atm",
+      "expectedDepartmentLabel": "Card & ATM",
+      "complaintText": "During a synthetic cash-access exercise, a fictional customer inserts a debit card at a staffed cash machine, but the withdrawal is declined after the machine reads the card. The same customer can view the account balance through another channel and is not reporting an unknown purchase. They want the card or cash-machine problem diagnosed before trying again.",
+      "expectedLabelRationale": "The single issue is a debit-card withdrawal decline at a cash machine, so it belongs to Card & ATM.",
+      "synthetic": true,
+      "predefinedBeforeInference": true
+    },
+    {
+      "caseId": "v2a-fraud-security-001",
+      "benchmarkProfile": "long_english_supported_use_v2a",
+      "inputLocale": "en",
+      "textLengthCategory": "long",
+      "wordCount": 59,
+      "expectedDepartmentId": "fraud_security",
+      "expectedDepartmentLabel": "Fraud & Security",
+      "complaintText": "During a synthetic security exercise, a fictional customer notices a purchase in the activity list that they do not recognize and did not authorize. The customer still has the payment card and has not shared any access details. They want the transaction investigated, future misuse prevented, and clear guidance about securing the account while the disputed purchase is reviewed.",
+      "expectedLabelRationale": "The complaint centers on an unauthorized purchase and account protection, so it belongs to Fraud & Security.",
+      "synthetic": true,
+      "predefinedBeforeInference": true
+    },
+    {
+      "caseId": "v2a-loan-credit-001",
+      "benchmarkProfile": "long_english_supported_use_v2a",
+      "inputLocale": "en",
+      "textLengthCategory": "long",
+      "wordCount": 54,
+      "expectedDepartmentId": "loan_credit",
+      "expectedDepartmentLabel": "Loan & Credit",
+      "complaintText": "During a synthetic repayment exercise, a fictional borrower reviews a consumer-loan statement and sees that the amount applied to principal is smaller than expected after a scheduled payment. The borrower wants the interest calculation, repayment allocation, and remaining balance explained, because the concern relates to loan servicing rather than an unrelated card or transfer.",
+      "expectedLabelRationale": "The complaint is about loan repayment allocation, interest, and servicing, so it belongs to Loan & Credit.",
+      "synthetic": true,
+      "predefinedBeforeInference": true
+    },
+    {
+      "caseId": "v2a-general-support-001",
+      "benchmarkProfile": "long_english_supported_use_v2a",
+      "inputLocale": "en",
+      "textLengthCategory": "long",
+      "wordCount": 56,
+      "expectedDepartmentId": "general_support",
+      "expectedDepartmentLabel": "General Support",
+      "complaintText": "During a synthetic service-navigation exercise, a fictional customer has a banking question that mentions several services but does not identify a single disputed transaction, access problem, card event, security incident, or loan statement. The customer wants an advisor to clarify which support team can help and what information is appropriate to provide for the next step.",
+      "expectedLabelRationale": "The request is intentionally broad and asks for service navigation rather than one defined department issue, so it belongs to General Support.",
+      "synthetic": true,
+      "predefinedBeforeInference": true
+    }
+  ]
+}

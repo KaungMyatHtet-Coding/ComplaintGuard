@@ -16,6 +16,7 @@ vi.mock("@/components/app-provider", () => ({
         english: "English",
         myanmar: "Myanmar",
         signOut: "Sign out",
+        customerShell: "Customer dashboard",
       })[key] ?? key,
   }),
 }));
@@ -26,8 +27,8 @@ describe("AppHeader", () => {
   it("keeps the role, language, and sign-out controls available", () => {
     const markup = renderToStaticMarkup(<AppHeader />);
 
-    expect(markup).toContain('class="header-actions"');
-    expect(markup).toContain('class="role-chip"');
+    expect(markup).toContain("Customer dashboard");
+    expect(markup).toContain('aria-label="Customer dashboard"');
     expect(markup).toContain('class="language-switcher"');
     expect(markup).toContain("English");
     expect(markup).toContain("Myanmar");

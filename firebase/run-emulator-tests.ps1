@@ -12,10 +12,14 @@ $firebaseDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repositoryRoot = Split-Path -Parent $firebaseDirectory
 $localState = Join-Path $firebaseDirectory ".firebase"
 $configHome = Join-Path $localState "config"
-$emulatorCache = Join-Path $localState "emulators"
+$ownerCacheRoot = $env:USERPROFILE
+$emulatorCache = Join-Path $ownerCacheRoot ".cache\firebase\emulators"
 $firebaseCli = Join-Path $firebaseDirectory "node_modules\firebase-tools\lib\bin\firebase.js"
+$emulatorInfo = Join-Path $firebaseDirectory "node_modules\firebase-tools\lib\emulator\downloadableEmulatorInfo.json"
 $vitestCli = Join-Path $firebaseDirectory "node_modules\.bin\vitest.cmd"
 $python = Join-Path $repositoryRoot ".venv\Scripts\python.exe"
+$emulatorStdoutLog = Join-Path $localState "emulator.stdout.log"
+$emulatorStderrLog = Join-Path $localState "emulator.stderr.log"
 $apiStdoutLog = Join-Path $localState "api.stdout.log"
 $apiStderrLog = Join-Path $localState "api.stderr.log"
 $frontendStdoutLog = Join-Path $localState "frontend.stdout.log"
@@ -23,16 +27,64 @@ $frontendStderrLog = Join-Path $localState "frontend.stderr.log"
 $emulatorPort = 8185
 $authPort = 9099
 
-New-Item -ItemType Directory -Force -Path $configHome, $emulatorCache | Out-Null
+New-Item -ItemType Directory -Force -Path $configHome | Out-Null
 $env:FIREBASE_CLI_DISABLE_UPDATE_CHECK = "true"
-$env:FIREBASE_EMULATORS_PATH = $emulatorCache
 $env:XDG_CONFIG_HOME = $configHome
+
+if (-not $ownerCacheRoot -or -not (Test-Path -LiteralPath $emulatorInfo -PathType Leaf)) {
+    throw "Firebase Emulator compatibility manifest is unavailable; refusing to launch."
+}
+$emulatorManifest = Get-Content -LiteralPath $emulatorInfo -Raw | ConvertFrom-Json
+$requiredFirestore = $emulatorManifest.firestore
+$requiredFirestoreJar = Join-Path $emulatorCache $requiredFirestore.downloadPathRelativeToCacheDir
+if (-not (Test-Path -LiteralPath $requiredFirestoreJar -PathType Leaf)) {
+    throw "Required compatible Firestore Emulator $($requiredFirestore.version) is absent from the standard cache; refusing to launch."
+}
+if ((Get-Item -LiteralPath $requiredFirestoreJar).Length -le 0) {
+    throw "Required compatible Firestore Emulator $($requiredFirestore.version) is empty; refusing to launch."
+}
+$env:FIREBASE_EMULATORS_PATH = $emulatorCache
 
 $launcher = $null
 $apiProcess = $null
 $frontendProcess = $null
 $testExitCode = 1
+$preexistingEmulatorPids = @(
+    netstat.exe -ano |
+        Select-String -Pattern "127\.0\.0\.1:$emulatorPort\s+0\.0\.0\.0:0\s+LISTENING\s+(\d+)" |
+        ForEach-Object { [int]$_.Matches[0].Groups[1].Value }
+)
+$preexistingAuthPids = @(
+    netstat.exe -ano |
+        Select-String -Pattern "127\.0\.0\.1:$authPort\s+0\.0\.0\.0:0\s+LISTENING\s+(\d+)" |
+        ForEach-Object { [int]$_.Matches[0].Groups[1].Value }
+)
+
+function Get-SanitizedLogTail([string]$path) {
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return "[log unavailable]"
+    }
+    $tail = Get-Content -LiteralPath $path -Tail 40 -ErrorAction SilentlyContinue
+    if (-not $tail) {
+        return "[log empty]"
+    }
+    return (($tail | ForEach-Object {
+        $_ -replace '(?i)(password|token|secret|private[_-]?key|client[_-]?email)(\s*[:=]\s*)\S+', '$1$2[REDACTED]'
+    }) -join [Environment]::NewLine)
+}
+
+function Stop-WithLauncherDiagnostics([string]$message) {
+    $stdoutTail = Get-SanitizedLogTail $emulatorStdoutLog
+    $stderrTail = Get-SanitizedLogTail $emulatorStderrLog
+    throw "$message`n--- emulator stdout tail ---`n$stdoutTail`n--- emulator stderr tail ---`n$stderrTail"
+}
+
 try {
+    if ($preexistingEmulatorPids.Count -gt 0 -or $preexistingAuthPids.Count -gt 0) {
+        throw "Local Emulator ports are already in use; refusing to manage owner-started services."
+    }
+    Set-Content -LiteralPath $emulatorStdoutLog -Value "" -NoNewline
+    Set-Content -LiteralPath $emulatorStderrLog -Value "" -NoNewline
     $launcher = Start-Process `
         -FilePath (Get-Command node.exe).Source `
         -ArgumentList @(
@@ -43,13 +95,15 @@ try {
         ) `
         -WorkingDirectory $repositoryRoot `
         -WindowStyle Hidden `
+        -RedirectStandardOutput $emulatorStdoutLog `
+        -RedirectStandardError $emulatorStderrLog `
         -PassThru
 
     $deadline = [DateTime]::UtcNow.AddSeconds(30)
     $ready = $false
     while ([DateTime]::UtcNow -lt $deadline) {
         if ($launcher.HasExited) {
-            throw "Firebase Emulator launcher exited with code $($launcher.ExitCode) before Firestore became ready."
+            Stop-WithLauncherDiagnostics "Firebase Emulator launcher exited with code $($launcher.ExitCode) before Firestore became ready."
         }
         $client = [System.Net.Sockets.TcpClient]::new()
         try {
@@ -63,14 +117,14 @@ try {
         }
     }
     if (-not $ready) {
-        throw "Firestore Emulator did not listen on 127.0.0.1:$emulatorPort."
+        Stop-WithLauncherDiagnostics "Firestore Emulator did not listen on 127.0.0.1:$emulatorPort."
     }
 
     $authDeadline = [DateTime]::UtcNow.AddSeconds(30)
     $authReady = $false
     while ([DateTime]::UtcNow -lt $authDeadline) {
         if ($launcher.HasExited) {
-            throw "Firebase Emulator launcher exited with code $($launcher.ExitCode) before Auth became ready."
+            Stop-WithLauncherDiagnostics "Firebase Emulator launcher exited with code $($launcher.ExitCode) before Auth became ready."
         }
         $client = [System.Net.Sockets.TcpClient]::new()
         try {
@@ -84,35 +138,21 @@ try {
         }
     }
     if (-not $authReady) {
-        throw "Auth Emulator did not listen on 127.0.0.1:$authPort."
+        Stop-WithLauncherDiagnostics "Auth Emulator did not listen on 127.0.0.1:$authPort."
     }
 
     $env:FIRESTORE_EMULATOR_HOST = "127.0.0.1:$emulatorPort"
     $env:FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:$authPort"
+    $env:APP_ENV = "local-emulator"
     $env:GCLOUD_PROJECT = "demo-complaintguard"
     Push-Location $firebaseDirectory
     try {
         & (Get-Command node.exe).Source (Join-Path $firebaseDirectory "seed-emulator.mjs")
         if ($LASTEXITCODE -ne 0) { throw "Emulator seeding failed." }
-        $firstSeedUids = @(
-            (Get-Content (Join-Path $localState "seeded-identities.json") -Raw |
-                ConvertFrom-Json).identities.uid
-        )
-        & $vitestCli run "firestore.rules.test.js" --reporter verbose
+        & $vitestCli run "auth-emulator.test.js" --reporter verbose
         $testExitCode = $LASTEXITCODE
         if ($testExitCode -eq 0) {
-            & (Get-Command node.exe).Source `
-                (Join-Path $firebaseDirectory "seed-emulator.mjs") `
-                "--reset-firestore"
-            if ($LASTEXITCODE -ne 0) { throw "Emulator reseeding failed." }
-            $secondSeedUids = @(
-                (Get-Content (Join-Path $localState "seeded-identities.json") -Raw |
-                    ConvertFrom-Json).identities.uid
-            )
-            if (Compare-Object $firstSeedUids $secondSeedUids) {
-                throw "Emulator reseeding changed stable demo Auth UIDs."
-            }
-            & $vitestCli run "auth-emulator.test.js" --reporter verbose
+            & $vitestCli run "firestore.rules.test.js" --reporter verbose
             $testExitCode = $LASTEXITCODE
         }
         if ($testExitCode -eq 0) {
@@ -122,6 +162,18 @@ try {
                 & $python -m pytest `
                     -p no:cacheprovider `
                     "tests\test_firestore_emulator_adapters.py" `
+                    -q
+                $testExitCode = $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
+        }
+        if ($testExitCode -eq 0) {
+            Push-Location (Join-Path $repositoryRoot "ml-api")
+            try {
+                & $python -m pytest `
+                    -p no:cacheprovider `
+                    "tests\test_admin_lifecycle_emulator.py" `
                     -q
                 $testExitCode = $LASTEXITCODE
             } finally {
@@ -198,14 +250,18 @@ try {
         Select-Object -First 1
     if ($listenerLine -and $listenerLine.Matches.Count -gt 0) {
         $emulatorPid = [int]$listenerLine.Matches[0].Groups[1].Value
-        Stop-Process -Id $emulatorPid -Force -ErrorAction SilentlyContinue
+        if ($preexistingEmulatorPids -notcontains $emulatorPid) {
+            Stop-Process -Id $emulatorPid -Force -ErrorAction SilentlyContinue
+        }
     }
     $authListenerLine = netstat.exe -ano |
         Select-String -Pattern "127\.0\.0\.1:$authPort\s+0\.0\.0\.0:0\s+LISTENING\s+(\d+)" |
         Select-Object -First 1
     if ($authListenerLine -and $authListenerLine.Matches.Count -gt 0) {
         $authPid = [int]$authListenerLine.Matches[0].Groups[1].Value
-        Stop-Process -Id $authPid -Force -ErrorAction SilentlyContinue
+        if ($preexistingAuthPids -notcontains $authPid) {
+            Stop-Process -Id $authPid -Force -ErrorAction SilentlyContinue
+        }
     }
     if ($launcher -and -not $launcher.HasExited) {
         Stop-Process -Id $launcher.Id -Force -ErrorAction SilentlyContinue

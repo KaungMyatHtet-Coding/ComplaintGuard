@@ -45,7 +45,7 @@ class RecordingBackend:
         return "customer-1"
 
     def get_user_profile(self, _uid: str):
-        return {"active": True, "role": "customer"}
+        return {"active": True, "role": "customer", "accountState": "active"}
 
     def create_ticket(self, document, *, idempotency_key):
         assert idempotency_key == "submission-action-001"

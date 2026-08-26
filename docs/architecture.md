@@ -2,7 +2,10 @@
 
 ## Architecture goals
 
-ComplaintGuard uses a small, zero-cost architecture that one developer can build and demonstrate before 10 August 2026. It separates historical data mining from the live complaint workflow, keeps operational data in Firebase Cloud Firestore, and uses no paid API.
+ComplaintGuard uses a small, cost-controlled architecture for a demonstrable
+prototype. It separates historical data mining from the live complaint
+workflow, keeps verified local operational data in the Firestore Emulator, and
+uses no paid API.
 
 ## Verified local architecture and unverified deployment options
 
@@ -12,11 +15,19 @@ Spaces, and production Firebase in the table and diagram below are original
 zero-cost deployment options only; they were not configured or verified and
 must not be presented as delivered architecture.
 
+The application role model has four roles: Customer, Staff, Manager, and Admin.
+Firebase Console/IAM ownership is not an application Admin role. Public
+registration creates Customer accounts only. Staff and Manager accounts are
+prepared through the trusted active-Admin workflow; Managers operate complaints,
+routing review, and analytics but cannot provision accounts. Admin provisions
+pending Staff/Manager accounts and cannot create Customer or another Admin in
+the first version.
+
 | Layer | Technology | Responsibility | Cost boundary |
 |---|---|---|---|
-| Frontend | Next.js, TypeScript, Tailwind CSS | Responsive English/Myanmar customer, staff, and manager web UI | Open-source |
+| Frontend | Next.js, TypeScript, Tailwind CSS | Responsive English/Myanmar customer, staff, manager, and Admin web UI | Open-source |
 | Frontend hosting | Local Next.js development/build | Verified local evaluator and demo access | Local only; Vercel remains unverified |
-| Authentication | Firebase Auth Emulator | Synthetic customer, staff, and manager demo accounts | Local emulator only; no SMS |
+| Authentication | Firebase Auth Emulator | Synthetic customer, staff, manager, and optional Admin accounts | Local emulator only; no SMS |
 | Operational NoSQL | Firestore Emulator | Synthetic users, departments, tickets, messages, events, and feedback | Local emulator only; production Spark unverified |
 | ML API | Local Python FastAPI | Preprocessing, trusted workflows, classification, and confidence | Local CPU only; Hugging Face Spaces unverified |
 | Offline data | Historical CFPB CSV/Parquet | Local profiling, cleaning, EDA, deterministic label mapping, and model training | Free public data; never bulk-loaded into Firestore |
@@ -25,7 +36,7 @@ must not be presented as delivered architecture.
 
 No billing account, paid cloud function, paid model API, paid translation API, paid GPU, or custom domain is permitted.
 
-## System diagram
+## Current verified system diagram
 
 ```mermaid
 flowchart LR
@@ -38,10 +49,12 @@ flowchart LR
         Evaluate --> Artifacts[Versioned vectorizer, model, labels, metadata]
     end
 
-    subgraph Live[Live complaint prediction pipeline]
-        User[Customer browser] --> Web[Next.js and Tailwind frontend]
-        Web --> Auth[Firebase Authentication]
-        Web --> API[FastAPI on Hugging Face Spaces CPU]
+    subgraph Live[Verified local emulator complaint workflow]
+        User[Customer, staff, and manager browser] --> Web[Local Next.js frontend]
+        Web --> Auth[Firebase Auth Emulator]
+        Auth -. ID token .-> API[Local FastAPI backend]
+        Web -. rules-governed client reads .-> Store[(Firestore Emulator)]
+        API -->|authenticated, authorized trusted operations| Store
         API --> Detect{Input language}
         Detect -->|English| Clean[Privacy-aware normalization]
         Detect -->|Myanmar| Translate[Open-source Myanmar-to-English translation]
@@ -53,14 +66,29 @@ flowchart LR
         Decision -->|Low or Myanmar/mixed| Review[Unassigned manual review]
         Department --> Web
         Review --> Web
-        Web --> Store[(Cloud Firestore Spark)]
         Store --> Web
     end
-
-    Vercel[Vercel Hobby] -. hosts .-> Web
 ```
 
-The browser communicates directly with Firebase Authentication and Firestore only under security rules. It calls the FastAPI service for prediction. The model service does not train during a user request and does not use Firestore as a training-data store.
+The browser authenticates through the Firebase Auth Emulator and sends the ID
+token to the local FastAPI backend. The backend performs authentication,
+authorization, trusted workflow operations, model inference, routing, and
+persistence. Where currently applicable, browser reads go to the Firestore
+Emulator under security rules. The model service does not train during a user
+request and does not use Firestore as a training-data store.
+
+## Future and unverified deployment options
+
+Vercel, Hugging Face Spaces, and Cloud Firebase remain unverified deployment
+evidence. The owner-approved `complaintguard` Cloud project is adopted and
+preserved as a possible future staging boundary, but the application is not
+connected and no Cloud runtime or workflow is verified. Cloud runtime work is
+deferred under the owner's no-budget/no-billing decision; no backend hosting,
+rules/index deployment, or billing link is approved. The local emulator is the
+source-of-truth runtime for development and demonstration. Future production is
+a separate Phase 9 target; no final hosting decision or production deployment
+is implied here. See
+`cloud_firebase_staging_adoption.md` for the audit record and gates.
 
 ## Offline training pipeline
 
@@ -140,10 +168,95 @@ production deployment or enterprise security.
 
 The build-time Day 18/19 evaluation JSON is non-sensitive aggregate evidence.
 The ignored historical-similarity index is sensitive analytical material and is
-not loaded by the runtime application. No public deployment, production Firebase
-verification, QR code, admin operations, approved retention/deletion workflow,
-rate limiting, monitoring, disaster recovery, or independent security audit is
-implemented.
+not loaded by the runtime application. Customer registration/recovery, strict
+active-Admin authorization, pending Staff/Manager provisioning, the Admin
+provisioning dashboard, the read-only all-role `GET /admin/users` directory,
+and the R2B read-only account-detail drawer are implemented for the local
+prototype. The directory and drawer expose only email, display name, locale,
+role, department, profile active state, and the future trusted account state;
+they exclude
+UIDs, credentials, claims, timestamps, Auth-provider details, and provisioning
+action records.
+It supports approved role/department/status/search filters, a bounded
+200-profile scan, page sizes from 1 to 50, and opaque cursor pagination. Its
+The current `setupStatus` projection is a known transitional defect because it
+maps every inactive profile to `pending_setup`. R2C8D0 approves replacing it in
+a future implementation slice with the trusted `accountState` values `active`,
+`pending_setup`, `disabled`, and `inactive_unverified`; recovery and operator
+states remain actor-bound lifecycle projections. The current directory has no
+edit,
+activation, reassignment, disable/reactivate, or deletion controls. The initial
+Admin bootstrap and pending-user activation scripts are committed but
+unexecuted. No public deployment, production Firebase verification, QR code,
+account status-management UI, approved retention/deletion workflow, rate
+limiting, monitoring, disaster recovery, or independent security audit is
+implemented. Registration, provisioning, bootstrap, activation, and the
+browser-to-backend Admin directory/provisioning flows remain unverified against
+a live Emulator because
+Firebase CLI startup stopped at a network-dependent MOTD/auto-download boundary;
+no product defect was proven.
+
+R0.1 approves future strict-active-Admin all-role governance using safe browser
+fields and an opaque account reference, Customer-safe History projections,
+durable in-app notifications, trusted assignment controls, response-target
+presentation, and aggregate Admin governance summaries. These are approved
+design contracts, not current runtime behavior. The current Customer API still
+requires a future data-minimization projection, the current Staff workflow
+remains department-level with no claim or assignment enforcement, proactive
+notification delivery is unavailable, and no scheduled worker is approved.
+
+The Manager-only Model & Dataset Analytics workspace also presents the frozen
+TF-IDF and MultinomialNB equations plus separate aggregate-safe controlled V1
+and V2 evidence. V1 is a small short-English challenge (`2/6` classifier
+matches, `1/6` automatic coverage, `0/1` correct automatic routes, `5/6`
+manual review). V2 is a small predefined long-English demonstration (`2/6`
+classifier matches, `2/6` automatic coverage, `2/2` correctness among
+automatically routed cases, `4/6` manual review). The V2 `2/2 (100%)` value is
+routed-case correctness, never overall model accuracy, and is shown with its
+`2/6` coverage context. Official frozen evaluation remains separate with
+82.7934% held-out accuracy; V1 and V2 are not combined and are not live-user or
+production evidence. Confidence is uncalibrated and macro-F1 remains below
+the 0.70 target. This presentation is pure/frontend/static-tested, but browser
+and Emulator runtime verification remains incomplete. Operational aggregate
+Admin analytics remain future work while bounded aggregation and completeness
+semantics are unresolved. Manager technical evidence remains Manager-only;
+Admin governance summaries must remain aggregate and must not expose raw
+complaint narratives or ticket-level model evidence.
+
+## R2C0 future Admin account lifecycle boundary
+
+The approved future account lifecycle is documented in
+[`admin_account_lifecycle_contract.md`](admin_account_lifecycle_contract.md).
+It is a trusted-backend design only, not current architecture behavior. The
+current Admin surface remains a read-only all-role directory and a
+Staff/Manager-only pending provisioning flow.
+
+Future mutations must authorize a verified active strict Admin before resolving
+an opaque backend-issued account reference. They must preserve role and
+department invariants, use deterministic idempotency/action records, apply
+expected-state concurrency checks, and recover Firebase Auth/Firestore partial
+failures without activating a profile prematurely. Profile inactivity is the
+first disablement boundary; Auth enablement is the first reactivation step.
+Self-targeting, last-valid-Admin disablement, explicitly assigned unresolved
+Staff work, malformed profiles, `pending_setup` activation, role changes, and
+permanent deletion remain blocked or deferred by policy. Unresolved complaints
+that are unassigned to the target Staff member remain in their department
+queue; no future reassignment operation may move or reroute them automatically.
+
+No frontend account mutation, Auth management, claims operation, rule/index
+change, notification trigger, or runtime verification is introduced by R2C0.
+
+The Secure & Approachable UI/UX Slices A-D are implemented locally and
+automated-test verified without changing authorization. Customer and landing
+views no longer expose technical model evidence; the Staff workspace uses
+accessible Overview, Messages, Activity, and Model Data tabs; Login/Register
+use the semantic Deep Forest (`#064E3B`), Emerald (`#10B981`), and Warm White
+(`#FAFAF9`) theme with focus/autofill polish; and Manager analytics has ordinary
+anchor navigation, more readable tables, Emerald presentation bars, and
+accessible confusion-matrix descriptions. Manager analytics remains reachable
+only through the existing Manager boundary. No browser visual verification was
+performed, so mobile layout, autofill, hover/focus appearance, and
+document-level overflow remain unverified.
 
 ## Historical Day 2 boundary
 

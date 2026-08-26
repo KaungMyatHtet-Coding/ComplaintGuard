@@ -6,6 +6,8 @@ describe("localization foundation", () => {
   it("supports English and Myanmar UI copy", () => {
     expect(translate("en", "loginTitle")).toBe("Sign in");
     expect(translate("en", "complaintTitle")).toBe("Submit a complaint");
+    expect(translate("en", "closeComplaintDialog")).toBe("Close complaint dialog");
+    expect(translate("my", "closeComplaintDialog")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "complaintTitle")).toContain("တိုင်ကြားချက်");
     expect(translate("en", "staffQueueTitle")).toBe("Department complaint queue");
     expect(translate("my", "staffQueueTitle")).toContain("ဌာန");
@@ -27,10 +29,45 @@ describe("localization foundation", () => {
       "evidenceTitle",
       "evidenceSimilarityLocalOnly",
       "managerDashboardLoading",
+      "adminLifecycleManagementTitle",
+      "adminLifecycleLoading",
+      "adminLifecycleEligibilityTitle",
+      "adminLifecycleOperationDisable",
+      "adminLifecycleOperationReactivate",
+      "adminLifecycleOperationReassign",
+      "adminLifecycleRecoveryTitle",
+      "adminLifecycleOperatorRequired",
+      "adminDirectoryState_active",
+      "adminDirectoryState_pending_setup",
+      "adminDirectoryState_disabled",
+      "adminDirectoryState_inactive_unverified",
+      "adminDetailStateActive",
+      "adminDetailStatePending",
+      "adminDetailStateDisabled",
+      "adminDetailStateUnavailable",
+      "complaintUnknownOutcome",
+      "complaintRetryUnknown",
+      "complaintUnknownEdit",
     ] as const) {
       expect(translate("en", key)).not.toMatch(/^\[/u);
       expect(translate("my", key)).not.toMatch(/^\[/u);
     }
+    expect(translate("my", "adminLifecycleManagementTitle")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "adminLifecycleOperatorRequired")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("en", "complaintUnknownOutcome")).toContain("could not confirm");
+    expect(translate("en", "complaintRetryUnknown")).toBe("Retry safely");
+    expect(translate("my", "complaintUnknownOutcome")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "complaintRetryUnknown")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "complaintUnknownOutcome")).not.toMatch(/[\uFFFD]/u);
+    expect(translate("my", "complaintRetryUnknown")).not.toMatch(/[\uFFFD]/u);
+    expect(translate("en", "complaintUnknownEdit")).toContain("restore");
+    expect(translate("my", "complaintUnknownEdit")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "complaintUnknownEdit")).not.toMatch(/[\uFFFD]/u);
+    expect(translate("en", "adminDirectoryState_disabled")).toBe("Disabled");
+    expect(translate("en", "adminDirectoryState_inactive_unverified")).toBe("Inactive status unavailable");
+    expect(translate("my", "adminDirectoryState_pending_setup")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "adminDirectoryState_disabled")).toMatch(/[\u1000-\u109f]/u);
+    expect(translate("my", "adminDirectoryState_pending_setup")).not.toBe(translate("my", "adminDirectoryState_disabled"));
     expect(translate("my", "modelAnalyticsTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("my", "evidenceTitle")).toMatch(/[\u1000-\u109f]/u);
     expect(translate("en", "evidencePredictionConfidence")).toBe("Model confidence");
@@ -46,5 +83,52 @@ describe("localization foundation", () => {
   it("falls back to English for unsupported locale values", () => {
     expect(normalizeLocale("fr")).toBe("en");
     expect(normalizeLocale(null)).toBe("en");
+  });
+
+  it("provides localized Customer History filter labels", () => {
+    const keys = [
+      "customerHistoryFilters", "customerStatusFilter", "customerStatusFilterHelp",
+      "customerAllStatuses", "customerDepartmentFilter", "customerDepartmentFilterHelp",
+      "customerAllDepartments", "customerClearFilters", "customerActiveFilters",
+      "customerFilteredEmpty",
+    ] as const;
+    for (const key of keys) {
+      expect(translate("en", key)).not.toBe("");
+      expect(translate("my", key)).not.toBe("");
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
+    expect(translate("en", "statusClosed")).toBe("Closed");
+    expect(translate("en", "statusClosed")).not.toBe(translate("en", "statusSubmitted"));
+    expect(translate("my", "statusClosed")).toMatch(/[\u1000-\u109f]/u);
+  });
+
+  it("provides complete English and Myanmar Customer status guidance", () => {
+    const keys = [
+      "customerCurrentStatus", "customerWhatHappensNext",
+      "customerStatusGuidanceSubmitted", "customerStatusGuidanceTriaged",
+      "customerStatusGuidanceInProgress", "customerStatusGuidanceAwaitingCustomer",
+      "customerStatusGuidanceResolved", "customerStatusGuidanceClosed",
+    ] as const;
+    for (const key of keys) {
+      expect(translate("en", key)).not.toMatch(/^\[/u);
+      expect(translate("my", key)).toMatch(/[\u1000-\u109f]/u);
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
+  });
+
+  it("provides localized safe Customer message retry states", () => {
+    for (const key of [
+      "customerSending",
+      "customerMessageUnknownOutcome",
+      "customerMessageRetry",
+      "customerMessageIdempotencyConflict",
+      "customerMessageClosedConflict",
+      "customerMessageSafeFailure",
+      "customerCloseMessages",
+    ] as const) {
+      expect(translate("en", key)).not.toMatch(/^\[/u);
+      expect(translate("my", key)).toMatch(/[\u1000-\u109f]/u);
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
   });
 });

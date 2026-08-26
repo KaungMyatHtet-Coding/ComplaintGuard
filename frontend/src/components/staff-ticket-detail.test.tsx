@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -57,12 +58,45 @@ describe("StaffTicketMetadata", () => {
         priorityTitle="Priority"
         priorityLabel="Normal"
         createdTitle="Created"
+        updatedTitle="Updated"
         createdAtLabel="Aug 11, 2026"
+        updatedAtLabel="Aug 12, 2026"
+        departmentTitle="Department"
+        departmentLabel="Card & ATM Support"
       />,
     );
 
     expect(markup).toContain("ticket-metadata");
     expect(markup).toContain("ticket-reference");
     expect(markup).toContain(ticketId);
+  });
+});
+
+describe("Staff ticket tab workspace", () => {
+  const source = readFileSync(new URL("./staff-ticket-detail.tsx", import.meta.url), "utf8");
+
+  it("defines an accessible tab pattern with keyboard navigation and button controls", () => {
+    expect(source).toContain('role="tablist"');
+    expect(source).toContain('role="tab"');
+    expect(source).toContain('role="tabpanel"');
+    expect(source).toContain('aria-controls={`staff-panel-${tab.id}`}');
+    expect(source).toContain('aria-labelledby="staff-tab-overview"');
+    expect(source).toContain('event.key === "ArrowRight"');
+    expect(source).toContain('event.key === "ArrowLeft"');
+    expect(source).toContain('event.key === "Home"');
+    expect(source).toContain('event.key === "End"');
+    expect(source).toContain('type="button"');
+    expect(source).toContain('useState<"overview" | "messages" | "activity" | "model">("overview")');
+  });
+
+  it("keeps technical evidence in Model Data and localizes activity events", () => {
+    expect(source).toContain('activeTab === "model"');
+    expect(source).toContain("DatasetEvidencePanel");
+    expect(source).toContain("staff_reply");
+    expect(source).toContain("customer_reply");
+    expect(source).toContain("status_transition");
+    expect(source).toContain("manager_override");
+    expect(source).toContain('return labels[type] ?? t("staffEventUpdate")');
+    expect(source).not.toContain("event.type}</strong>");
   });
 });

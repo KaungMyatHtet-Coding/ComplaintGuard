@@ -23,7 +23,7 @@ class RecordingTicketBackend:
 
     def get_user_profile(self, uid: str) -> dict[str, Any] | None:
         assert uid == "customer-short-routing"
-        return {"active": True, "role": "customer"}
+        return {"active": True, "role": "customer", "accountState": "active"}
 
     def create_ticket(self, document: dict[str, Any], *, idempotency_key: str) -> str:
         assert idempotency_key

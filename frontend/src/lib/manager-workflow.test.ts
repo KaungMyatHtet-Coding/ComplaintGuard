@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ManagerWorkflowError,
@@ -8,6 +8,13 @@ import {
 } from "./manager-workflow";
 
 describe("manager-workflow API client", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "local-emulator");
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "http://localhost:8000");
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
   it("fetches manager analytics successfully", async () => {
     const mockData = {
       totalTickets: 10,
@@ -58,6 +65,14 @@ describe("manager-workflow API client", () => {
     const tickets = await fetchLowConfidenceTickets("valid-token", mockFetcher);
     expect(tickets).toHaveLength(1);
     expect(tickets[0].id).toBe("ticket_01");
+  });
+
+  it("does not fetch when staging is structurally configured", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_ENV", "cloud-staging");
+    vi.stubEnv("NEXT_PUBLIC_ML_API_URL", "https://api.example.test");
+    const fetcher = vi.fn();
+    await expect(fetchManagerAnalytics("token", fetcher)).rejects.toMatchObject({ code: "backend" });
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("posts department override successfully", async () => {
