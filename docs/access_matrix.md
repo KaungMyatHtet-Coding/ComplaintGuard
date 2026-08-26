@@ -133,26 +133,23 @@ separately approved notification contract remain unchanged. The trusted
 Firebase Admin backend is not constrained by client rules and must continue to
 perform its own authentication, ownership, projection, and failure checks.
 
-The future R2C10B-A history route is bounded, unfiltered pagination with a
-strict six-field row projection, deterministic `createdAt DESC` plus document
-ID `DESC` ordering, and an unsigned opaque cursor bound to the authenticated
-Customer and exact contract. R2C10B-B adds only reviewed status and department
-filters. Date ranges and exact-reference list lookup remain R2C10B-C deferrals.
+The implemented local Customer History route supports bounded unfiltered,
+status-filtered, department-filtered, and combined status-plus-department
+pagination. It uses the strict six-field row projection, deterministic
+`createdAt DESC` plus document ID `DESC` ordering, and a version-2 opaque
+cursor bound to the authenticated Customer and exact filter contract. Date
+ranges and exact-reference list lookup remain R2C10B-C deferrals.
 
 R2C10A complaint submission confirmation, same-action unknown-outcome recovery,
 and exact Customer complaint selection remain implemented and verified. This
 documentation checkpoint does not alter that behavior.
 
-R2C10B0 did not implement the route. The current local R2C10B-A route,
-frontend pagination behavior, rules boundary, and unfiltered index are
-implemented and locally verified. R2C10B-B0 approves only the future exact
-status/department filter, version-2 cursor, and three additional index shapes;
-no B-B filter, control, index, or runtime behavior is implemented. Local
-Emulator verification remains required before later adoption claims.
-
-The existing A frontend history has no explicit Closed localization path and
-falls back incorrectly for that status. B-B0 records the required future fix;
-it does not modify frontend code.
+R2C10B0 remains the historical approval checkpoint. The current local
+implementation includes the B-B status/department filters, version-2 cursor,
+frontend controls, and the three reviewed additional ticket index shapes.
+These are statically and pure-tested locally; final Emulator/browser runtime
+verification remains pending. Date-range and exact-reference lookup remain
+deferred to R2C10B-C.
 
 ### Customer — implemented locally
 
@@ -163,9 +160,10 @@ it does not modify frontend code.
 - Public self-registration is Customer-only and implemented locally; its
   registration Emulator E2E remains pending.
 
-### R2C10C-0 future Customer detail and message boundary
+### R2C10C implemented locally; runtime certification pending
 
-R2C10C-0 is documentation-only approval. The future Customer detail exposes
+R2C10C-0 is retained as the historical approval checkpoint. The implemented
+Customer detail exposes
 only the ticket reference, trusted lifecycle status, complaint text, input
 locale, approved department, canonical timestamps, participant-safe messages,
 historical public timeline entries, and eligible feedback. It excludes
@@ -173,14 +171,17 @@ priority, all Customer/Staff/Manager or actor UIDs, assignment fields,
 model/routing metadata, raw event names, event/message/action/idempotency
 references, internal reasons, private notes, and unknown or extra fields.
 
-Detail, message, and feedback authorization is ordered as Bearer header, token,
+The C-2 strict ten-field Customer detail projection excludes priority and all
+private, actor, assignment, model, routing, raw event, and unknown fields.
+Malformed owned persistence fails safely with `503`; the frontend parser is
+strict and recursive. Detail, message, and feedback authorization is ordered as Bearer header, token,
 profile, strict Customer role, `active=true`, strict `accountState=active`,
 path/ownership, request-body contract, then persistence. Unauthorized callers
 receive no request-schema detail and trigger no lookup. Authenticated raw-body
 parsing is an approved implementation option where framework validation would
 otherwise run first.
 
-Only `messageText` and `actionId` are accepted. Fingerprints bind the trusted
+Only `messageText` and `actionId` are accepted. C-1 fingerprints bind the trusted
 Customer, owned ticket, normalized/redacted request, action ID, and contract
 domain. Same-fingerprint retries return the original safe result; conflicting
 reuse returns safe `409`. Action IDs remain memory-only in the frontend. The V1
@@ -189,7 +190,8 @@ reads ordered by `createdAt ASC` and document ID `ASC`; a 101st message or
 malformed data produces safe `503`. Pagination is deferred and no new
 composite index is approved here.
 
-Trusted ticket status is current-status authority; timeline entries are
+Trusted ticket status is current-status authority; C-3 provides accessible
+English/Myanmar current-status and next-action guidance, and timeline entries are
 historical and may be incomplete. Existing resolved/closed feedback eligibility,
 ownership, PII redaction, same-action idempotency, duplicate prevention, and
 safe errors remain unchanged. Customer replies do not themselves transition

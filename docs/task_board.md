@@ -719,16 +719,17 @@ Day 5 started early with owner approval on 23 July 2026. Move Day 5 work to Done
   API-only Firestore access, denied direct raw writes, and the Cloud-deferred
   no-budget boundary.
 
-### Future - R2C10C implementation slices
+### Completed - R2C10C implementation slices
 
-- [ ] **R2C10C-1:** message fingerprint idempotency, stable frontend attempts,
+- [x] **R2C10C-1:** message fingerprint idempotency, stable frontend attempts,
   abort/session/ticket isolation, strict message parsing, and deterministic
   bounded message reads.
-- [ ] **R2C10C-2:** remove priority; implement strict backend/frontend detail
+- [x] **R2C10C-2:** remove priority; implement strict backend/frontend detail
   projection, safe persistence errors, authenticated body-validation ordering,
   and strict nested message/timeline/feedback parsing.
-- [ ] **R2C10C-3:** implement accessible current-status and next-action UI in
-  English and Myanmar.
+- [x] **R2C10C-3:** implement accessible current-status and next-action UI in
+  English and Myanmar; static verification is complete. Final Emulator/browser
+  runtime smoke testing remains pending.
 - [ ] Defer message pagination, unread counts, SLA/response targets, proactive
   notifications, automatic status transitions, reopen/close controls,
   Staff/Admin detail changes, full-text search, date/reference filtering,

@@ -103,7 +103,7 @@ Approved History features across the staged sequence:
 
 - owned tickets only;
 - deterministic cursor pagination;
-- status and department filters (R2C10B-B0 only; future implementation);
+- status and department filters (implemented in the current local application);
 - created, updated, and resolved timestamps;
 - unread reply indicator/count;
 - public response-target state;
@@ -118,12 +118,13 @@ raw full-text complaint search.
 
 ### R2C10B-B0 exact Customer History filter approval
 
-This is documentation-only approval. R2C10B-A is implemented locally; B-B
-status/department filters, version-2 cursors, filter controls, and three new
-ticket indexes are future work and are not implemented or deployed.
+This remains the historical B-B0 approval record. The current local
+application implements the approved status/department filters, version-2
+cursors, filter controls, and three additional ticket index shapes. They are
+not deployed to Cloud and have no final Emulator/browser runtime certification.
 
-The future `GET /customer/tickets` route accepts only optional `pageSize`,
-`cursor`, `status`, and `departmentId` after B-B implementation. `pageSize` is
+The implemented local `GET /customer/tickets` route accepts only optional
+`pageSize`, `cursor`, `status`, and `departmentId`. `pageSize` is
 an ASCII decimal integer, defaults to `25`, is bounded to `1`-`50`, and occurs
 at most once. `cursor` is a version-2 opaque cursor, maximum `512` ASCII
 characters, and occurs at most once. `status` and `departmentId` each occur at
@@ -310,21 +311,19 @@ R0.1 records approved contracts only. It does not claim implementation of:
 
 ## R2C10C-0 Customer detail and message-safety approval
 
-R2C10C-0 approves documentation and future boundaries only; it does not claim
-implementation of the three C slices. The current local detail, message, and
-feedback routes use trusted API projections and ownership checks. Feedback is
-currently limited to resolved/closed tickets with PII-redacted comments and
-existing backend same-action idempotency. Current message reads are unbounded,
-and the frontend does not yet retain one action ID across an uncertain retry.
+R2C10C-0 remains the historical documentation approval. The current local
+detail, message, and feedback routes use trusted API projections and ownership
+checks. C-1, C-2, and C-3 are implemented with static/pure verification;
+final Emulator/browser runtime certification remains pending.
 
-Future slices are **R2C10C-1** message fingerprint idempotency, stable frontend
+The completed slices are **R2C10C-1** message fingerprint idempotency, stable frontend
 attempts, abort/session/ticket isolation, strict message parsing, and bounded
 reads; **R2C10C-2** strict detail projection, removal of priority, safe
 persistence errors, authenticated body validation, and strict nested parsing;
 and **R2C10C-3** accessible English/Myanmar current-status and next-action
 presentation.
 
-The future detail projection excludes priority, all Customer/Staff/Manager or
+The implemented detail projection excludes priority, all Customer/Staff/Manager or
 actor UIDs, assignment fields, model/routing metadata, raw event names,
 event/message/action/idempotency references, internal reasons, private notes,
 and unknown or extra fields. Malformed owned persistence fails with safe `503`
@@ -345,7 +344,7 @@ Action IDs/fingerprints are backend-only. Uncertain outcomes reuse one
 memory-only frontend action ID, while late responses are rejected after abort,
 unmount, ticket change, sign-out, or Customer change.
 
-The future V1 conversation read is capped at 100 participant-visible messages:
+The V1 conversation read is capped at 100 participant-visible messages:
 read at most 101 ordered documents (`createdAt ASC`, document ID `ASC`), return
 at most 100, and fail closed with `503` for a 101st message or malformed data.
 Unbounded streams are forbidden; pagination remains deferred and no new

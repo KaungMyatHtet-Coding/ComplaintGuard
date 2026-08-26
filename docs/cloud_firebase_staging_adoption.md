@@ -26,8 +26,9 @@ and no Cloud runtime or workflow is verified.
 - Existing Cloud data is owner-controlled staging identity data, not a
   production dataset.
 - No Cloud composite Firestore indexes exist. The local repository manifest has
-  the approved unfiltered Customer History index, but it is not Cloud evidence
-  and has not been deployed.
+  the implemented Customer History unfiltered, status, department, and
+  combined-filter index shapes, but it is not Cloud evidence and has not been
+  deployed.
 - App Check is not registered or enforced.
 - Managed backup/PITR is unavailable on Spark.
 - Usage is minimal and one human owner has project access.

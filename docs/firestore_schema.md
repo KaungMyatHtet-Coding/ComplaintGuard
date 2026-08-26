@@ -526,15 +526,19 @@ confirmed new complaint is absent from a refreshed page, confirmed success is
 not replayed or converted into failure. R2C10B-A UI includes accessible
 Load More, initial-loading, partial-page-loading, empty, safe-error, and retry
 states in desktop/mobile layouts with English and Myanmar text. Status and
-department controls belong to R2C10B-B, not R2C10B-A.
+department controls are implemented in the current local R2C10B-B state.
 
-### R2C10B-B0 approved future filter contract
+### R2C10B-B0 approved filter contract; implemented locally
 
-B-B0 approves documentation only. It does not claim that status or department
-filters, filter indexes, or filter controls are implemented.
+B-B0 remains the historical approval checkpoint. Status and department
+filters, filter indexes, and filter controls are implemented locally and have
+not been deployed to Cloud or runtime-certified in the Emulator/browser.
 
-The future route remains `GET /customer/tickets` and accepts only these optional
-parameters after B-B implementation: `pageSize`, `cursor`, `status`, and
+The B-B0 contract remains the authority for the implemented status and
+department filter allowlists, cursor binding, and index shapes.
+
+The implemented route is `GET /customer/tickets` and accepts only these optional
+parameters: `pageSize`, `cursor`, `status`, and
 `departmentId`. `pageSize` is an ASCII decimal integer, defaults to `25`, is
 bounded to `1`-`50`, and occurs at most once. `cursor` is a version-2 opaque
 cursor of at most `512` ASCII characters and occurs at most once.
@@ -644,9 +648,10 @@ lookahead row. The lookahead row is the first candidate for the next page. A
 final page has `hasMore: false` and `nextCursor: null`; equal timestamps remain
 stable through the document-ID tie-breaker without duplicates or omissions.
 
-### R2C10B-B0 minimal index approval
+### R2C10B-B0 minimal index approval; implemented locally
 
-The implemented local unfiltered index remains:
+The implemented local index set contains exactly the unfiltered, status,
+department, and combined-filter shapes below:
 
 ```text
 customerId ASC
@@ -654,7 +659,7 @@ createdAt DESC
 __name__ DESC
 ```
 
-B-B approves exactly these three future ticket indexes:
+Status-only:
 
 ```text
 customerId ASC
@@ -662,6 +667,8 @@ status ASC
 createdAt DESC
 __name__ DESC
 ```
+
+Department-only:
 
 ```text
 customerId ASC
@@ -680,8 +687,8 @@ __name__ DESC
 
 No other ticket index is approved. Date-range, exact-reference list, text-search,
 alternative-ordering, speculative/combinatorial, and total-count indexes are
-explicitly outside B-B. Manifest implementation/testing, local Emulator
-verification, and any Cloud deployment require later approval; Cloud staging
+explicitly outside B-B. The manifest is statically tested; local Emulator
+verification and any Cloud deployment remain pending, and Cloud staging
 remains not adopted.
 
 For every query, `customerId == authenticated UID` is present. Supplied status
@@ -842,13 +849,11 @@ or worker is implemented by R2C0. Permanent deletion and cleanup remain
 deferred pending retention, anonymization, ownership, cascade, audit, and
 recovery policy approval.
 
-## R2C10C-0 Customer detail and message-safety approval
+## R2C10C Customer detail and message-safety implementation record
 
-R2C10C-0 is documentation-only approval. It does not implement or verify
-Customer detail changes, message retry behavior, bounded message reads,
-frontend parsing, status guidance, notifications, rules, indexes, or Cloud
-runtime behavior. The current local implementation and the approved future
-contract are intentionally separate below.
+R2C10C-0 remains the historical approval checkpoint. The current local
+implementation has completed C-1, C-2, and C-3 with static/pure verification;
+final Emulator/browser runtime certification remains pending.
 
 ### Current local behavior
 
@@ -858,15 +863,18 @@ The local Customer API currently provides `GET /customer/tickets/{ticketId}`,
 Customer ownership is checked before owned-ticket reads, missing and
 cross-Customer tickets use the same safe not-found behavior, participant
 message fields are projected without sender IDs, and feedback is restricted to
-resolved or closed tickets with backend action idempotency. The current
-message read is not yet bounded, the frontend message retry does not yet
-retain one action identifier across an uncertain outcome, and the current
-detail response/parser still require the stricter contract approved below.
-These are current implementation facts, not claims of C implementation.
+resolved or closed tickets with backend action idempotency. C-1 retains one
+in-memory action identifier across uncertain outcomes, binds retries by
+fingerprint, isolates abort/session/ticket changes, and caps participant-visible
+reads at 100 messages with safe failure on the 101st or malformed record. C-2
+provides the strict ten-field detail projection and recursive parser with safe
+malformed-persistence failure. C-3 provides accessible English/Myanmar
+current-status and next-action guidance derived only from trusted
+`ticket.status`.
 
-### Approved future implementation slices
+### Completed implementation slices
 
-R2C10C is split into three future slices:
+R2C10C is implemented in three slices:
 
 - **R2C10C-1:** message fingerprint idempotency, a stable in-memory frontend
   attempt, abort/session/ticket isolation, strict message parsing, and
@@ -877,9 +885,9 @@ R2C10C is split into three future slices:
 - **R2C10C-3:** accessible current-status and next-action presentation in
   English and Myanmar.
 
-### Approved Customer detail projection
+### Implemented Customer detail projection
 
-The future `GET /customer/tickets/{ticketId}` success response is exactly:
+The local `GET /customer/tickets/{ticketId}` success response is exactly:
 
 ```json
 {
