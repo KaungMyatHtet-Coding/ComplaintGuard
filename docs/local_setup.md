@@ -75,9 +75,20 @@ Set-Location D:\ComplaintGuard\firebase
 npm.cmd test
 ```
 
-`firebase/run-emulator-tests.ps1` starts an isolated demo project, seeds random
-local credentials, runs rules/adapters/browser tests, and stops only the child
-processes it launched. Its generated identity file is ignored and sensitive.
+`firebase/run-emulator-tests.ps1` starts the explicitly local
+`demo-complaintguard` project, runs the standard seed once, then verifies the
+seeded Auth/profile binding before running the rules, Firestore adapter, and
+Admin lifecycle Emulator tests. The rules and adapter modules own only their
+exact documents: rules tests do not clear shared Firestore, and adapter profile
+IDs are unique per run. The lifecycle Emulator tests are a required phase;
+frontend/browser tests run only afterward. No broad reset is needed between
+properly isolated modules. The runner stops only the child processes it
+launched. Its generated identity file is ignored and sensitive.
+
+The authoritative seeded-identity test is
+`firebase/auth-emulator.test.js`. Each test module must delete only the exact
+documents it created. Cloud Firebase remains unadopted and is not a fallback
+for local verification.
 
 ## Troubleshooting
 
