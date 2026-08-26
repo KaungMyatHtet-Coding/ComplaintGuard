@@ -4,12 +4,84 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AppProvider } from "./app-provider";
 import { CustomerTicketDetailView } from "./customer-ticket-detail";
-import { translate } from "@/lib/i18n";
+import { translate, type MessageKey } from "@/lib/i18n";
 
 const longTicketId = "ticket_" + "0".repeat(32);
 const longMessage = "SyntheticVisualVerificationStringWithoutSpacesForResponsiveWrapping".repeat(4);
 
 describe("CustomerTicketDetailView", () => {
+  it("renders status-driven guidance for every allowed status in both locales", () => {
+    const statuses = [
+      "submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed",
+    ] as const;
+    for (const status of statuses) {
+      const ticket = {
+        id: "ticket_" + "2".repeat(32),
+        status,
+        complaintText: "Synthetic complaint",
+        inputLocale: "en" as const,
+        departmentId: status === "submitted" ? null : "card_atm" as const,
+        createdAt: "2026-08-11T00:00:00Z",
+        updatedAt: "2026-08-11T00:00:00Z",
+        resolvedAt: status === "resolved" || status === "closed" ? "2026-08-11T00:00:00Z" : null,
+        timeline: [{ type: "complaint_received" as const, occurredAt: "2026-08-11T00:00:00Z", departmentId: null }],
+        messages: [],
+        feedback: null,
+      };
+      const english = renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={ticket} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+      const myanmar = renderToStaticMarkup(<CustomerTicketDetailView locale="my" ticket={ticket} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+      const labelKey = ({ submitted: "statusSubmitted", triaged: "statusTriaged", in_progress: "statusInProgress", awaiting_customer: "statusAwaitingCustomer", resolved: "statusResolved", closed: "statusClosed" } as const)[status];
+      const guidanceKey = `customerStatusGuidance${status === "awaiting_customer" ? "AwaitingCustomer" : status === "in_progress" ? "InProgress" : status[0].toUpperCase() + status.slice(1)}` as MessageKey;
+      expect(english).toContain(translate("en", labelKey));
+      expect(english).toContain(translate("en", guidanceKey));
+      expect(myanmar).toContain(translate("my", labelKey));
+      expect(myanmar).toContain(translate("my", guidanceKey));
+      expect(myanmar).not.toMatch(/[\uFFFD]/u);
+      expect(english).toContain("customer-status-guidance-title");
+    }
+  });
+
+  it("uses ticket status rather than the final historical timeline event", () => {
+    const ticket = {
+      id: "ticket_" + "3".repeat(32), status: "awaiting_customer" as const,
+      complaintText: "Synthetic complaint", inputLocale: "en" as const, departmentId: "card_atm" as const,
+      createdAt: "2026-08-11T00:00:00Z", updatedAt: "2026-08-11T00:00:00Z", resolvedAt: null,
+      timeline: [{ type: "complaint_resolved" as const, occurredAt: "2026-08-11T00:00:00Z", departmentId: null }], messages: [], feedback: null,
+    };
+    const markup = renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={ticket} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+    expect(markup).toContain(translate("en", "statusAwaitingCustomer"));
+    expect(markup).toContain(translate("en", "customerStatusGuidanceAwaitingCustomer"));
+    expect(markup).not.toContain(translate("en", "customerStatusGuidanceResolved"));
+  });
+
+  it("does not render authoritative guidance while loading or without a ticket", () => {
+    const props = { locale: "en" as const, ticket: null, loading: true, onSendMessage: vi.fn(), onCancelMessage: vi.fn(), onSubmitFeedback: vi.fn() };
+    expect(renderToStaticMarkup(<CustomerTicketDetailView {...props} />)).not.toContain("customer-status-guidance-title");
+    expect(renderToStaticMarkup(<CustomerTicketDetailView {...props} loading={false} />)).not.toContain("customer-status-guidance-title");
+  });
+
+  it("does not expose a fallback for an out-of-contract status", () => {
+    const ticket = {
+      id: "ticket_" + "5".repeat(32), status: "unknown_status" as never,
+      complaintText: "Synthetic complaint", inputLocale: "en" as const, departmentId: null,
+      createdAt: "2026-08-11T00:00:00Z", updatedAt: "2026-08-11T00:00:00Z", resolvedAt: null,
+      timeline: [], messages: [], feedback: null,
+    };
+    const markup = renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={ticket} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+    expect(markup).not.toContain("customer-status-guidance-title");
+    expect(markup).not.toContain("unknown_status");
+  });
+
+  it("keeps closed messaging unavailable and resolved feedback behavior intact", () => {
+    const base = { id: "ticket_" + "4".repeat(32), complaintText: "Synthetic complaint", inputLocale: "en" as const, departmentId: "card_atm" as const, createdAt: "2026-08-11T00:00:00Z", updatedAt: "2026-08-11T00:00:00Z", timeline: [], messages: [], feedback: null };
+    const closed = renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={{ ...base, status: "closed" as const, resolvedAt: "2026-08-11T00:00:00Z" }} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+    const resolved = renderToStaticMarkup(<CustomerTicketDetailView locale="en" ticket={{ ...base, status: "resolved" as const, resolvedAt: "2026-08-11T00:00:00Z" }} loading={false} onSendMessage={vi.fn()} onCancelMessage={vi.fn()} onSubmitFeedback={vi.fn()} />);
+    expect(closed).toContain(translate("en", "customerStatusGuidanceClosed"));
+    expect(closed).not.toContain("customer-message-input");
+    expect(resolved).toContain(translate("en", "customerStatusGuidanceResolved"));
+    expect(resolved).toContain("cust-feedback");
+  });
+
   it("localizes server-projected timeline labels in English and Myanmar", () => {
     const ticket = {
       id: "ticket_" + "1".repeat(32),

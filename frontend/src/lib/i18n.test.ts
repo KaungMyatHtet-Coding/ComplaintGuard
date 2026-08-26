@@ -100,6 +100,20 @@ describe("localization foundation", () => {
     expect(translate("my", "statusClosed")).toMatch(/[\u1000-\u109f]/u);
   });
 
+  it("provides complete English and Myanmar Customer status guidance", () => {
+    const keys = [
+      "customerCurrentStatus", "customerWhatHappensNext",
+      "customerStatusGuidanceSubmitted", "customerStatusGuidanceTriaged",
+      "customerStatusGuidanceInProgress", "customerStatusGuidanceAwaitingCustomer",
+      "customerStatusGuidanceResolved", "customerStatusGuidanceClosed",
+    ] as const;
+    for (const key of keys) {
+      expect(translate("en", key)).not.toMatch(/^\[/u);
+      expect(translate("my", key)).toMatch(/[\u1000-\u109f]/u);
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
+  });
+
   it("provides localized safe Customer message retry states", () => {
     for (const key of [
       "customerSending",

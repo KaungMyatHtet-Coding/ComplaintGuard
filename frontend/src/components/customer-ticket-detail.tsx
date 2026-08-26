@@ -7,6 +7,7 @@ import { translate } from "@/lib/i18n";
 import {
   CustomerWorkflowError,
   type CustomerTicketDetail,
+  type CustomerTicketStatus,
   type CustomerTimelineType,
 } from "@/lib/customer-workflow";
 
@@ -93,6 +94,27 @@ export function CustomerTicketDetailView({
     complaint_closed: "customerTimelineClosed",
   };
 
+  const statusLabels: Record<CustomerTicketStatus, MessageKey> = {
+    submitted: "statusSubmitted",
+    triaged: "statusTriaged",
+    in_progress: "statusInProgress",
+    awaiting_customer: "statusAwaitingCustomer",
+    resolved: "statusResolved",
+    closed: "statusClosed",
+  };
+
+  const statusGuidance: Record<CustomerTicketStatus, MessageKey> = {
+    submitted: "customerStatusGuidanceSubmitted",
+    triaged: "customerStatusGuidanceTriaged",
+    in_progress: "customerStatusGuidanceInProgress",
+    awaiting_customer: "customerStatusGuidanceAwaitingCustomer",
+    resolved: "customerStatusGuidanceResolved",
+    closed: "customerStatusGuidanceClosed",
+  };
+
+  const currentStatusLabel = statusLabels[ticket.status];
+  const currentStatusGuidance = statusGuidance[ticket.status];
+
   const isResolvedOrClosed = ticket.status === "resolved" || ticket.status === "closed";
 
   return (
@@ -128,6 +150,21 @@ export function CustomerTicketDetailView({
               {errorMsg}
             </div>
           )}
+
+        {currentStatusLabel && currentStatusGuidance ? (
+        <section className="cust-status-guidance" aria-labelledby="customer-status-guidance-title">
+          <h3 id="customer-status-guidance-title">{translate(locale, "customerCurrentStatus")}</h3>
+          <p className="cust-status-guidance-status">
+            <strong>{translate(locale, currentStatusLabel)}</strong>
+          </p>
+          <div>
+            <h4>{translate(locale, "customerWhatHappensNext")}</h4>
+            <p className="cust-status-guidance-copy">
+              {translate(locale, currentStatusGuidance)}
+            </p>
+          </div>
+        </section>
+        ) : null}
 
         {/* Visual Timeline */}
         <div style={{ marginBottom: '1.5rem' }}>

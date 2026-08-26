@@ -1062,6 +1062,39 @@ a {
   word-break: break-word;
 }
 
+.cust-status-guidance {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.cust-status-guidance h3,
+.cust-status-guidance h4 {
+  margin: 0;
+}
+
+.cust-status-guidance h3 {
+  font-size: 1rem;
+}
+
+.cust-status-guidance h4 {
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+.cust-status-guidance-status {
+  margin: 0.5rem 0 0;
+  color: var(--ink);
+}
+
+.cust-status-guidance-copy {
+  margin: 0.5rem 0 0;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
 /* Timeline */
 .cust-timeline {
   display: flex;
