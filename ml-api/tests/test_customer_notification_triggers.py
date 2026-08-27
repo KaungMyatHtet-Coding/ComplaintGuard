@@ -20,6 +20,7 @@ from app.notifications import (
 from app.routing import RoutingPrediction
 from app.staff_workflow import FirebaseAdminStaffBackend, StaffActor
 from app.ticketing import FirebaseAdminTicketBackend, PersistenceError
+from app.customer_workflow import FirebaseAdminCustomerBackend
 
 
 class FakeSnapshot:
@@ -58,6 +59,41 @@ class FakeCollection:
     def document(self, document_id: str) -> FakeReference:
         return FakeReference(self.db, f"{self.path}/{document_id}")
 
+    def where(self, *, filter: Any) -> "FakeQuery":
+        return FakeQuery(self.db, self.path, [filter])
+
+    def order_by(self, *_: Any, **__: Any) -> "FakeQuery":
+        return FakeQuery(self.db, self.path, [])
+
+
+class FakeQuery:
+    def __init__(self, db: "FakeDatabase", path: str, filters: list[Any]):
+        self.db = db
+        self.path = path
+        self.filters = filters
+
+    def where(self, *, filter: Any) -> "FakeQuery":
+        return FakeQuery(self.db, self.path, [*self.filters, filter])
+
+    def order_by(self, *_: Any, **__: Any) -> "FakeQuery":
+        return self
+
+    def limit(self, *_: Any, **__: Any) -> "FakeQuery":
+        return self
+
+    def order_by(self, *_: Any, **__: Any) -> "FakeQuery":
+        return self
+
+    def limit(self, *_: Any, **__: Any) -> "FakeQuery":
+        return self
+
+    def stream(self):
+        for path, value in self.db.documents.items():
+            if not path.startswith(f"{self.path}/") or path.count("/") != self.path.count("/") + 1:
+                continue
+            if all(value.get(item.field_path) == item.value for item in self.filters):
+                yield FakeSnapshot(FakeReference(self.db, path), value)
+
 
 class FakeDatabase:
     def __init__(self) -> None:
@@ -78,6 +114,9 @@ class FakeTransaction:
         return self.db.documents.get(reference.path)
 
     def get(self, reference: FakeReference):
+        if isinstance(reference, FakeQuery):
+            yield from reference.stream()
+            return
         yield FakeSnapshot(reference, self._value(reference))
 
     def set(self, reference: FakeReference, value: dict[str, Any], **_: Any) -> None:
@@ -178,6 +217,18 @@ def _profile(uid: str = "customer-1", *, active: bool = True) -> dict[str, Any]:
     }
 
 
+def _staff_profile(uid: str, department: str) -> dict[str, Any]:
+    profile = _profile(uid)
+    profile.update({"role": "staff", "departmentId": department})
+    return profile
+
+
+def _manager_profile(uid: str) -> dict[str, Any]:
+    profile = _profile(uid)
+    profile.update({"role": "manager"})
+    return profile
+
+
 def _ticket(customer_id: str = "customer-1", *, department: str | None = "general_support"):
     now = datetime(2026, 8, 22, tzinfo=timezone.utc)
     return {
@@ -200,6 +251,14 @@ def _backend(db: FakeDatabase, monkeypatch: pytest.MonkeyPatch, writer: Any):
 
 def _add_profile(db: FakeDatabase, uid: str = "customer-1", *, active: bool = True):
     db.documents[f"users/{uid}"] = _profile(uid, active=active)
+
+
+def _add_staff(db: FakeDatabase, uid: str = "staff-1", department: str = "general_support"):
+    db.documents[f"users/{uid}"] = _staff_profile(uid, department)
+
+
+def _add_manager(db: FakeDatabase, uid: str = "manager-1"):
+    db.documents[f"users/{uid}"] = _manager_profile(uid)
 
 
 def _notifications(db: FakeDatabase) -> list[dict[str, Any]]:
@@ -328,6 +387,56 @@ def test_staff_reply_and_transition_triggers_are_atomic_and_specific(monkeypatch
     assert "private reply body" not in serialized
     assert "staff-1" not in serialized
     assert "private resolution" not in serialized
+
+
+def test_resolution_is_one_participant_message_for_both_projections_and_retry_safe(monkeypatch):
+    db = FakeDatabase()
+    _add_profile(db)
+    db.documents["tickets/t-resolution"] = _ticket()
+    monkeypatch.setattr("app.staff_workflow.run_firestore_transaction", lambda _db, op: run_fake_transaction(db, op))
+    staff = FirebaseAdminStaffBackend(db=db, notification_writer=RecordingNotificationWriter(db))
+    actor = StaffActor(uid="staff-1", department_id="general_support")
+    staff.transition_ticket(ticket_id="t-resolution", actor=actor, to_status="in_progress", resolution_summary=None, action_id="start")
+    staff.transition_ticket(ticket_id="t-resolution", actor=actor, to_status="resolved", resolution_summary="Final resolution", action_id="resolve")
+    staff.transition_ticket(ticket_id="t-resolution", actor=actor, to_status="resolved", resolution_summary="Final resolution", action_id="resolve")
+    messages = staff.list_messages("t-resolution")
+    resolution_messages = [item for item in messages if item.get("body") == "Final resolution"]
+    assert len(resolution_messages) == 1
+    assert resolution_messages[0]["authorRole"] == "staff"
+    customer_messages = FirebaseAdminCustomerBackend(db=db).get_ticket_messages("t-resolution")
+    assert [item["body"] for item in customer_messages].count("Final resolution") == 1
+
+
+def test_routed_complaint_notifies_only_matching_department_staff(monkeypatch):
+    db = FakeDatabase()
+    _add_profile(db)
+    _add_staff(db, "staff-card", "card_atm")
+    _add_staff(db, "staff-other", "fraud_security")
+    backend = _backend(db, monkeypatch, RecordingNotificationWriter(db))
+    ticket_id = backend.create_ticket(_ticket(department=None), idempotency_key="routed")
+    backend.persist_prediction(ticket_id, RoutingPrediction("card_atm", 0.9, "en", False, None, "v1"))
+    staff_notifications = [item for item in _notifications(db) if item["recipientUid"].startswith("staff-")]
+    assert [item["recipientUid"] for item in staff_notifications] == ["staff-card"]
+    assert staff_notifications[0]["relatedTicketRef"] == ticket_id
+
+
+def test_manual_review_notifies_managers_and_customer_reply_notifies_assigned_staff(monkeypatch):
+    db = FakeDatabase()
+    _add_profile(db)
+    _add_manager(db)
+    _add_staff(db, "staff-assigned", "general_support")
+    db.documents["tickets/t-reply"] = {**_ticket(), "assignedStaffId": "staff-assigned"}
+    writer = RecordingNotificationWriter(db)
+    monkeypatch.setattr("app.ticketing.run_firestore_transaction", lambda _db, op: run_fake_transaction(db, op))
+    backend = FirebaseAdminTicketBackend(db=db, notification_writer=writer)
+    pending = backend.create_ticket(_ticket(department=None), idempotency_key="manual-manager")
+    backend.persist_prediction(pending, RoutingPrediction("card_atm", 0.3, "en", True, "low_confidence", "v1"))
+    customer = FirebaseAdminCustomerBackend(db=db, notification_writer=writer)
+    customer.add_customer_message("customer-1", "t-reply", "A reply", datetime.now(timezone.utc), "reply-action")
+    values = _notifications(db)
+    assert [(item["recipientUid"], item["type"]) for item in values if item["recipientUid"] == "manager-1"] == [("manager-1", "manual_review_required")]
+    assert [(item["recipientUid"], item["type"]) for item in values if item["recipientUid"] == "staff-assigned"] == [("staff-assigned", "customer_reply")]
+    assert all(item["relatedTicketRef"] in {pending, "t-reply"} for item in values)
 
 
 def test_inactive_customer_keeps_trusted_staff_work_and_read_authorization_denied(monkeypatch):

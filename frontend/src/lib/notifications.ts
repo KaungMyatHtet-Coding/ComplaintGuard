@@ -317,7 +317,7 @@ export async function markAllNotificationsRead(fetcher: typeof fetch = fetch, si
 }
 
 export function getSafeNotificationTarget(notification: NotificationItem): string | null {
-  if (notification.navigationTarget !== "customer_ticket" || !notification.relatedTicketRef || !safeRefPattern.test(notification.relatedTicketRef)) {
+  if (!(notification.navigationTarget === "customer_ticket" || notification.navigationTarget === "staff_ticket" || notification.navigationTarget === "manager_manual_review") || !notification.relatedTicketRef || !safeRefPattern.test(notification.relatedTicketRef)) {
     return null;
   }
   return `/dashboard?ticketRef=${encodeURIComponent(notification.relatedTicketRef)}`;
