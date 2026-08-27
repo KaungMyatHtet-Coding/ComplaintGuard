@@ -76,11 +76,13 @@ OWNED_TICKET_CHILD_IDS = {
         "reply_staff-reply-action",
         "customer-message-action",
         "staff-reply-action",
+        "resolution_staff-resolution-action",
     },
     "events": {
         "reply_staff-reply-action",
         "staff-transition-action",
         "staff-request-action",
+        "staff-resolution-action",
         "manager-override-action",
         "manager-routing-approval",
         "model_v1_routing",
@@ -93,6 +95,7 @@ OWNED_TICKET_CHILD_IDS = {
         "staff-reply-action",
         "staff-transition-action",
         "staff-request-action",
+        "staff-resolution-action",
         "foreign-reply-action",
         "invalid-transition-action",
         "manager-override-action",
@@ -531,6 +534,59 @@ def test_staff_mutations_audit_retry_and_rollback_are_emulator_backed(emulator_d
     )
     assert transition.duplicate is False and duplicate_transition.duplicate is True
     assert tickets.document(transition_id).get().get("status") == "in_progress"
+
+    resolution = backend.transition_ticket(
+        ticket_id=transition_id,
+        actor=actor,
+        to_status="resolved",
+        resolution_summary="Synthetic final resolution",
+        action_id="staff-resolution-action",
+    )
+    duplicate_resolution = backend.transition_ticket(
+        ticket_id=transition_id,
+        actor=actor,
+        to_status="resolved",
+        resolution_summary="Synthetic final resolution",
+        action_id="staff-resolution-action",
+    )
+    assert resolution.duplicate is False and duplicate_resolution.duplicate is True
+    resolved_ticket = tickets.document(transition_id).get()
+    assert resolved_ticket.get("status") == "resolved"
+    assert resolved_ticket.get("resolutionSummary") == "Synthetic final resolution"
+    resolution_message = (
+        resolved_ticket.reference.collection("messages")
+        .document("resolution_staff-resolution-action")
+        .get()
+    )
+    assert resolution_message.exists
+    assert resolution_message.get("authorRole") == "staff"
+    assert resolution_message.get("visibility") == "participants"
+    assert resolution_message.get("body") == "Synthetic final resolution"
+    customer_detail = CustomerWorkflowService(
+        FirebaseAdminCustomerBackend(db=emulator_db)
+    ).get_ticket_detail(profile_id("customerA"), transition_id)
+    assert [message.body for message in customer_detail.messages].count(
+        "Synthetic final resolution"
+    ) == 1
+    resolution_notification = notification_reference(
+        build_customer_notification_request(
+            notification_type="complaint_resolved",
+            recipient_uid=profile_id("customerA"),
+            ticket_ref=transition_id,
+            source_key=f"ticket:{transition_id}:status:resolved:staff-resolution-action",
+        )
+    )
+    RUN_OWNED_NOTIFICATION_REFS.add(resolution_notification)
+    assert emulator_db.collection("notifications").document(resolution_notification).get().exists
+    assert len(
+        [
+            item
+            for item in emulator_db.collection("notifications")
+            .where("relatedTicketRef", "==", transition_id)
+            .stream()
+            if item.get("type") == "complaint_resolved"
+        ]
+    ) == 1
 
     request = backend.request_action(
         ticket_id=request_id,

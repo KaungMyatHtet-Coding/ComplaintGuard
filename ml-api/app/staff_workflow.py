@@ -446,6 +446,20 @@ class FirebaseAdminStaffBackend(FirebaseAdminTicketBackend):
                     **notification_kwargs,
                 ),
             )
+            if to_status == "resolved":
+                message_ref = ticket_ref.collection("messages").document(
+                    f"resolution_{action_id}"
+                )
+                transaction.set(
+                    message_ref,
+                    {
+                        "authorId": actor.uid,
+                        "authorRole": "staff",
+                        "body": resolution_summary,
+                        "visibility": "participants",
+                        "createdAt": self.server_timestamp,
+                    },
+                )
             transaction.update(ticket_ref, changes)
             transaction.set(
                 event_ref,

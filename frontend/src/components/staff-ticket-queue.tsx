@@ -83,6 +83,13 @@ export function StaffTicketQueue() {
     queueMicrotask(() => void reload());
   }, [reload]);
 
+  useEffect(() => {
+    const ticketRef = new URLSearchParams(window.location.search).get("ticketRef");
+    if (ticketRef && tickets.some((ticket) => ticket.ticketId === ticketRef)) {
+      queueMicrotask(() => setSelectedId(ticketRef));
+    }
+  }, [tickets]);
+
   return (
     <section id="staff-queue" className="unified-workspace" aria-labelledby="staff-queue-title">
       <div className="staff-queue-panel">

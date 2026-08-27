@@ -771,18 +771,26 @@ class InMemoryCustomerBackend(CustomerBackend):
 class FirebaseAdminCustomerBackend(CustomerBackend):
     """Production Firestore backend using Firebase Admin SDK."""
 
-    def __init__(self, db: Any = None) -> None:
+    def __init__(self, db: Any = None, notification_writer: Any = None) -> None:
         if db is not None:
             self.db = db
+            from firebase_admin import firestore
+            self.server_timestamp = firestore.SERVER_TIMESTAMP
         else:
             try:
                 from app.ticketing import firebase_admin_clients
 
-                _, self.db, _ = firebase_admin_clients()
+                _, self.db, self.server_timestamp = firebase_admin_clients()
             except Exception as exc:
                 from app.ticketing import PersistenceError
 
                 raise PersistenceError("Firebase Admin is not configured") from exc
+        if notification_writer is None:
+            from app.notifications import FirebaseAdminNotificationBackend
+            notification_writer = FirebaseAdminNotificationBackend(
+                db=self.db, server_timestamp=self.server_timestamp
+            )
+        self._notification_writer = notification_writer
 
     def list_customer_tickets(
         self,
@@ -942,6 +950,14 @@ class FirebaseAdminCustomerBackend(CustomerBackend):
                 ticket_data = ticket_snapshot.to_dict() or {}
                 if not ticket_snapshot.exists or ticket_data.get("customerId") != customer_id:
                     raise TicketNotFound("Ticket not found.")
+                from app.notifications import stage_staff_ticket_notification
+
+                stage_staff_ticket_notification(
+                    transaction=transaction, db=self.db,
+                    writer=self._notification_writer, ticket=ticket_data,
+                    ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:customer_reply:{action_id}",
+                )
                 transaction.set(msg_ref, msg_data)
                 transaction.update(doc_ref, {"updatedAt": created_at})
                 transaction.set(

@@ -1,8 +1,7 @@
 """Trusted durable in-app notification contracts and persistence boundaries.
 
-This module deliberately has no workflow trigger integration.  Notification
-creation is available only as an internal service method; browser callers can
-list and acknowledge notifications belonging to their verified profile.
+Workflow notifications are staged by trusted ticket transactions; browser
+callers can only list and acknowledge notifications for their verified profile.
 """
 
 from __future__ import annotations
@@ -259,6 +258,10 @@ class NotificationWriter(Protocol):
     def stage_create(
         self, transaction: Any, request: NotificationCreateRequest
     ) -> NotificationRecord: ...
+
+    def stage_create_many(
+        self, transaction: Any, requests: list[NotificationCreateRequest]
+    ) -> list[NotificationRecord]: ...
 
 
 def _utc_now() -> datetime:
@@ -603,6 +606,18 @@ def stage_customer_notification(
     ):
         raise NotificationProfileError("Customer notification recipient is invalid")
 
+    validate_customer_notification_recipient(
+        transaction=transaction, db=db, request=request,
+        require_active_profile=require_active_profile,
+    )
+    return writer.stage_create(transaction, request)
+
+
+def validate_customer_notification_recipient(
+    *, transaction: Any, db: Any, request: NotificationCreateRequest,
+    require_active_profile: bool = False,
+) -> None:
+    recipient_uid = request.recipient_uid
     profile_ref = db.collection("users").document(recipient_uid)
     profile_snapshot = next(transaction.get(profile_ref))
     if not profile_snapshot.exists:
@@ -612,7 +627,184 @@ def stage_customer_notification(
         recipient_uid=recipient_uid,
         require_active=require_active_profile,
     )
+
+
+def stage_notification_requests(
+    *, transaction: Any, writer: NotificationWriter,
+    requests: list[NotificationCreateRequest],
+) -> list[NotificationRecord]:
+    if not requests:
+        return []
+    batch = getattr(writer, "stage_create_many", None)
+    if batch is not None:
+        return batch(transaction, requests)
+    return [writer.stage_create(transaction, request) for request in requests]
+
+
+def build_staff_notification_request(
+    *,
+    notification_type: str,
+    recipient_uid: str,
+    ticket_ref: str,
+    source_key: str,
+    department_key: str | None = None,
+) -> NotificationCreateRequest:
+    if notification_type not in {"department_complaint_available", "customer_reply"}:
+        raise NotificationValidationError("unsupported Staff workflow notification")
+    if notification_type == "department_complaint_available" and department_key not in DEPARTMENT_IDS:
+        raise NotificationValidationError("Staff department notification requires a safe department")
+    params: dict[str, str] = {"ticketRef": ticket_ref}
+    if department_key is not None:
+        params["departmentKey"] = department_key
+    expected = {"ticketRef", "departmentKey"} if notification_type == "department_complaint_available" else {"ticketRef"}
+    if set(params) != expected:
+        raise NotificationValidationError("Staff notification parameters are incomplete")
+    return NotificationCreateRequest(
+        recipient_uid=recipient_uid,
+        recipient_role="staff",
+        type=notification_type,
+        severity="attention",
+        category="response",
+        title_key=f"notifications.{notification_type}.title",
+        body_key=f"notifications.{notification_type}.body",
+        source_key=source_key,
+        navigation_target="staff_ticket",
+        related_ticket_ref=ticket_ref,
+        params=params,
+    )
+
+
+def build_manager_notification_request(
+    *, recipient_uid: str, ticket_ref: str, source_key: str
+) -> NotificationCreateRequest:
+    return NotificationCreateRequest(
+        recipient_uid=recipient_uid,
+        recipient_role="manager",
+        type="manual_review_required",
+        severity="attention",
+        category="complaint",
+        title_key="notifications.manual_review_required.title",
+        body_key="notifications.manual_review_required.body",
+        source_key=source_key,
+        navigation_target="manager_manual_review",
+        related_ticket_ref=ticket_ref,
+        params={"ticketRef": ticket_ref},
+    )
+
+
+def stage_profile_notification(
+    *, transaction: Any, db: Any, writer: NotificationWriter,
+    request: NotificationCreateRequest, role: str,
+) -> NotificationRecord:
+    profile_ref = db.collection("users").document(request.recipient_uid)
+    profile_snapshot = next(transaction.get(profile_ref))
+    if not profile_snapshot.exists:
+        raise NotificationProfileError("notification recipient is invalid")
+    profile = profile_snapshot.to_dict() or {}
+    if profile.get("role") != role or profile.get("active") is not True:
+        raise NotificationProfileError("notification recipient is invalid")
+    if role == "staff" and profile.get("departmentId") not in DEPARTMENT_IDS:
+        raise NotificationProfileError("notification recipient is invalid")
+    if role == "manager" and profile.get("departmentId") not in (None, ""):
+        raise NotificationProfileError("notification recipient is invalid")
     return writer.stage_create(transaction, request)
+
+
+def stage_staff_department_notifications(
+    *, transaction: Any, db: Any, writer: NotificationWriter,
+    department_id: str, ticket_ref: str, source_key: str,
+    recipient_uids: list[str] | None = None,
+) -> int:
+    if recipient_uids is None:
+        recipient_uids = find_staff_department_recipients(
+            transaction=transaction, db=db, department_id=department_id
+        )
+    requests = [
+        build_staff_notification_request(
+            notification_type="department_complaint_available",
+            recipient_uid=recipient_uid, ticket_ref=ticket_ref,
+            source_key=f"{source_key}:staff:{recipient_uid}",
+            department_key=department_id,
+        ) for recipient_uid in recipient_uids
+    ]
+    stage_notification_requests(transaction=transaction, writer=writer, requests=requests)
+    return len(recipient_uids)
+
+
+def find_staff_department_recipients(
+    *, transaction: Any, db: Any, department_id: str
+) -> list[str]:
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    users = db.collection("users")
+    if not hasattr(users, "where"):
+        return []
+    query = users.where(filter=FieldFilter("role", "==", "staff"))
+    recipient_uids = []
+    for snapshot in list(transaction.get(query)):
+        profile = snapshot.to_dict() or {}
+        if profile.get("role") != "staff" or profile.get("active") is not True or profile.get("departmentId") != department_id:
+            continue
+        recipient_uids.append(snapshot.id)
+    return recipient_uids
+
+
+def stage_staff_ticket_notification(
+    *, transaction: Any, db: Any, writer: NotificationWriter,
+    ticket: dict[str, Any], ticket_ref: str, source_key: str,
+) -> int:
+    assigned = ticket.get("assignedStaffId")
+    if isinstance(assigned, str) and assigned:
+        recipients = [assigned]
+    elif ticket.get("departmentId") in DEPARTMENT_IDS:
+        return stage_staff_department_notifications(
+            transaction=transaction, db=db, writer=writer,
+            department_id=ticket["departmentId"], ticket_ref=ticket_ref,
+            source_key=source_key,
+        )
+    else:
+        return 0
+    stage_profile_notification(
+        transaction=transaction, db=db, writer=writer, role="staff",
+        request=build_staff_notification_request(
+            notification_type="customer_reply", recipient_uid=recipients[0],
+            ticket_ref=ticket_ref, source_key=f"{source_key}:staff:{recipients[0]}"),
+    )
+    return 1
+
+
+def stage_manager_review_notifications(
+    *, transaction: Any, db: Any, writer: NotificationWriter,
+    ticket_ref: str, source_key: str, recipient_uids: list[str] | None = None,
+) -> int:
+    if recipient_uids is None:
+        recipient_uids = find_manager_review_recipients(transaction=transaction, db=db)
+    requests = [
+        build_manager_notification_request(
+            recipient_uid=recipient_uid, ticket_ref=ticket_ref,
+            source_key=f"{source_key}:manager:{recipient_uid}")
+        for recipient_uid in recipient_uids
+    ]
+    stage_notification_requests(transaction=transaction, writer=writer, requests=requests)
+    return len(recipient_uids)
+
+
+def find_manager_review_recipients(
+    *, transaction: Any, db: Any
+) -> list[str]:
+    from google.cloud.firestore_v1.base_query import FieldFilter
+
+    users = db.collection("users")
+    if not hasattr(users, "where"):
+        return []
+    query = users.where(filter=FieldFilter("role", "==", "manager"))
+    recipient_uids = []
+    for snapshot in list(transaction.get(query)):
+        profile = snapshot.to_dict() or {}
+        if profile.get("role") != "manager" or profile.get("active") is not True:
+            continue
+        recipient_uids.append(snapshot.id)
+    return recipient_uids
 
 
 def _immutable_payload(record: NotificationRecord) -> dict[str, Any]:
@@ -899,6 +1091,34 @@ class FirebaseAdminNotificationBackend:
         return self._stage_record(
             transaction, validate_creation(request, now=trusted_now)
         )
+
+    def stage_create_many(
+        self, transaction: Any, requests: list[NotificationCreateRequest]
+    ) -> list[NotificationRecord]:
+        trusted_now = self._clock()
+        records = [validate_creation(request, now=trusted_now) for request in requests]
+        references = [
+            self._db.collection("notifications").document(record.notification_ref)
+            for record in records
+        ]
+        # Firestore transactions prohibit reads after the first write. Read
+        # every dedupe document before creating any notification document.
+        snapshots = [next(transaction.get(reference)) for reference in references]
+        for record, reference, snapshot in zip(records, references, snapshots):
+            if snapshot.exists:
+                existing = self._record_from_document(snapshot.to_dict(), snapshot.id)
+                if _immutable_payload(existing) != _immutable_payload(record):
+                    raise NotificationConflictError("notification reference conflict")
+            else:
+                transaction.create(
+                    reference,
+                    _immutable_payload(record) | {
+                        "createdAt": record.created_at,
+                        "readAt": None,
+                        "expiresAt": record.expires_at,
+                    },
+                )
+        return records
 
     def create(self, record: NotificationRecord) -> NotificationRecord:
         def operation(transaction: Any) -> NotificationRecord:

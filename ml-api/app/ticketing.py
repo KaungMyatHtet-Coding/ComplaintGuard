@@ -378,20 +378,53 @@ class FirebaseAdminTicketBackend:
             if department_id is not None:
                 from app.notifications import (
                     build_customer_notification_request,
-                    stage_customer_notification,
+                    build_staff_notification_request,
+                    find_staff_department_recipients,
+                    stage_notification_requests,
+                    validate_customer_notification_recipient,
                 )
 
-                stage_customer_notification(
-                    transaction=transaction,
-                    db=self._db,
-                    writer=self._notification_writer,
-                    request=build_customer_notification_request(
-                        notification_type="department_assigned",
-                        recipient_uid=ticket["customerId"],
-                        ticket_ref=ticket_id,
-                        source_key=f"ticket:{ticket_id}:department:{department_id}:model_v1_routing",
+                staff_recipient_uids = find_staff_department_recipients(
+                    transaction=transaction, db=self._db,
+                    department_id=department_id,
+                )
+                customer_request = build_customer_notification_request(
+                    notification_type="department_assigned",
+                    recipient_uid=ticket["customerId"],
+                    ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:department:{department_id}:model_v1_routing",
+                    department_key=department_id,
+                )
+                validate_customer_notification_recipient(
+                    transaction=transaction, db=self._db, request=customer_request,
+                    require_active_profile=False,
+                )
+                staff_requests = [
+                    build_staff_notification_request(
+                        notification_type="department_complaint_available",
+                        recipient_uid=recipient_uid, ticket_ref=ticket_id,
+                        source_key=f"ticket:{ticket_id}:department:{department_id}:model_v1_routing:staff:{recipient_uid}",
                         department_key=department_id,
-                    ),
+                    ) for recipient_uid in staff_recipient_uids
+                ]
+                stage_notification_requests(
+                    transaction=transaction, writer=self._notification_writer,
+                    requests=[customer_request, *staff_requests],
+                )
+            else:
+                from app.notifications import (
+                    find_manager_review_recipients,
+                    stage_manager_review_notifications,
+                )
+
+                manager_recipient_uids = find_manager_review_recipients(
+                    transaction=transaction, db=self._db
+                )
+                stage_manager_review_notifications(
+                    transaction=transaction, db=self._db,
+                    writer=self._notification_writer, ticket_ref=ticket_id,
+                    source_key=f"ticket:{ticket_id}:manual_review:model_v1_routing",
+                    recipient_uids=manager_recipient_uids,
                 )
             transaction.update(reference, updates)
             transaction.set(
@@ -435,6 +468,19 @@ class FirebaseAdminTicketBackend:
                 raise PersistenceError("ticket disappeared before failure recording")
             if snapshot.to_dict().get("routingSource") != "pending":
                 return
+            from app.notifications import find_manager_review_recipients
+
+            manager_recipient_uids = find_manager_review_recipients(
+                transaction=transaction, db=self._db
+            )
+            from app.notifications import stage_manager_review_notifications
+
+            stage_manager_review_notifications(
+                transaction=transaction, db=self._db, writer=self._notification_writer,
+                ticket_ref=ticket_id,
+                source_key=f"ticket:{ticket_id}:manual_review:{code}",
+                recipient_uids=manager_recipient_uids,
+            )
             transaction.update(
                 reference,
                 {

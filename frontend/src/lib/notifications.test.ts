@@ -86,6 +86,7 @@ describe("notification API contract", () => {
 
   it("uses only the safe customer target and rejects hostile targets", () => {
     expect(getSafeNotificationTarget(baseItem)).toBe("/dashboard?ticketRef=ticket_public_1");
+    expect(getSafeNotificationTarget({ ...baseItem, navigationTarget: "staff_ticket" })).toBe("/dashboard?ticketRef=ticket_public_1");
     expect(getSafeNotificationTarget({ ...baseItem, navigationTarget: "notifications" })).toBeNull();
     expect(getSafeNotificationTarget({ ...baseItem, relatedTicketRef: "https://evil.test" })).toBeNull();
     expect(getSafeNotificationTarget({ ...baseItem, relatedTicketRef: "../private" })).toBeNull();
