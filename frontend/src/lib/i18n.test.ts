@@ -3,6 +3,31 @@ import { describe, expect, it } from "vitest";
 import { normalizeLocale, translate } from "./i18n";
 
 describe("localization foundation", () => {
+  it("covers public navigation and presentation copy in both locales", () => {
+    const keys = [
+      "backToHome",
+      "authenticationNavigation",
+      "publicWhatTitle",
+      "publicWhatItems",
+      "publicHowTitle",
+      "publicHowItems",
+      "publicWhyTitle",
+      "publicWhyItems",
+      "publicOversightTitle",
+      "publicOversight",
+      "publicPrivacyTitle",
+      "publicPrivacyItems",
+      "publicScopeTitle",
+      "publicScope",
+      "publicCtaTitle",
+    ] as const;
+    for (const key of keys) {
+      expect(translate("en", key)).not.toMatch(/^\[/u);
+      expect(translate("my", key)).toMatch(/[\u1000-\u109f]/u);
+      expect(translate("my", key)).not.toMatch(/[\uFFFD]/u);
+    }
+  });
+
   it("supports English and Myanmar UI copy", () => {
     expect(translate("en", "loginTitle")).toBe("Sign in");
     expect(translate("en", "complaintTitle")).toBe("Submit a complaint");

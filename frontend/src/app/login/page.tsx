@@ -68,9 +68,12 @@ export default function LoginPage() {
         {/* Right Side: Login Form */}
         <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24 py-12">
           <div className="mx-auto w-full max-w-sm lg:max-w-md animate-slide-up-fade">
+            <nav className="auth-navigation" aria-label={t("authenticationNavigation")}>
+              <Link href="/" className="auth-home-link">← {t("backToHome")}</Link>
+            </nav>
             <div className="mb-10 text-center lg:text-left">
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t("loginTitle")}</h2>
-              <p className="mt-3 text-gray-500 font-medium">{t("loginLead")}</p>
+              <h2 className="auth-heading text-3xl font-extrabold tracking-tight">{t("loginTitle")}</h2>
+              <p className="auth-lead mt-3 font-medium">{t("loginLead")}</p>
             </div>
 
             {configurationMissing ? (
@@ -95,7 +98,7 @@ export default function LoginPage() {
 
             <form onSubmit={submit} noValidate className="space-y-5">
               <div>
-              <label htmlFor="login-email" className="block text-sm font-bold text-gray-700 mb-2">{t("email")}</label>
+              <label htmlFor="login-email" className="auth-label block text-sm font-bold mb-2">{t("email")}</label>
               <input
                 id="login-email"
                 name="email"
@@ -110,7 +113,7 @@ export default function LoginPage() {
               </div>
 
               <div>
-              <label htmlFor="login-password" className="block text-sm font-bold text-gray-700 mb-2">{t("password")}</label>
+              <label htmlFor="login-password" className="auth-label block text-sm font-bold mb-2">{t("password")}</label>
               <div className="auth-password-row">
               <input
                 id="login-password"
@@ -138,15 +141,15 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-gray-600">
+            <div className="auth-secondary mt-6 text-center text-sm">
               <span>{t("registerLead")} </span>
               <Link href="/register" className="font-bold underline underline-offset-4">
                 {t("createAccount")}
               </Link>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <p className="text-center text-xs font-medium text-gray-500 bg-gray-50 py-3 px-4 rounded-lg border border-gray-200">
+            <div className="mt-8 border-t border-[var(--border)] pt-6">
+              <p className="auth-help rounded-lg border border-[var(--border)] bg-[var(--surface-alt)] px-4 py-3 text-center text-xs font-medium">
                 {t("demoHelp")}
               </p>
             </div>

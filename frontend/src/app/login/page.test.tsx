@@ -26,4 +26,18 @@ describe("Login authentication form polish", () => {
     expect(css).toContain(".auth-input:-webkit-autofill:focus");
     expect(css).toContain(".auth-input:-webkit-autofill:active");
   });
+
+  it("provides direct home navigation and a semantic branded header link", () => {
+    expect(source).toContain('<Link href="/" className="auth-home-link">');
+    expect(source).toContain('t("backToHome")');
+    const header = readFileSync(new URL("../../components/app-header.tsx", import.meta.url), "utf8");
+    expect(header).toContain('<Link href="/"');
+  });
+
+  it("uses the dark-theme-safe primary foreground token", () => {
+    expect(css).toContain("--on-primary: #063b2d");
+    expect(css).toContain("color: var(--on-primary)");
+    expect(css).toContain("background: var(--primary-hover)");
+    expect(css).toContain(".admin-primary-button");
+  });
 });

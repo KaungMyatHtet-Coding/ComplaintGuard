@@ -16,4 +16,17 @@ describe("theme preference", () => {
     expect(JSON.stringify(root.dataset)).not.toContain("uid");
     expect(JSON.stringify(root.dataset)).not.toContain("token");
   });
+
+  it("keeps System tied to the operating-system media preference", async () => {
+    const source = await import("node:fs").then(({ readFileSync }) =>
+      readFileSync(new URL("./theme-control.tsx", import.meta.url), "utf8"),
+    );
+    const css = await import("node:fs").then(({ readFileSync }) =>
+      readFileSync(new URL("../app/globals.css", import.meta.url), "utf8"),
+    );
+    expect(source).toContain('matchMedia("(prefers-color-scheme: dark)")');
+    expect(source).toContain('preferenceRef.current === "system"');
+    expect(css).toContain(':root:not([data-theme="light"])');
+    expect(css).toContain('html:not([data-theme="light"])');
+  });
 });
