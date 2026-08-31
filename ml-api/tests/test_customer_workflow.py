@@ -701,6 +701,22 @@ def test_customer_detail_accepts_manual_review_prediction_without_assignment():
     assert "assigned_to_team" not in {item.type for item in detail.timeline}
 
 
+def test_customer_detail_accepts_myanmar_language_metadata_for_manual_review():
+    backend = InMemoryCustomerBackend(_sample_tickets())
+    backend.tickets[T1].update(
+        {
+            "inputLocale": "my",
+            "detectedLanguage": "my",
+            "routingSource": "manual_review",
+            "departmentId": None,
+            "status": "submitted",
+        }
+    )
+    detail = CustomerWorkflowService(backend).get_ticket_detail("cust_123", T1)
+    assert detail.input_locale == "my"
+    assert detail.department_id is None
+
+
 def test_customer_timeline_rejects_unknown_or_malformed_events():
     backend = InMemoryCustomerBackend(_sample_tickets())
     backend.messages[T1] = []

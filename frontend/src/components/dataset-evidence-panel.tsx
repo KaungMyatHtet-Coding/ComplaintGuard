@@ -11,6 +11,8 @@ type DatasetEvidencePanelProps = {
   predictionConfidence?: number | null;
   routingSource?: string | null;
   assignedDepartmentId?: string | null;
+  manualReviewReason?: string | null;
+  detectedLanguage?: string | null;
 };
 
 export function DatasetEvidencePanel({
@@ -18,6 +20,8 @@ export function DatasetEvidencePanel({
   predictionConfidence,
   routingSource,
   assignedDepartmentId,
+  manualReviewReason,
+  detectedLanguage,
 }: DatasetEvidencePanelProps) {
   const { locale, t } = useApp();
   const threshold = modelEvaluation.confidence.threshold;
@@ -71,6 +75,8 @@ export function DatasetEvidencePanel({
       </dl>
 
       <div className="evidence-explanation">
+        {manualReviewReason ? <p><strong>{t("evidenceManualReviewReason")}</strong>: {manualReviewReason}</p> : null}
+        {detectedLanguage ? <p><strong>{t("evidenceDetectedLanguage")}</strong>: {detectedLanguage}</p> : null}
         <strong>{t("evidenceConfidenceNotAccuracy")}</strong>
         <p>{t("evidenceConfidenceExplanation")}</p>
         {confidenceAvailable ? (

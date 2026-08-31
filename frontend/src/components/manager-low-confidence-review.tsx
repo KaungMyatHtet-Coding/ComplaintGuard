@@ -9,11 +9,13 @@ import { modelEvaluation } from "@/lib/model-evaluation";
 
 type ManagerLowConfidenceReviewProps = {
   tickets: LowConfidenceTicket[];
+  initialTicketId?: string | null;
   onOverride: (ticketId: string, newDeptId: string, reason: string) => Promise<void>;
 };
 
 export function ManagerLowConfidenceReview({
   tickets,
+  initialTicketId = null,
   onOverride,
 }: ManagerLowConfidenceReviewProps) {
   const { locale, t } = useApp();
@@ -46,16 +48,30 @@ export function ManagerLowConfidenceReview({
     setReason("");
   };
 
-  const handleConfirmOverride = async () => {
+  useEffect(() => {
+    if (!initialTicketId) return;
+    const requested = tickets.find((ticket) => ticket.id === initialTicketId);
+    if (requested) queueMicrotask(() => handleOpenModal(requested));
+  }, [initialTicketId, tickets]);
+
+  const handleConfirmOverride = async (selectedDepartmentId = targetDeptId) => {
     if (!selectedTicket) return;
     setSubmitting(true);
     try {
-      await onOverride(selectedTicket.id, targetDeptId, reason);
+      await onOverride(selectedTicket.id, selectedDepartmentId, reason);
       setSelectedTicket(null);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const hasReliableSuggestion = Boolean(
+      selectedTicket?.predictedDepartmentId
+      && selectedTicket.inputLocale === "en"
+      && selectedTicket.detectedLanguage === "en"
+      && typeof selectedTicket.predictionConfidence === "number"
+      && Number.isFinite(selectedTicket.predictionConfidence),
+  );
 
   return (
     <section className="analytics-card flex flex-col gap-5 overflow-hidden w-full">
@@ -101,7 +117,9 @@ export function ManagerLowConfidenceReview({
                     {ticket.complaintText}
                   </td>
                   <td>
-                    {departmentName(ticket.predictedDepartmentId)}
+                    {ticket.predictedDepartmentId && ticket.detectedLanguage === "en"
+                      ? departmentName(ticket.predictedDepartmentId)
+                      : t("managerNoReliableSuggestion")}
                   </td>
                   <td>
                     <span
@@ -160,7 +178,16 @@ export function ManagerLowConfidenceReview({
               predictionConfidence={selectedTicket.predictionConfidence}
               routingSource={selectedTicket.routingSource}
               assignedDepartmentId={selectedTicket.departmentId}
+              manualReviewReason={selectedTicket.manualReviewReason}
+              detectedLanguage={selectedTicket.detectedLanguage}
             />
+
+            <div className="manager-complaint-detail">
+              <h5>{t("complaintTextLabel")}</h5>
+              <p className="complaint-body" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                {selectedTicket.complaintText}
+              </p>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label htmlFor="dept-select" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted)' }}>
@@ -206,14 +233,18 @@ export function ManagerLowConfidenceReview({
               >
                 {t("managerCancel")}
               </button>
-              <button
+              {hasReliableSuggestion ? <button
                 type="button"
-                onClick={handleConfirmOverride}
+                onClick={() => void handleConfirmOverride(selectedTicket.predictedDepartmentId!)}
                 disabled={submitting || !reason.trim()}
                 style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '0.5rem', background: 'var(--ink)', color: 'white', border: 'none', cursor: submitting || !reason.trim() ? 'not-allowed' : 'pointer' }}
-              >
-                {submitting ? t("managerSaving") : t("managerConfirmOverride")}
-              </button>
+              >{submitting ? t("managerSaving") : t("managerConfirmAiSuggestion")}</button> : null}
+              <button
+                type="button"
+                onClick={() => void handleConfirmOverride(targetDeptId)}
+                disabled={submitting || !reason.trim() || (hasReliableSuggestion && targetDeptId === selectedTicket.predictedDepartmentId)}
+                style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 600, borderRadius: '0.5rem', background: 'var(--ink)', color: 'white', border: 'none', cursor: submitting || !reason.trim() ? 'not-allowed' : 'pointer' }}
+              >{submitting ? t("managerSaving") : t("managerChooseDepartment")}</button>
             </div>
             </div>
           </div>

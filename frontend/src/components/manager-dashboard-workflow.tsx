@@ -28,6 +28,7 @@ export function ManagerDashboardWorkflow() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "review" | "model">("overview");
+  const [requestedTicketId, setRequestedTicketId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -55,6 +56,13 @@ export function ManagerDashboardWorkflow() {
   }, [loadData]);
 
   useEffect(() => {
+    const ticketRef = new URLSearchParams(window.location.search).get("ticketRef");
+    if (ticketRef && /^ticket_[a-f0-9]{32}$/.test(ticketRef)) {
+      queueMicrotask(() => {
+        setRequestedTicketId(ticketRef);
+        setActiveTab("review");
+      });
+    }
     const updateTabFromHash = () => {
       const hash = window.location.hash;
       if (hash === "#manager-review") setActiveTab("review");
@@ -137,7 +145,7 @@ export function ManagerDashboardWorkflow() {
 
       <div className="cust-tab-content">
         {activeTab === "overview" && analytics && <ManagerAnalyticsOverview analytics={analytics} />}
-        {activeTab === "review" && <ManagerLowConfidenceReview tickets={tickets} onOverride={handleOverride} />}
+        {activeTab === "review" && <ManagerLowConfidenceReview tickets={tickets} initialTicketId={requestedTicketId} onOverride={handleOverride} />}
         {activeTab === "model" && <ModelAnalyticsDashboard />}
       </div>
     </div>

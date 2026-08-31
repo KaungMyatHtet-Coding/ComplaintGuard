@@ -720,7 +720,7 @@ def test_prediction_routing_transaction_and_staff_visibility_are_emulator_backed
     low = RoutingPrediction(
         department_id="card_atm",
         confidence=0.41,
-        detected_language="en",
+        detected_language="my",
         requires_manual_review=True,
         manual_review_reason="low_prediction_confidence",
         model_version="v1",
@@ -744,6 +744,13 @@ def test_prediction_routing_transaction_and_staff_visibility_are_emulator_backed
     assert low_doc.get("departmentId") is None
     assert low_doc.get("predictedDepartmentId") == "card_atm"
     assert low_doc.get("routingSource") == "manual_review"
+
+    customer_service = CustomerWorkflowService(FirebaseAdminCustomerBackend(db=emulator_db))
+    unassigned_detail = customer_service.get_ticket_detail(
+        profile_id("customerRouting"), low_id
+    )
+    assert unassigned_detail.department_id is None
+    assert unassigned_detail.complaint_text == "Synthetic emulator complaint"
 
     failed_doc = tickets.document(failed_id).get()
     assert failed_doc.get("departmentId") is None
@@ -784,6 +791,35 @@ def test_prediction_routing_transaction_and_staff_visibility_are_emulator_backed
         .get()
         .exists
     )
+    action = tickets.document(low_id).collection("actions").document("manager-routing-approval").get().to_dict()
+    assert action["candidateDepartmentId"] == "card_atm"
+    assert action["candidateConfidence"] == 0.41
+    assert action["selectedDepartmentId"] == "card_atm"
+    assert action["actorId"] == "manager-routing"
+    assert action["decision"] == "confirm"
+    assert isinstance(action["createdAt"], str)
+    customer_notifications = [
+        item.to_dict()
+        for item in emulator_db.collection("notifications").stream()
+        if item.to_dict().get("relatedTicketRef") == low_id
+        and item.to_dict().get("recipientUid") == profile_id("customerRouting")
+    ]
+    assert sum(item.get("type") == "department_assigned" for item in customer_notifications) == 1
+    assigned_detail = customer_service.get_ticket_detail(
+        profile_id("customerRouting"), low_id
+    )
+    assert assigned_detail.department_id == "card_atm"
+    assert assigned_detail.status == "triaged"
+    staff.add_reply(
+        ticket_id=low_id,
+        actor=StaffActor(uid="staff-card", department_id="card_atm"),
+        body="Myanmar complaint reviewed.",
+        action_id="staff-reply-action",
+    )
+    after_reply = customer_service.get_ticket_detail(
+        profile_id("customerRouting"), low_id
+    )
+    assert after_reply.messages[0].body == "Myanmar complaint reviewed."
 
 
 def test_real_classifier_submission_routes_through_firestore_adapter(emulator_db):

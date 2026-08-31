@@ -244,11 +244,6 @@ class FirebaseAdminManagerBackend(ManagerBackend):
         now_str = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         action_ref = doc_ref.collection("actions").document(action_id)
         audit_ref = doc_ref.collection("events").document(action_id)
-        updates = {
-            "departmentId": new_department_id,
-            "routingSource": "manager_override",
-            "updatedAt": now_str,
-        }
         try:
             from app.ticketing import run_firestore_transaction
 
@@ -261,27 +256,59 @@ class FirebaseAdminManagerBackend(ManagerBackend):
                     raise TicketNotFound("target ticket not found")
                 doc_data = snapshot.to_dict()
                 previous_department_id = doc_data.get("departmentId")
+                updates = {
+                    "departmentId": new_department_id,
+                    "routingSource": "manager_override",
+                    "status": "triaged" if doc_data.get("status") == "submitted" else doc_data.get("status"),
+                    "updatedAt": now_str,
+                }
                 result = {**doc_data, **updates, "id": ticket_id}
                 if previous_department_id != new_department_id:
                     from app.notifications import (
                         build_customer_notification_request,
-                        stage_customer_notification,
+                        build_staff_notification_request,
+                        find_staff_department_recipients,
+                        stage_notification_requests,
+                        validate_customer_notification_recipient,
                     )
-
-                    stage_customer_notification(
+                    staff_recipient_uids = find_staff_department_recipients(
                         transaction=transaction,
                         db=self.db,
-                        writer=self._notification_writer,
-                        request=build_customer_notification_request(
-                            notification_type="department_assigned",
-                            recipient_uid=doc_data["customerId"],
+                        department_id=new_department_id,
+                    )
+
+                    customer_request = build_customer_notification_request(
+                        notification_type="department_assigned",
+                        recipient_uid=doc_data["customerId"],
+                        ticket_ref=ticket_id,
+                        source_key=(
+                            f"ticket:{ticket_id}:department:{new_department_id}:"
+                            f"manager_override:{action_id}"
+                        ),
+                        department_key=new_department_id,
+                    )
+                    validate_customer_notification_recipient(
+                        transaction=transaction,
+                        db=self.db,
+                        request=customer_request,
+                    )
+                    staff_requests = [
+                        build_staff_notification_request(
+                            notification_type="department_complaint_available",
+                            recipient_uid=recipient_uid,
                             ticket_ref=ticket_id,
                             source_key=(
                                 f"ticket:{ticket_id}:department:{new_department_id}:"
-                                f"manager_override:{action_id}"
+                                f"manager_override:{action_id}:staff:{recipient_uid}"
                             ),
                             department_key=new_department_id,
-                        ),
+                        )
+                        for recipient_uid in staff_recipient_uids
+                    ]
+                    stage_notification_requests(
+                        transaction=transaction,
+                        writer=self._notification_writer,
+                        requests=[customer_request, *staff_requests],
                     )
                 transaction.update(doc_ref, updates)
                 transaction.set(
@@ -294,11 +321,27 @@ class FirebaseAdminManagerBackend(ManagerBackend):
                         "fromValue": previous_department_id,
                         "toValue": new_department_id,
                         "reason": reason,
+                        "decision": "confirm" if doc_data.get("predictedDepartmentId") == new_department_id else "override",
+                        "candidateDepartmentId": doc_data.get("predictedDepartmentId"),
+                        "candidateConfidence": doc_data.get("predictionConfidence"),
+                        "actionId": action_id,
                         "createdAt": now_str,
                     },
                 )
                 transaction.set(
-                    action_ref, {"type": "manager_override", "result": result}
+                    action_ref,
+                    {
+                        "type": "manager_override",
+                        "decision": "confirm" if doc_data.get("predictedDepartmentId") == new_department_id else "override",
+                        "candidateDepartmentId": doc_data.get("predictedDepartmentId"),
+                        "candidateConfidence": doc_data.get("predictionConfidence"),
+                        "selectedDepartmentId": new_department_id,
+                        "previousDepartmentId": previous_department_id,
+                        "actorId": manager_id,
+                        "actionId": action_id,
+                        "createdAt": now_str,
+                        "result": result,
+                    },
                 )
                 return result
 

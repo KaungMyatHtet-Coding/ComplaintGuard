@@ -31,6 +31,8 @@ export type LowConfidenceTicket = {
   priority: string;
   routingSource: string;
   createdAt: string;
+  manualReviewReason: string | null;
+  detectedLanguage: string | null;
 };
 
 export type ManagerOverrideResult = {

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -21,6 +22,8 @@ describe("ManagerLowConfidenceReview", () => {
             priority: "normal",
             routingSource: "manual_review",
             createdAt: "2026-08-11T00:00:00Z",
+            manualReviewReason: "low_prediction_confidence",
+            detectedLanguage: "en",
           }]}
           onOverride={vi.fn()}
         />
@@ -32,5 +35,13 @@ describe("ManagerLowConfidenceReview", () => {
     expect(markup).toContain('class="mng-table"');
     expect(markup).toContain("ticket-reference");
     expect(markup).toContain('tabindex="0"');
+  });
+
+  it("has explicit confirm and alternate-department decisions and preserves the full narrative view", () => {
+    const source = readFileSync(new URL("./manager-low-confidence-review.tsx", import.meta.url), "utf8");
+    expect(source).toContain("managerConfirmAiSuggestion");
+    expect(source).toContain("managerChooseDepartment");
+    expect(source).toContain("whiteSpace: \"pre-wrap\"");
+    expect(source).toContain("hasReliableSuggestion");
   });
 });
