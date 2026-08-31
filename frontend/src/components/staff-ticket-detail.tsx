@@ -7,6 +7,7 @@ import { DatasetEvidencePanel } from "@/components/dataset-evidence-panel";
 import { StaffResolutionDetails } from "@/components/staff-resolution-details";
 import { createSubmissionGuard } from "@/lib/complaint-submission";
 import { getDepartmentLabel } from "@/lib/department-labels";
+import type { MessageKey } from "@/lib/i18n";
 import {
   StaffWorkflowError,
   loadStaffTicket,
@@ -144,8 +145,16 @@ export function StaffTicketDetail({ ticketId, getToken, onChanged }: { ticketId:
   };
   const eventValue = (value: string | null) => {
     if (!value) return "—";
-    const statusKeys = ["triaged", "in_progress", "awaiting_customer", "resolved"] as const;
-    if (statusKeys.includes(value as typeof statusKeys[number])) return t(`status_${value}` as "status_triaged");
+    const statusKeys = ["submitted", "triaged", "in_progress", "awaiting_customer", "resolved", "closed"] as const;
+    const statusLabels: Record<typeof statusKeys[number], MessageKey> = {
+      submitted: "statusSubmitted",
+      triaged: "statusTriaged",
+      in_progress: "statusInProgress",
+      awaiting_customer: "statusAwaitingCustomer",
+      resolved: "statusResolved",
+      closed: "statusClosed",
+    } as const;
+    if (statusKeys.includes(value as typeof statusKeys[number])) return t(statusLabels[value as typeof statusKeys[number]]);
     return getDepartmentLabel(value, locale) ?? t("staffActivityValueUnavailable");
   };
   return (
@@ -156,7 +165,14 @@ export function StaffTicketDetail({ ticketId, getToken, onChanged }: { ticketId:
       </div>
       <StaffTicketMetadata
         ticketId={detail.ticketId}
-        statusLabel={t(`status_${detail.status}` as "status_triaged")}
+        statusLabel={t({
+          submitted: "statusSubmitted",
+          triaged: "statusTriaged",
+          in_progress: "statusInProgress",
+          awaiting_customer: "statusAwaitingCustomer",
+          resolved: "statusResolved",
+          closed: "statusClosed",
+        }[detail.status] as MessageKey)}
         priorityLabel={t(`priority_${detail.priority}` as "priority_normal")}
         createdAtLabel={date.format(new Date(detail.createdAt))}
         updatedAtLabel={date.format(new Date(detail.updatedAt))}

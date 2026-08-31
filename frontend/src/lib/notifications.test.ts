@@ -95,6 +95,20 @@ describe("notification API contract", () => {
     expect(getSafeNotificationTarget({ ...baseItem, navigationTarget: "customer_ticket", relatedTicketRef: null })).toBeNull();
   });
 
+  it("preserves the exact ticket target for received, assigned, and team-response notifications", () => {
+    for (const [type, navigationTarget] of [
+      ["complaint_received", "customer_ticket"],
+      ["department_assigned", "customer_ticket"],
+      ["staff_reply", "customer_ticket"],
+    ] as const) {
+      expect(getSafeNotificationTarget({
+        ...baseItem,
+        type,
+        navigationTarget,
+      })).toBe("/dashboard?ticketRef=ticket_public_1");
+    }
+  });
+
   it("caps visual counts and never changes the read-all API bound", async () => {
     expect(formatNotificationCount(0)).toBe("0");
     expect(formatNotificationCount(99)).toBe("99");

@@ -1275,7 +1275,7 @@ class CustomerWorkflowService:
         if "escalated" in raw_ticket and type(raw_ticket["escalated"]) is not bool:
             raise CustomerHistoryDataError("ticket escalation state is invalid")
         if "detectedLanguage" in raw_ticket and raw_ticket["detectedLanguage"] not in {
-            "en", "mixed", "unsupported"
+            "en", "my", "mixed", "unsupported"
         }:
             raise CustomerHistoryDataError("ticket language metadata is invalid")
         return {
@@ -1328,7 +1328,8 @@ class CustomerWorkflowService:
         required = {"type", "actorId", "actorRole", "fromValue", "toValue", "createdAt"}
         allowed = required | {
             "eventId", "ticketId", "reason", "predictionConfidence", "routingSource",
-            "predictedDepartmentId",
+            "predictedDepartmentId", "decision", "candidateDepartmentId",
+            "candidateConfidence", "actionId",
         }
         if not required.issubset(raw_event) or set(raw_event) - allowed:
             raise CustomerHistoryDataError("event persistence is invalid")
@@ -1370,6 +1371,22 @@ class CustomerWorkflowService:
             and raw_event["predictedDepartmentId"] not in _PUBLIC_DEPARTMENTS
         ):
             raise CustomerHistoryDataError("event prediction is invalid")
+        if "candidateDepartmentId" in raw_event and (
+            raw_event["candidateDepartmentId"] is not None
+            and raw_event["candidateDepartmentId"] not in _PUBLIC_DEPARTMENTS
+        ):
+            raise CustomerHistoryDataError("event candidate is invalid")
+        if "candidateConfidence" in raw_event:
+            confidence = raw_event["candidateConfidence"]
+            if confidence is not None and (
+                isinstance(confidence, bool)
+                or not isinstance(confidence, (int, float))
+                or not math.isfinite(float(confidence))
+                or not 0.0 <= float(confidence) <= 1.0
+            ):
+                raise CustomerHistoryDataError("event candidate confidence is invalid")
+        if "decision" in raw_event and raw_event["decision"] not in {"confirm", "override"}:
+            raise CustomerHistoryDataError("event decision is invalid")
         if "eventId" in raw_event and (
             not isinstance(raw_event["eventId"], str) or not raw_event["eventId"]
         ):

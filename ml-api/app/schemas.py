@@ -905,6 +905,8 @@ class LowConfidenceTicketItem(BaseModel):
     priority: str
     routing_source: str = Field(alias="routingSource")
     created_at: datetime = Field(alias="createdAt")
+    manual_review_reason: str | None = Field(default=None, alias="manualReviewReason")
+    detected_language: str | None = Field(default=None, alias="detectedLanguage")
 
 
 class ManagerOverrideRequest(BaseModel):
