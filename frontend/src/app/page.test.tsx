@@ -36,6 +36,19 @@ vi.mock("@/components/app-provider", () => ({
       landingFaqClassificationAnswer: "Uncertain cases receive review.",
       signIn: "Sign in",
       createAccount: "Create an account",
+      publicWhatTitle: "What ComplaintGuard does",
+      publicWhatItems: "Submit a complaint.|Route it.|Review uncertain cases.|Track progress.",
+      publicHowTitle: "How it works",
+      publicHowItems: "Submit.|Analyze.|Route or review.|Track.",
+      publicWhyTitle: "Why choose ComplaintGuard",
+      publicWhyItems: "Bilingual|Human review|Role access|Notifications|Communication|History",
+      publicOversightTitle: "Human oversight",
+      publicOversight: "AI assists with routing, but uncertain complaints are reviewed by a Manager before assignment.",
+      publicPrivacyTitle: "Privacy and safety",
+      publicPrivacyItems: "Do not submit secrets.|Own complaints only.|Authorized departments.|Decisions recorded.",
+      publicScopeTitle: "Current scope",
+      publicScope: "English automated routing; Myanmar and uncertain complaints receive Manager review.",
+      publicCtaTitle: "Ready to get started?",
     }[key] ?? key),
   }),
 }));
@@ -53,5 +66,14 @@ describe("landing page customer-facing copy", () => {
     expect(markup).not.toContain("zero misroutings");
     expect(markup).not.toContain("exact right department");
     expect(markup).not.toContain("Instantly categorizes");
+  });
+
+  it("has the required public sections and exact CTA routes", () => {
+    const markup = renderToStaticMarkup(<Home />);
+    expect(markup).toContain("What ComplaintGuard does");
+    expect(markup).toContain("How it works");
+    expect(markup).toContain("Human oversight");
+    expect(markup).toContain('href="/login"');
+    expect(markup).toContain('href="/register"');
   });
 });

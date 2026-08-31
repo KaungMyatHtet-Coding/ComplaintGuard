@@ -6,6 +6,7 @@ import { useApp } from "@/components/app-provider";
 
 export default function Home() {
   const { t } = useApp();
+  const list = (key: "publicWhatItems" | "publicHowItems" | "publicWhyItems" | "publicPrivacyItems") => t(key).split("|");
 
   const services = [
     {
@@ -60,7 +61,7 @@ export default function Home() {
   return (
     <>
       <AppHeader />
-      <main className="w-full bg-white animate-fade-in flex flex-col">
+      <main className="public-page w-full animate-fade-in flex flex-col">
         {/* Hero Section */}
         <section className="flex w-full min-h-[calc(100vh-4.5rem)] flex-col justify-center items-center px-6 sm:px-12 lg:px-24 xl:px-32 relative overflow-hidden bg-gray-950">
           <div 
@@ -85,13 +86,13 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full">
               <Link 
                 href="/login" 
-                className="group relative inline-flex items-center justify-center rounded-xl bg-white px-12 py-4 text-xl font-extrabold text-gray-900 shadow-lg transition-all hover:bg-gray-100 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:-translate-y-0.5 focus:outline-none w-full sm:w-auto whitespace-nowrap"
+                className="public-action-primary group relative inline-flex items-center justify-center rounded-xl px-12 py-4 text-xl font-extrabold shadow-lg transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:-translate-y-0.5 focus:outline-none w-full sm:w-auto whitespace-nowrap"
               >
                 <span>{t("signIn")}</span>
               </Link>
               <Link
                 href="/register"
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 px-8 py-4 text-lg font-bold text-white transition-all hover:bg-white/10 focus:outline-none sm:w-auto"
+                className="public-action-secondary inline-flex w-full items-center justify-center rounded-xl border px-8 py-4 text-lg font-bold transition-all focus:outline-none sm:w-auto"
               >
                 <span>{t("createAccount")}</span>
               </Link>
@@ -105,22 +106,81 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Services Section */}
-        <section className="w-full py-24 bg-[#f6f7ed] px-6 sm:px-12 lg:px-24">
+        <section className="public-surface-alt w-full px-6 py-20 sm:px-12 lg:px-24" aria-labelledby="what-title">
+          <div className="mx-auto max-w-6xl">
+            <h2 id="what-title" className="public-heading mb-10 text-center text-3xl font-extrabold tracking-tight md:text-4xl">{t("publicWhatTitle")}</h2>
+            <ul className="public-list grid gap-5 md:grid-cols-2">
+              {list("publicWhatItems").map((item) => <li key={item} className="public-card rounded-2xl border p-6 text-lg leading-relaxed">{item}</li>)}
+            </ul>
+          </div>
+        </section>
+
+        <section className="public-surface w-full px-6 py-20 sm:px-12 lg:px-24" aria-labelledby="how-title">
+          <div className="mx-auto max-w-6xl">
+            <h2 id="how-title" className="public-heading mb-10 text-center text-3xl font-extrabold tracking-tight md:text-4xl">{t("publicHowTitle")}</h2>
+            <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+              {list("publicHowItems").map((item, index) => <li key={item} className="public-card rounded-2xl border p-6"><span className="mb-4 grid h-10 w-10 place-items-center rounded-full bg-[var(--action)] font-extrabold text-[var(--on-primary)]">{index + 1}</span><p className="public-heading font-bold leading-relaxed">{item}</p></li>)}
+            </ol>
+          </div>
+        </section>
+
+        <section className="public-surface-alt w-full px-6 py-20 sm:px-12 lg:px-24" aria-labelledby="why-title">
+          <div className="mx-auto max-w-6xl">
+            <h2 id="why-title" className="public-heading mb-10 text-center text-3xl font-extrabold tracking-tight md:text-4xl">{t("publicWhyTitle")}</h2>
+            <ul className="public-list grid gap-x-10 gap-y-4 md:grid-cols-2 lg:grid-cols-3">
+              {list("publicWhyItems").map((item) => <li key={item} className="list-disc pl-2 text-lg leading-relaxed">{item}</li>)}
+            </ul>
+          </div>
+        </section>
+
+        <section className="public-surface w-full px-6 py-20 sm:px-12 lg:px-24" aria-labelledby="oversight-title">
+          <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
+            <div className="public-oversight rounded-2xl border-l-4 p-8" role="note">
+              <h2 id="oversight-title" className="mb-4 text-2xl font-extrabold">{t("publicOversightTitle")}</h2>
+              <p className="text-lg leading-relaxed">{t("publicOversight")}</p>
+            </div>
+            <div className="public-oversight rounded-2xl border-l-4 p-8" aria-labelledby="scope-title">
+              <h2 id="scope-title" className="mb-4 text-2xl font-extrabold">{t("publicScopeTitle")}</h2>
+              <p className="text-lg leading-relaxed">{t("publicScope")}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="public-surface-alt w-full px-6 py-20 sm:px-12 lg:px-24" aria-labelledby="privacy-title">
+          <div className="mx-auto max-w-6xl">
+            <h2 id="privacy-title" className="public-heading mb-10 text-center text-3xl font-extrabold tracking-tight md:text-4xl">{t("publicPrivacyTitle")}</h2>
+            <ul className="public-list grid gap-5 md:grid-cols-2">
+              {list("publicPrivacyItems").map((item) => <li key={item} className="public-card rounded-2xl border p-6 text-lg leading-relaxed">{item}</li>)}
+            </ul>
+          </div>
+        </section>
+
+        <section className="public-surface w-full px-6 py-20 sm:px-12 lg:px-24" aria-labelledby="cta-title">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 id="cta-title" className="public-heading mb-8 text-3xl font-extrabold tracking-tight md:text-4xl">{t("publicCtaTitle")}</h2>
+            <div className="flex flex-col justify-center gap-4 sm:flex-row">
+              <Link href="/login" className="primary-button sm:w-auto">{t("signIn")}</Link>
+              <Link href="/register" className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] px-6 py-3 font-bold text-[var(--text)] transition-colors hover:bg-[var(--surface-alt)]">{t("createAccount")}</Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Existing service overview */}
+        <section className="public-surface-alt w-full py-24 px-6 sm:px-12 lg:px-24">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">{t("landingServicesTitle")}</h2>
-              <p className="text-xl text-gray-500 max-w-2xl mx-auto">{t("landingServicesLead")}</p>
+              <h2 className="public-heading text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">{t("landingServicesTitle")}</h2>
+              <p className="public-copy text-xl max-w-2xl mx-auto">{t("landingServicesLead")}</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
               {services.map((service, idx) => (
-                <div key={idx} className="bg-white rounded-3xl p-8 sm:p-10 shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                <div key={idx} className="public-card rounded-3xl p-8 sm:p-10 shadow-sm border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                   <div className="w-14 h-14 bg-black text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
                     {service.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{service.title}</h3>
-                  <p className="text-gray-600 leading-relaxed text-lg">{service.description}</p>
+                  <h3 className="public-heading text-2xl font-bold mb-4">{service.title}</h3>
+                  <p className="public-copy leading-relaxed text-lg">{service.description}</p>
                 </div>
               ))}
             </div>
@@ -128,18 +188,18 @@ export default function Home() {
         </section>
 
         {/* FAQ Section */}
-        <section className="w-full py-24 bg-white px-6 sm:px-12 lg:px-24">
+        <section className="public-surface w-full py-24 px-6 sm:px-12 lg:px-24">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">{t("landingFaqTitle")}</h2>
-              <p className="text-xl text-gray-500">{t("landingFaqLead")}</p>
+              <h2 className="public-heading text-3xl md:text-4xl font-extrabold mb-4 tracking-tight">{t("landingFaqTitle")}</h2>
+              <p className="public-copy text-xl">{t("landingFaqLead")}</p>
             </div>
 
             <div className="space-y-6">
               {faqs.map((faq, idx) => (
-                <div key={idx} className="bg-[#f6f7ed] rounded-2xl p-6 md:p-8 border border-gray-100">
-                  <h4 className="text-xl font-bold text-gray-900 mb-3">{faq.q}</h4>
-                  <p className="text-gray-600 text-lg leading-relaxed">{faq.a}</p>
+                <div key={idx} className="public-card rounded-2xl p-6 md:p-8 border">
+                  <h3 className="public-heading text-xl font-bold mb-3">{faq.q}</h3>
+                  <p className="public-copy text-lg leading-relaxed">{faq.a}</p>
                 </div>
               ))}
             </div>

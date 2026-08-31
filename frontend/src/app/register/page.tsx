@@ -215,9 +215,12 @@ export default function RegisterPage() {
       <AppHeader />
       <main className="auth-page min-h-[calc(100vh-4.5rem)] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-xl">
+          <nav className="auth-navigation" aria-label={t("authenticationNavigation")}>
+            <Link href="/" className="auth-home-link">← {t("backToHome")}</Link>
+          </nav>
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">{title}</h1>
-            <p className="mt-3 text-gray-600">{lead}</p>
+            <h1 className="auth-heading text-3xl font-extrabold tracking-tight">{title}</h1>
+            <p className="auth-lead mt-3">{lead}</p>
           </div>
 
           {formError || supportRequired || status === "configuration_missing" ? (
@@ -309,7 +312,7 @@ export default function RegisterPage() {
             </form>
           ) : null}
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="auth-secondary mt-6 text-center text-sm">
             <Link href="/login" className="font-bold underline underline-offset-4 hover:text-black">{t("backToLogin")}</Link>
           </div>
         </div>

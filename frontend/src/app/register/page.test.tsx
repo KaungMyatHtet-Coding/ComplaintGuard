@@ -19,4 +19,9 @@ describe("Registration authentication form polish", () => {
     expect(source).toContain('className="auth-input"');
     expect(source).toContain('className="auth-submit"');
   });
+
+  it("provides a direct, consistently styled home link", () => {
+    expect(source).toContain('<Link href="/" className="auth-home-link">');
+    expect(source).toContain('t("backToHome")');
+  });
 });

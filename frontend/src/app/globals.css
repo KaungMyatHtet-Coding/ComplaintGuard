@@ -21,6 +21,7 @@
   --border: #dce4ee;
   --primary: #064e3b;
   --primary-hover: #0b6b50;
+  --on-primary: #ffffff;
   --focus-ring: #10b981;
   --success: #08783d;
   --warning-surface: #fff7e6;
@@ -39,6 +40,7 @@
   --border: #356455;
   --primary: #8ee6bd;
   --primary-hover: #b6f2d2;
+  --on-primary: #063b2d;
   --focus-ring: #8ee6bd;
   --success: #91e6ae;
   --warning-surface: #4c3b1d;
@@ -67,6 +69,7 @@
     --border: #356455;
     --primary: #8ee6bd;
     --primary-hover: #b6f2d2;
+    --on-primary: #063b2d;
     --focus-ring: #8ee6bd;
     --success: #91e6ae;
     --warning-surface: #4c3b1d;
@@ -184,7 +187,43 @@ a {
 
 .auth-page {
   min-width: 0;
-  background: var(--warm-white);
+  background: var(--canvas);
+  color: var(--text);
+}
+
+.auth-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.auth-home-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--text) !important;
+  padding: 0.65rem 1rem;
+  font-weight: 800;
+}
+
+.auth-home-link:hover {
+  border-color: var(--action);
+  background: var(--surface-alt);
+}
+
+.auth-heading,
+.auth-label,
+.auth-secondary,
+.auth-help {
+  color: var(--text);
+}
+
+.auth-lead {
+  color: var(--text-muted);
 }
 
 .auth-form {
@@ -198,8 +237,8 @@ a {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 0.75rem;
-  background: var(--warm-white);
-  color: var(--forest);
+  background: var(--surface);
+  color: var(--text);
   caret-color: var(--action);
   padding: 0.75rem 1rem;
 }
@@ -221,7 +260,7 @@ a {
 .auth-input:-webkit-autofill:hover,
 .auth-input:-webkit-autofill:focus,
 .auth-input:-webkit-autofill:active {
-  -webkit-text-fill-color: var(--forest);
+  -webkit-text-fill-color: var(--text);
   caret-color: var(--action);
   box-shadow: 0 0 0 1000px var(--warm-white) inset;
   transition: background-color 9999s ease-out 0s;
@@ -242,7 +281,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 0.75rem;
   background: var(--surface);
-  color: var(--forest);
+  color: var(--text);
   cursor: pointer;
   padding: 0.75rem;
   font-weight: 700;
@@ -250,7 +289,7 @@ a {
 
 .auth-password-toggle:hover {
   border-color: var(--action);
-  background: #ecfdf5;
+  background: var(--surface-alt);
 }
 
 .auth-submit {
@@ -258,14 +297,14 @@ a {
   border: 0;
   border-radius: 0.75rem;
   background: var(--action);
-  color: var(--forest);
+  color: var(--on-primary);
   cursor: pointer;
   font-weight: 800;
   padding: 0.875rem 1rem;
 }
 
 .auth-submit:hover:not(:disabled) {
-  background: #34d399;
+  background: var(--primary-hover);
 }
 
 .auth-submit:disabled {
@@ -280,11 +319,11 @@ a {
 }
 
 .auth-page a {
-  color: var(--forest);
+  color: var(--action);
 }
 
 .auth-page a:hover {
-  color: #047857;
+  color: var(--primary-hover);
 }
 
 .site-header {
@@ -444,7 +483,7 @@ a {
   border: 0;
   border-radius: 0.75rem;
   background: var(--action);
-  color: var(--forest);
+  color: var(--on-primary);
   cursor: pointer;
   font-weight: 600;
   padding: 0.875rem 1.1rem;
@@ -454,7 +493,66 @@ a {
 .primary-button:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  background: #34d399;
+  background: var(--primary-hover);
+}
+
+.public-page {
+  background: var(--canvas);
+  color: var(--text);
+}
+
+.public-surface {
+  background: var(--surface);
+}
+
+.public-surface-alt {
+  background: var(--surface-alt);
+}
+
+.public-heading {
+  color: var(--text);
+}
+
+.public-copy {
+  color: var(--text-muted);
+}
+
+.public-card {
+  border-color: var(--border);
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+.public-action-primary {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.public-action-primary:hover {
+  background: var(--surface-alt);
+}
+
+.public-action-secondary {
+  border-color: rgb(255 255 255 / 45%);
+  color: #ffffff;
+}
+
+.public-action-secondary:hover {
+  background: rgb(255 255 255 / 14%);
+}
+
+.public-list {
+  color: var(--text-muted);
+}
+
+.public-list li::marker {
+  color: var(--action);
+}
+
+.public-oversight {
+  border-color: var(--action);
+  background: var(--surface-elevated);
+  color: var(--text);
 }
 
 .primary-button:disabled {
@@ -3292,7 +3390,7 @@ details[open] > .evidence-heading {
 .admin-primary-button {
   border: 1px solid var(--primary);
   background: var(--primary);
-  color: #ffffff;
+  color: var(--on-primary);
 }
 
 .admin-primary-button:hover:not(:disabled) {
