@@ -1,5 +1,7 @@
 # ComplaintGuard Local Emulator Demo Guide
 
+Whole-project flowchart: [`project_flowchart.md`](project_flowchart.md).
+
 ## Safety boundary
 
 This guide supports only the verified local emulator-based demonstration. Use

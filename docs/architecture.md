@@ -38,6 +38,9 @@ No billing account, paid cloud function, paid model API, paid translation API, p
 
 ## Current verified system diagram
 
+For the complete role, complaint-lifecycle, offline-training, and deployment-
+boundary flow, see [`project_flowchart.md`](project_flowchart.md).
+
 ```mermaid
 flowchart LR
     subgraph Offline[Offline training pipeline]
