@@ -196,6 +196,24 @@ from app.ticketing import (
     TicketBackend,
 )
 from app.ticketing import PermissionError as SubmissionPermissionError
+from app.v2_foundation import (
+    DepartmentCreateRequest,
+    DepartmentPageResponse,
+    DepartmentResponse,
+    DepartmentUpdateRequest,
+    FirebaseAdminFoundationBackend,
+    FoundationBackend,
+    FoundationConflict,
+    FoundationIdempotencyConflict,
+    FoundationNotFound,
+    FoundationPageRequest,
+    FoundationPermissionError,
+    FoundationValidationError,
+    StaffCreateRequest,
+    StaffPageResponse,
+    StaffResponse,
+    StaffUpdateRequest,
+)
 
 ModelLoader = Callable[..., FrozenDepartmentClassifier]
 
@@ -256,6 +274,7 @@ def create_app(
     admin_recovery_backend: AdminLifecycleRecoveryBackend | None = None,
     admin_recovery_status_backend: AdminLifecycleRecoveryStatusBackend | None = None,
     notification_backend: NotificationBackend | None = None,
+    foundation_backend: FoundationBackend | None = None,
 ) -> FastAPI:
     runtime_settings = settings or Settings.default()
 
@@ -457,6 +476,242 @@ def create_app(
             ) from None
         response.status_code = 201 if status == "created" else 200
         return CustomerProfileResponse(status=status, profile=profile)
+
+    @api.post(
+        "/admin/v2/departments",
+        response_model=DepartmentResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def create_v2_department(
+        payload: DepartmentCreateRequest,
+        authorization: str | None = Header(default=None),
+    ) -> DepartmentResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            actor = require_active_admin(authorization, backend)
+            result = backend.create_department(actor, payload)
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except (FoundationConflict, FoundationIdempotencyConflict):
+            raise ApiError(status_code=409, code="foundation_conflict", message="The department operation conflicts with existing data.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The department request is invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department management is temporarily unavailable.") from None
+        return DepartmentResponse.model_validate(result)
+
+    @api.get(
+        "/admin/v2/departments",
+        response_model=DepartmentPageResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def list_v2_departments(
+        request: Request,
+        payload: FoundationPageRequest = Depends(),  # noqa: B008
+        authorization: str | None = Header(default=None),
+    ) -> DepartmentPageResponse:
+        if set(request.query_params) - {"pageSize", "cursor", "state"}:
+            raise ApiError(status_code=422, code="validation_error", message="The department filters are invalid.")
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            require_active_admin(authorization, backend)
+            return backend.list_departments(payload)
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The department filters are invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department management is temporarily unavailable.") from None
+
+    @api.get(
+        "/admin/v2/departments/{department_id}",
+        response_model=DepartmentResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def get_v2_department(
+        department_id: str,
+        authorization: str | None = Header(default=None),
+    ) -> DepartmentResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            require_active_admin(authorization, backend)
+            return DepartmentResponse.model_validate(backend.get_department(department_id))
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationNotFound:
+            raise ApiError(status_code=404, code="department_not_found", message="Department not found.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The department reference is invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department management is temporarily unavailable.") from None
+
+    @api.patch(
+        "/admin/v2/departments/{department_id}",
+        response_model=DepartmentResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def update_v2_department(
+        department_id: str,
+        payload: DepartmentUpdateRequest,
+        authorization: str | None = Header(default=None),
+    ) -> DepartmentResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            actor = require_active_admin(authorization, backend)
+            return DepartmentResponse.model_validate(backend.update_department(actor, department_id, payload))
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationNotFound:
+            raise ApiError(status_code=404, code="department_not_found", message="Department not found.") from None
+        except (FoundationConflict, FoundationIdempotencyConflict):
+            raise ApiError(status_code=409, code="foundation_conflict", message="The department operation conflicts with existing data.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The department request is invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department management is temporarily unavailable.") from None
+
+    @api.post(
+        "/admin/v2/departments/{department_id}/state",
+        response_model=DepartmentResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def set_v2_department_state(
+        department_id: str,
+        state: Literal["active", "archived"],
+        idempotencyKey: str = Query(..., min_length=8, max_length=64),
+        authorization: str | None = Header(default=None),
+    ) -> DepartmentResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            actor = require_active_admin(authorization, backend)
+            return DepartmentResponse.model_validate(backend.set_department_state(actor, department_id, state, idempotencyKey))
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationNotFound:
+            raise ApiError(status_code=404, code="department_not_found", message="Department not found.") from None
+        except (FoundationConflict, FoundationIdempotencyConflict):
+            raise ApiError(status_code=409, code="foundation_conflict", message="The department operation conflicts with existing data.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The department state request is invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Department management is temporarily unavailable.") from None
+
+    @api.post(
+        "/admin/v2/staff",
+        response_model=StaffResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def create_v2_staff(
+        payload: StaffCreateRequest,
+        authorization: str | None = Header(default=None),
+    ) -> StaffResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            actor = require_active_admin(authorization, backend)
+            return StaffResponse.model_validate(backend.create_staff(actor, payload))
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except (FoundationConflict, FoundationIdempotencyConflict):
+            raise ApiError(status_code=409, code="foundation_conflict", message="The Staff operation conflicts with existing data.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The Staff request is invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Staff management is temporarily unavailable.") from None
+
+    @api.get(
+        "/admin/v2/staff",
+        response_model=StaffPageResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def list_v2_staff(
+        request: Request,
+        payload: FoundationPageRequest = Depends(),  # noqa: B008
+        authorization: str | None = Header(default=None),
+    ) -> StaffPageResponse:
+        if set(request.query_params) - {"pageSize", "cursor", "employmentState", "departmentId"}:
+            raise ApiError(status_code=422, code="validation_error", message="The Staff filters are invalid.")
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            require_active_admin(authorization, backend)
+            return backend.list_staff(payload)
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The Staff filters are invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Staff management is temporarily unavailable.") from None
+
+    @api.get(
+        "/admin/v2/staff/{staff_id}",
+        response_model=StaffResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def get_v2_staff(
+        staff_id: str,
+        authorization: str | None = Header(default=None),
+    ) -> StaffResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            require_active_admin(authorization, backend)
+            return StaffResponse.model_validate(backend.get_staff(staff_id))
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationNotFound:
+            raise ApiError(status_code=404, code="staff_not_found", message="Staff profile not found.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Staff management is temporarily unavailable.") from None
+
+    @api.patch(
+        "/admin/v2/staff/{staff_id}",
+        response_model=StaffResponse,
+        response_model_by_alias=True,
+        responses={401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
+    )
+    async def update_v2_staff(
+        staff_id: str,
+        payload: StaffUpdateRequest,
+        authorization: str | None = Header(default=None),
+    ) -> StaffResponse:
+        backend = foundation_backend or FirebaseAdminFoundationBackend()
+        try:
+            actor = require_active_admin(authorization, backend)
+            return StaffResponse.model_validate(backend.update_staff(actor, staff_id, payload))
+        except AuthenticationError:
+            raise ApiError(status_code=401, code="authentication_required", message="A valid Firebase ID token is required.") from None
+        except (AdminPermissionError, FoundationPermissionError):
+            raise ApiError(status_code=403, code="admin_required", message="Active administrative access is required.") from None
+        except FoundationNotFound:
+            raise ApiError(status_code=404, code="staff_not_found", message="Staff profile not found.") from None
+        except (FoundationConflict, FoundationIdempotencyConflict):
+            raise ApiError(status_code=409, code="foundation_conflict", message="The Staff operation conflicts with existing data.") from None
+        except FoundationValidationError:
+            raise ApiError(status_code=422, code="validation_error", message="The Staff request is invalid.") from None
+        except PersistenceError:
+            raise ApiError(status_code=503, code="service_unavailable", message="Staff management is temporarily unavailable.") from None
 
     @api.post(
         "/admin/users",

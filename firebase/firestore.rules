@@ -46,8 +46,37 @@ service cloud.firestore {
     }
 
     match /departments/{departmentId} {
-      allow read: if signedIn();
+      // Preserve V1 department reads while keeping V2 private metadata behind
+      // the trusted Admin API.
+      allow read: if signedIn()
+        && (!('taxonomyVersion' in resource.data) || resource.data.taxonomyVersion != 'v2');
       allow create, update, delete: if false;
+
+      match /members/{staffId} {
+        allow read, write: if false;
+      }
+
+      match /queueState/{queueStateId} {
+        allow read, write: if false;
+      }
+    }
+
+    // V2 directory, historical identity, idempotency, and audit documents are
+    // server-managed. No browser role may read or mutate these collections.
+    match /staffProfiles/{staffId} {
+      allow read, write: if false;
+    }
+
+    match /staffIdentities/{identityId} {
+      allow read, write: if false;
+    }
+
+    match /v2FoundationActions/{actionId} {
+      allow read, write: if false;
+    }
+
+    match /auditLogs/{auditId} {
+      allow read, write: if false;
     }
 
     match /tickets/{ticketId} {
