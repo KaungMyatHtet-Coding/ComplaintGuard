@@ -1,7 +1,7 @@
 """Local-only V2 intake, privacy preparation, grouping, and agreement evidence."""
 from __future__ import annotations
 
-import argparse, csv, hashlib, json, re, unicodedata
+import argparse, csv, hashlib, json, re, subprocess, unicodedata
 from collections import Counter
 from datetime import date, datetime
 from difflib import SequenceMatcher
@@ -72,6 +72,18 @@ def load_records(path: Path) -> list[dict]:
             row["metadata"] = json.loads(row.get("metadata") or "{}")
         return rows
     raise ValueError("input must be .jsonl or .csv")
+
+
+def load_annotations(path: Path) -> list[dict]:
+    if path.suffix.casefold() == ".jsonl":
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+    elif path.suffix.casefold() == ".csv":
+        rows = list(csv.DictReader(path.open(encoding="utf-8-sig", newline="")))
+        nullable = {"reviewerACategory", "reviewerBCategory", "adjudicatedFinalCategory", "adjudicatorDecisionReason", "reviewerAReviewedAt", "reviewerBReviewedAt", "adjudicatedAt"}
+        rows = [{key: (None if key in nullable and value == "" else value) for key, value in row.items()} for row in rows]
+    else:
+        raise ValueError("annotations must be .jsonl or .csv")
+    return rows
 
 
 def _fingerprint(text: str) -> str:
@@ -183,15 +195,81 @@ def validate_annotation(row: dict) -> None:
                 raise IntakeValidationError("invalid_annotation_timestamp") from error
 
 
+def validate_pilot(records: list[dict], annotations: list[dict], configuration: dict) -> tuple[list[dict], dict]:
+    prepared, manifest = prepare_intake(records)
+    annotation_rejections = Counter()
+    valid_annotations = []
+    for annotation in annotations:
+        try:
+            validate_annotation(annotation)
+            valid_annotations.append(annotation)
+        except IntakeValidationError as error:
+            annotation_rejections[error.code] += 1
+    agreement = annotation_agreement(valid_annotations)
+    readiness = readiness_gates(manifest, agreement, configuration)
+    if annotation_rejections or agreement["unresolvedDisagreementCount"]:
+        readiness["ready"] = False
+    report = {
+        "reportSchemaVersion": 1,
+        "phase": "3.6-pilot-validation",
+        "automaticRoutingEnabled": False,
+        "dataset": manifest,
+        "annotations": {
+            "inputCount": len(annotations),
+            "validCount": len(valid_annotations),
+            "rejectedCount": sum(annotation_rejections.values()),
+            "rejectionReasonCounts": dict(sorted(annotation_rejections.items())),
+            "agreement": agreement,
+        },
+        "pilotProposal": {
+            "status": "pending_human_approval",
+            "acceptedRecordsPerCategory": 50,
+            "totalAcceptedRecords": 400,
+            "twoIndependentReviewersRequired": True,
+        },
+        "readiness": readiness,
+        "complaintTextIncluded": False,
+        "recordIdentifiersIncluded": False,
+        "reviewerIdentifiersIncluded": False,
+    }
+    return prepared, report
+
+
+def path_is_git_ignored(path: Path) -> bool:
+    result = subprocess.run(
+        ["git", "check-ignore", "--no-index", "--quiet", str(path)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    return result.returncode == 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare only a user-provided local V2 JSONL/CSV file; no downloads.")
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--prepared-output", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
+    parser.add_argument("--annotations", type=Path)
+    parser.add_argument("--readiness-report", type=Path)
+    parser.add_argument("--gates", type=Path, default=Path("data/mapping/v2_dataset_readiness_gates_proposed.json"))
     args = parser.parse_args()
-    if args.prepared_output.exists() or args.manifest.exists():
+    destinations = [args.prepared_output, args.manifest]
+    if args.readiness_report:
+        destinations.append(args.readiness_report)
+    if any(path.exists() for path in destinations):
         raise FileExistsError("refusing to overwrite output")
-    prepared, manifest = prepare_intake(load_records(args.input))
+    if not path_is_git_ignored(args.prepared_output):
+        raise ValueError("prepared complaint text must be written inside a Git-ignored path")
+    records = load_records(args.input)
+    if args.annotations:
+        if not args.readiness_report:
+            raise ValueError("--readiness-report is required with --annotations")
+        prepared, report = validate_pilot(records, load_annotations(args.annotations), json.loads(args.gates.read_text(encoding="utf-8")))
+        manifest = report["dataset"]
+        args.readiness_report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    else:
+        prepared, manifest = prepare_intake(records)
     args.prepared_output.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in prepared), encoding="utf-8")
     args.manifest.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

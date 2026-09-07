@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "complaintguard/v2-source-approval-register/1",
+  "title": "ComplaintGuard V2 aggregate source and approval register",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "sourceName",
+      "sourceType",
+      "sourceOwner",
+      "collectionMethod",
+      "licenseOrConsentDecision",
+      "privacyReviewDecision",
+      "permittedPurpose",
+      "retentionDecision",
+      "reviewerApprovalState",
+      "approvedAggregateRecordCount",
+      "rejectionCount",
+      "approvalDate"
+    ],
+    "properties": {
+      "sourceName": {"type": "string", "minLength": 1},
+      "sourceType": {"enum": ["real_public", "translated", "synthetic"]},
+      "sourceOwner": {"type": "string", "description": "Organization or role, never a customer or reviewer name."},
+      "collectionMethod": {"type": "string"},
+      "licenseOrConsentDecision": {"enum": ["pending", "approved", "rejected"]},
+      "privacyReviewDecision": {"enum": ["pending", "passed", "failed"]},
+      "permittedPurpose": {"type": "string"},
+      "retentionDecision": {"type": "string"},
+      "reviewerApprovalState": {"enum": ["not_started", "in_review", "approved", "blocked"]},
+      "approvedAggregateRecordCount": {"type": "integer", "minimum": 0},
+      "rejectionCount": {"type": "integer", "minimum": 0},
+      "approvalDate": {"type": ["string", "null"], "format": "date"}
+    }
+  },
+  "description": "Aggregate-only. Complaint text, record IDs, and personal identifiers are prohibited."
+}
