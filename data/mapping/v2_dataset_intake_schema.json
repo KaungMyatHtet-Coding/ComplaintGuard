@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "complaintguard/v2-dataset-intake-record/1",
+  "title": "ComplaintGuard V2 candidate intake",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "recordId",
+    "complaintText",
+    "language",
+    "proposedCategoryId",
+    "sourceType",
+    "sourceName",
+    "sourceReference",
+    "collectionDate",
+    "licenseOrConsentStatus",
+    "privacyReviewStatus",
+    "metadata",
+    "taxonomyVersion"
+  ],
+  "properties": {
+    "recordId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "complaintText": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 5000
+    },
+    "language": {
+      "enum": [
+        "my",
+        "en",
+        "mixed"
+      ]
+    },
+    "proposedCategoryId": {
+      "enum": [
+        "account_branch_services",
+        "cards_atm_pos",
+        "mobile_internet_banking",
+        "transfers_payments_remittance",
+        "loans_credit",
+        "fraud_scam_unauthorized",
+        "kyc_verification_restrictions",
+        "general_complaints"
+      ]
+    },
+    "sourceType": {
+      "enum": [
+        "real_public",
+        "translated",
+        "synthetic"
+      ]
+    },
+    "sourceName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceReference": {
+      "type": "string",
+      "minLength": 1
+    },
+    "collectionDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "licenseOrConsentStatus": {
+      "enum": [
+        "approved_public_license",
+        "approved_owner_consent",
+        "approved_synthetic_authorization"
+      ]
+    },
+    "privacyReviewStatus": {
+      "const": "passed"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "originLanguage": {
+          "enum": [
+            "my",
+            "en",
+            "mixed",
+            "not_applicable"
+          ]
+        },
+        "translationMethod": {
+          "enum": [
+            "human",
+            "machine_then_human_review",
+            "not_applicable"
+          ]
+        },
+        "sourceRecordGroup": {
+          "type": "string"
+        }
+      }
+    },
+    "taxonomyVersion": {
+      "const": "v2"
+    }
+  }
+}

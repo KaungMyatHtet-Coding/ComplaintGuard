@@ -1,0 +1,28 @@
+[
+  {
+    "recordId": "synthetic-annotation-001",
+    "language": "my",
+    "reviewerACategory": "cards_atm_pos",
+    "reviewerBCategory": "cards_atm_pos",
+    "disagreementState": "agreed",
+    "adjudicatedFinalCategory": "cards_atm_pos",
+    "adjudicatorDecisionReason": null,
+    "reviewerAReviewedAt": "2026-09-07T08:00:00Z",
+    "reviewerBReviewedAt": "2026-09-07T08:05:00Z",
+    "adjudicatedAt": null,
+    "taxonomyVersion": "v2"
+  },
+  {
+    "recordId": "synthetic-annotation-002",
+    "language": "mixed",
+    "reviewerACategory": "mobile_internet_banking",
+    "reviewerBCategory": "transfers_payments_remittance",
+    "disagreementState": "adjudicated",
+    "adjudicatedFinalCategory": "transfers_payments_remittance",
+    "adjudicatorDecisionReason": "Synthetic example emphasizes the failed transfer outcome rather than the channel.",
+    "reviewerAReviewedAt": "2026-09-07T08:10:00Z",
+    "reviewerBReviewedAt": "2026-09-07T08:15:00Z",
+    "adjudicatedAt": "2026-09-07T09:00:00Z",
+    "taxonomyVersion": "v2"
+  }
+]

@@ -61,6 +61,13 @@ data/downloads/
 !data/eda/**/*.json
 !evaluation/day18/*.csv
 
+# V2 complaint-text and reviewer workspaces; aggregate evidence remains trackable
+data/v2/intake/
+data/v2/prepared/
+data/v2/annotations/
+data/v2/exports/
+data/v2/reviewer-*/
+
 # Generated model artifacts (allow only by deliberate force-add/review)
 *.joblib
 *.pickle

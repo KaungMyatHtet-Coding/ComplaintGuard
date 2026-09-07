@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "complaintguard/v2-dual-review-annotation/1",
+  "title": "ComplaintGuard V2 dual-review annotation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "recordId",
+    "language",
+    "reviewerACategory",
+    "reviewerBCategory",
+    "disagreementState",
+    "adjudicatedFinalCategory",
+    "adjudicatorDecisionReason",
+    "reviewerAReviewedAt",
+    "reviewerBReviewedAt",
+    "adjudicatedAt",
+    "taxonomyVersion"
+  ],
+  "properties": {
+    "recordId": {
+      "type": "string"
+    },
+    "language": {
+      "enum": [
+        "my",
+        "en",
+        "mixed"
+      ]
+    },
+    "reviewerACategory": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reviewerBCategory": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "disagreementState": {
+      "enum": [
+        "not_reviewed",
+        "agreed",
+        "disagreed_unresolved",
+        "adjudicated"
+      ]
+    },
+    "adjudicatedFinalCategory": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "adjudicatorDecisionReason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reviewerAReviewedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "reviewerBReviewedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "adjudicatedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "taxonomyVersion": {
+      "const": "v2"
+    }
+  },
+  "description": "Reviewer identities are excluded from aggregate outputs."
+}

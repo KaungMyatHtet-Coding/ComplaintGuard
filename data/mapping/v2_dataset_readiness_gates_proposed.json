@@ -1,0 +1,35 @@
+{
+  "configuration_version": 1,
+  "status": "proposed_pending_human_approval",
+  "not_an_approval": true,
+  "minimum_complaint_characters": 20,
+  "maximum_complaint_characters": 5000,
+  "near_duplicate_threshold": 0.9,
+  "partition_weights": {
+    "train": 70,
+    "calibration": 10,
+    "validation": 10,
+    "held_out": 10
+  },
+  "proposed_minimum_per_category": 100,
+  "proposed_minimum_myanmar_records": 400,
+  "proposed_minimum_mixed_language_records": 100,
+  "required_gates": [
+    "all_provenance_and_license_approved",
+    "all_privacy_reviews_passed",
+    "zero_unresolved_disagreements",
+    "zero_cross_partition_duplicate_groups",
+    "minimum_per_category_met",
+    "minimum_myanmar_coverage_met",
+    "minimum_mixed_coverage_met",
+    "class_balance_documented",
+    "deterministic_partitioning",
+    "locked_dataset_hash_and_manifest"
+  ],
+  "approval_required_from": [
+    "owner",
+    "domain_reviewer",
+    "privacy_reviewer",
+    "ml_reviewer"
+  ]
+}
