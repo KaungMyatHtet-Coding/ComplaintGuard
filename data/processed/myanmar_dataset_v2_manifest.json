@@ -1,0 +1,23 @@
+{
+  "manifest_schema_version": 1,
+  "dataset_version": "dataset_v2",
+  "mapping_version": "mapping_v2",
+  "taxonomy_version": "v2",
+  "status": "blocked_pending_approved_data",
+  "automatic_routing_enabled": false,
+  "record_count": 0,
+  "counts_by_source_type": {"real_public": 0, "translated": 0, "synthetic": 0},
+  "counts_by_language": {"myanmar": 0, "english": 0, "mixed": 0},
+  "counts_by_category": {},
+  "counts_by_split": {"train": 0, "calibration": 0, "validation": 0, "held_out": 0},
+  "privacy": {"unicode_normalization": "NFKC", "raw_text_published": false, "personal_identifiers_published": false},
+  "duplicates": {"checked_before_partitioning": true, "exact_duplicate_pairs": 0, "near_duplicate_pairs": 0, "cross_split_groups": 0, "note": "No approved V2 records are available; zero is not a passed corpus scan."},
+  "partitioning": {"method": "duplicate-group SHA-256 modulo 100", "weights": {"train": 70, "calibration": 10, "validation": 10, "held_out": 10}, "locked": true},
+  "metrics": {"class_counts_available": false, "agreement_available": false, "classification_metrics_available": false, "reason": "No approved labeled Myanmar-banking corpus."},
+  "source_inventory": [
+    {"source_type": "real_public", "classification": "real", "record_count": 0},
+    {"source_type": "translated", "classification": "translated_not_real", "record_count": 0},
+    {"source_type": "synthetic", "classification": "synthetic_not_real", "record_count": 0}
+  ],
+  "text_or_identifiers_in_manifest": false
+}

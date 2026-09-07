@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "taxonomy_version": "v2",
+  "status": "frozen_provisional",
+  "automatic_routing_enabled": false,
+  "disclaimer": "ComplaintGuard categories; not AYA Bank internal departments.",
+  "normalization": "Unicode NFKC, casefold, collapse whitespace",
+  "category_ids": [
+    "account_branch_services",
+    "cards_atm_pos",
+    "mobile_internet_banking",
+    "transfers_payments_remittance",
+    "loans_credit",
+    "fraud_scam_unauthorized",
+    "kyc_verification_restrictions",
+    "general_complaints"
+  ],
+  "categories": {
+    "account_branch_services": {
+      "name_en": "Account & Branch Services",
+      "name_my": "အကောင့်နှင့် ဘဏ်ခွဲဝန်ဆောင်မှုများ",
+      "definition_en": "Account opening, access, maintenance, branch conduct, cash and general account servicing.",
+      "definition_my": "အကောင့်ဖွင့်ခြင်း၊ အသုံးပြုခွင့်၊ ထိန်းသိမ်းခြင်း၊ ဘဏ်ခွဲဝန်ဆောင်မှုနှင့် အထွေထွေအကောင့်ကိစ္စများ။",
+      "include": ["account opening or closure", "branch or counter service", "cash deposit or withdrawal service"],
+      "exclude": ["digital-app defects", "card, ATM or POS faults", "identity verification restrictions"],
+      "examples": {"en": "The branch could not update my account details.", "my": "ဘဏ်ခွဲမှာ အကောင့်အချက်အလက် ပြင်လို့မရပါ။"}
+    },
+    "cards_atm_pos": {
+      "name_en": "Cards, ATM & POS", "name_my": "ကတ်၊ ATM နှင့် POS",
+      "definition_en": "Card lifecycle, ATM cash or retention, and merchant POS processing issues.",
+      "definition_my": "ကတ်အသုံးပြုမှု၊ ATM ငွေထုတ်/ကတ်သိမ်းမှုနှင့် POS ငွေပေးချေမှု ပြဿနာများ။",
+      "include": ["card activation or delivery", "ATM retained card or cash issue", "POS decline"],
+      "exclude": ["unknown or unauthorized transaction", "mobile-app login", "account-only servicing"],
+      "examples": {"en": "The ATM kept my card.", "my": "ATM က ကျွန်တော့်ကတ်ကို သိမ်းထားပါတယ်။"}
+    },
+    "mobile_internet_banking": {
+      "name_en": "Mobile & Internet Banking", "name_my": "မိုဘိုင်းနှင့် အင်တာနက်ဘဏ်လုပ်ငန်း",
+      "definition_en": "Login, availability, and feature defects in mobile or web banking channels.",
+      "definition_my": "မိုဘိုင်း သို့မဟုတ် ဝဘ်ဘဏ်စနစ် ဝင်ရောက်မှုနှင့် လုပ်ဆောင်ချက် ချို့ယွင်းမှုများ။",
+      "include": ["app login failure", "online banking outage", "digital feature error"],
+      "exclude": ["transfer outcome after successful login", "KYC restriction", "fraud or account takeover"],
+      "examples": {"en": "The banking app closes after login.", "my": "ဘဏ် app က ဝင်ပြီးတာနဲ့ ပိတ်သွားပါတယ်။"}
+    },
+    "transfers_payments_remittance": {
+      "name_en": "Transfers, Payments & Remittance", "name_my": "ငွေလွှဲ၊ ငွေပေးချေမှုနှင့် ပြည်တွင်း/ပြည်ပငွေပို့ခြင်း",
+      "definition_en": "Expected transfers, bill payments, merchant payments, and remittances that are delayed, failed, duplicated, or misposted.",
+      "definition_my": "မျှော်လင့်ထားသော ငွေလွှဲ၊ ဘီလ်နှင့် ငွေပေးချေမှုများ နောက်ကျ၊ မအောင်မြင်၊ နှစ်ကြိမ်ဖြတ် သို့မဟုတ် စာရင်းမှားခြင်း။",
+      "include": ["pending transfer", "failed bill payment", "remittance not received"],
+      "exclude": ["transaction denied by the customer", "ATM cash issue", "loan repayment policy"],
+      "examples": {"en": "My intended transfer is still pending.", "my": "ကျွန်တော် လွှဲထားတဲ့ငွေ မရောက်သေးပါ။"}
+    },
+    "loans_credit": {
+      "name_en": "Loans & Credit", "name_my": "ချေးငွေနှင့် အကြွေးဝန်ဆောင်မှု",
+      "definition_en": "Loan applications, repayment posting, interest, fees, schedules, and credit servicing.",
+      "definition_my": "ချေးငွေလျှောက်ထားမှု၊ ပြန်ဆပ်ငွေစာရင်းသွင်းမှု၊ အတိုး၊ အခနှင့် အချိန်ဇယားကိစ္စများ။",
+      "include": ["loan application", "repayment not posted", "interest or fee query"],
+      "exclude": ["ordinary account fee", "unauthorized debit", "identity verification"],
+      "examples": {"en": "My loan payment was not posted.", "my": "ချေးငွေပြန်ဆပ်ထားတာ စာရင်းမဝင်သေးပါ။"}
+    },
+    "fraud_scam_unauthorized": {
+      "name_en": "Fraud, Scam & Unauthorized Transactions", "name_my": "လိမ်လည်မှုနှင့် ခွင့်ပြုချက်မရှိသော ငွေလွှဲမှုများ",
+      "definition_en": "Suspected scams, account takeover, credential compromise, or any transaction the customer says they did not authorize.",
+      "definition_my": "လိမ်လည်မှု၊ အကောင့်သိမ်းယူမှု၊ လျှို့ဝှက်အချက်အလက်ပေါက်ကြားမှု သို့မဟုတ် ဖောက်သည်မခွင့်ပြုသော ငွေလွှဲမှုများ။",
+      "include": ["unauthorized transaction", "phishing or scam", "account takeover"],
+      "exclude": ["known transfer delayed", "ordinary card decline", "fee disagreement without fraud"],
+      "examples": {"en": "I did not authorize this debit.", "my": "ဒီငွေဖြတ်မှုကို ကျွန်တော် ခွင့်မပြုခဲ့ပါ။"}
+    },
+    "kyc_verification_restrictions": {
+      "name_en": "KYC, Verification & Account Restrictions", "name_my": "KYC၊ အထောက်အထားစိစစ်မှုနှင့် အကောင့်ကန့်သတ်ချက်များ",
+      "definition_en": "Identity or document verification, profile mismatch, compliance review, and related account restrictions.",
+      "definition_my": "ကိုယ်ရေးအထောက်အထား/စာရွက်စာတမ်းစိစစ်မှု၊ အချက်အလက်မကိုက်ညီမှုနှင့် ဆက်စပ်အကောင့်ကန့်သတ်မှုများ။",
+      "include": ["KYC document review", "identity mismatch", "verification-related restriction"],
+      "exclude": ["technical app outage", "branch conduct alone", "fraud takeover"],
+      "examples": {"en": "My account remains restricted after document review.", "my": "စာရွက်စာတမ်း စစ်ပြီးပေမယ့် အကောင့်ကန့်သတ်ထားဆဲပါ။"}
+    },
+    "general_complaints": {
+      "name_en": "Customer Complaint Unit", "name_my": "ဖောက်သည်တိုင်ကြားမှုဌာန",
+      "definition_en": "Ambiguous, cross-category, unsupported, service-conduct, or failed-classification cases requiring review.",
+      "definition_my": "အမျိုးအစားမရှင်း၊ ကဏ္ဍစုံ၊ မပံ့ပိုးသေးသော၊ ဝန်ဆောင်မှုအပြုအမူ သို့မဟုတ် စနစ်ခွဲခြားမရသော တိုင်ကြားချက်များ။",
+      "include": ["ambiguous or multi-topic", "service conduct", "unsupported or failed classification"],
+      "exclude": ["a single clearly supported category"],
+      "examples": {"en": "I need help deciding which team handles this complaint.", "my": "ဒီတိုင်ကြားချက်ကို ဘယ်ဌာနကိုပို့ရမလဲ မရှင်းပါ။"}
+    }
+  },
+  "ambiguity_guidance": [
+    "Customer-denied or suspicious activity takes precedence over its payment channel.",
+    "Use the service outcome, not merely the channel: an intended transfer failure is transfers_payments_remittance, while an app-only defect is mobile_internet_banking.",
+    "Use general_complaints when evidence supports multiple primary categories or no category; record a secondary category only after review.",
+    "These labels prepare a dataset only and must not be used to activate routing."
+  ]
+}

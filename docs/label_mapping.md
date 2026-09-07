@@ -1,5 +1,10 @@
 # Day 7 Deterministic Department Label Mapping
 
+> V2 note: this document and every V1 ID below remain frozen historical model
+> evidence. The provisional V2 taxonomy is documented in
+> `docs/v2_phase3_dataset_preparation.md`; it does not alter this mapping or the
+> V1 classifier.
+
 ## Status and versions
 
 Day 7 is complete after the production v1 dataset build and verification.

@@ -1,5 +1,9 @@
 # Day 10 local Myanmar inference pipeline
 
+> V2 note: this remains frozen V1 evidence. Phase 3 dataset preparation is
+> isolated in `docs/v2_phase3_dataset_preparation.md`; it does not activate
+> Myanmar routing or represent translated/synthetic examples as customer data.
+
 Day 10 implements a local bilingual preprocessing boundary around the frozen
 Day 9 department classifier. It remains **In Progress** because owner review
 found only 14/30 usable translations and only 11/30 correct classifications;
