@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "complaintguard/v2-phase3-7-approval-record/1",
+  "title": "ComplaintGuard V2 Phase 3.7 dataset approval record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taxonomyVersion",
+    "datasetManifestReference",
+    "datasetHash",
+    "approverRoles",
+    "decisions",
+    "overallDecision",
+    "automaticRoutingEnabled",
+    "phase4Authorization",
+    "recordedAt"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "phase3.7-approval-v1", "default": "phase3.7-approval-v1"},
+    "taxonomyVersion": {"const": "v2", "default": "v2"},
+    "datasetManifestReference": {"type": ["string", "null"], "default": null, "description": "Aggregate manifest reference only."},
+    "datasetHash": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$", "default": null},
+    "approverRoles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["teacherOrProjectSupervisor", "privacyReviewer", "domainReviewer", "annotationAdjudicator"],
+      "properties": {
+        "teacherOrProjectSupervisor": {"const": "teacher_or_project_supervisor", "default": "teacher_or_project_supervisor"},
+        "privacyReviewer": {"const": "privacy_reviewer", "default": "privacy_reviewer"},
+        "domainReviewer": {"const": "domain_reviewer", "default": "domain_reviewer"},
+        "annotationAdjudicator": {"const": "annotation_adjudicator", "default": "annotation_adjudicator"}
+      },
+      "description": "Role labels only; no names, emails, IDs, or signatures."
+    },
+    "decisions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eightCategoryIds", "categoryDefinitions", "pilot50PerCategory", "pilot400Total", "myanmarCoverage", "englishCoverage", "mixedLanguageCoverage", "lawfulSourceAndCollection", "licenseOrConsent", "privacyReviewMethod", "permittedPurpose", "retentionAndDeletion", "reviewerARole", "reviewerBRole", "adjudicatorRole", "zeroUnresolvedDisagreements", "zeroDuplicateGroupLeakage", "phase4ModelExperimentation"],
+      "properties": {
+        "eightCategoryIds": {"$ref": "#/$defs/pendingDecision"},
+        "categoryDefinitions": {"$ref": "#/$defs/pendingDecision"},
+        "pilot50PerCategory": {"$ref": "#/$defs/pilotDecision"},
+        "pilot400Total": {"$ref": "#/$defs/pilotDecision"},
+        "myanmarCoverage": {"$ref": "#/$defs/pendingDecision"},
+        "englishCoverage": {"$ref": "#/$defs/pendingDecision"},
+        "mixedLanguageCoverage": {"$ref": "#/$defs/pendingDecision"},
+        "lawfulSourceAndCollection": {"$ref": "#/$defs/pendingDecision"},
+        "licenseOrConsent": {"$ref": "#/$defs/pendingDecision"},
+        "privacyReviewMethod": {"$ref": "#/$defs/pendingDecision"},
+        "permittedPurpose": {"$ref": "#/$defs/pendingDecision"},
+        "retentionAndDeletion": {"$ref": "#/$defs/pendingDecision"},
+        "reviewerARole": {"$ref": "#/$defs/pendingDecision"},
+        "reviewerBRole": {"$ref": "#/$defs/pendingDecision"},
+        "adjudicatorRole": {"$ref": "#/$defs/pendingDecision"},
+        "zeroUnresolvedDisagreements": {"$ref": "#/$defs/pendingDecision"},
+        "zeroDuplicateGroupLeakage": {"$ref": "#/$defs/pendingDecision"},
+        "phase4ModelExperimentation": {"$ref": "#/$defs/pendingDecision"}
+      }
+    },
+    "overallDecision": {"enum": ["approve", "reject", "pending"], "default": "pending"},
+    "automaticRoutingEnabled": {"const": false, "default": false},
+    "phase4Authorization": {"type": "boolean", "default": false, "description": "May become true only when phase4ModelExperimentation is approve and all prerequisites are satisfied."},
+    "recordedAt": {"type": ["string", "null"], "format": "date-time", "default": null}
+  },
+  "$defs": {
+    "pendingDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "evidenceReference", "conditions"],
+      "properties": {
+        "decision": {"enum": ["approve", "reject", "pending"], "default": "pending"},
+        "evidenceReference": {"type": ["string", "null"], "default": null},
+        "conditions": {"type": ["string", "null"], "default": null}
+      }
+    },
+    "pilotDecision": {
+      "allOf": [{"$ref": "#/$defs/pendingDecision"}],
+      "description": "Pilot proposal only; approval is not a production-adequacy claim."
+    }
+  },
+  "description": "Strict aggregate approval schema. It contains no complaint text or personal information; all decisions default to pending."
+}
